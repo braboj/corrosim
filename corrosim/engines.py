@@ -25,19 +25,20 @@ class EngineResult:
     e_total_ev: float
     homo_ev: float
     lumo_ev: float
+    charges: list | None = None   # per-atom partial charges (Mulliken), if available
 
     @property
     def gap_ev(self) -> float:
         return self.lumo_ev - self.homo_ev
 
 
-def run_xtb(symbols, coords) -> EngineResult:
-    """GFN2-xTB single point. coords in Angstrom."""
+def run_xtb(symbols, coords, charge: int = 0) -> EngineResult:
+    """GFN2-xTB single point. coords in Angstrom. charge: net molecular charge."""
     from tblite.interface import Calculator
     from ase.data import atomic_numbers
     Z = np.array([atomic_numbers[s] for s in symbols])
     xyz_bohr = np.asarray(coords, dtype=float) * ANG_TO_BOHR
-    calc = Calculator("GFN2-xTB", Z, xyz_bohr)
+    calc = Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
     calc.set("verbosity", 0)
     res = calc.singlepoint()
     orb = np.asarray(res.get("orbital-energies"))      # Hartree
@@ -46,23 +47,34 @@ def run_xtb(symbols, coords) -> EngineResult:
     homo_i = np.where(occ > 0.5)[0].max()
     homo = orb[homo_i]
     lumo = orb[homo_i + 1]
+    try:
+        charges = [float(q) for q in np.asarray(res.get("charges"))]
+    except Exception:
+        charges = None
     return EngineResult("xtb", "GFN2-xTB",
                         e_total * HARTREE_TO_EV,
                         homo * HARTREE_TO_EV,
-                        lumo * HARTREE_TO_EV)
+                        lumo * HARTREE_TO_EV,
+                        charges=charges)
 
 
-def run_pyscf(symbols, coords, basis: str = "6-31g",
-              xc: str = "b3lyp", solvent: str | None = "water") -> EngineResult:
+def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
+              xc: str = "b3lyp", solvent: str | None = "water",
+              charge: int = 0) -> EngineResult:
     """
     DFT single point with PySCF. coords in Angstrom.
+
+    Default level B3LYP/6-311++G(d,p) + ddCOSMO(water): corrosim's adopted
+    production DFT standard, matching the methodology template (see ADR 0002).
+    ('6-311++G(d,p)' is PySCF-equivalent to '6-311++g**'; use '6-31g' for quick
+    checks.)
 
     solvent: None for gas phase, or a solvent name to switch on the ddCOSMO
              implicit-solvation model (mirrors the PCM/COSMO used in the papers).
     """
     from pyscf import gto, dft
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, verbose=0)
+                basis=basis, charge=charge, verbose=0)
     mf = dft.RKS(mol)
     mf.xc = xc
     if solvent:
@@ -75,24 +87,31 @@ def run_pyscf(symbols, coords, basis: str = "6-31g",
     mo = mf.mo_energy
     homo = mo[occ > 0].max()
     lumo = mo[occ == 0].min()
+    try:
+        charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
+    except Exception:
+        charges = None
     level = f"{xc.upper()}/{basis}" + (f" (ddCOSMO:{solvent})" if solvent else " (gas)")
     return EngineResult("pyscf", level,
                         float(e_total) * HARTREE_TO_EV,
                         float(homo) * HARTREE_TO_EV,
-                        float(lumo) * HARTREE_TO_EV)
+                        float(lumo) * HARTREE_TO_EV,
+                        charges=charges)
 
 
-def run_engine(symbols, coords, engine: str = "xtb", **kwargs) -> EngineResult:
-    """Dispatch to the chosen engine."""
+def run_engine(symbols, coords, engine: str = "xtb", charge: int = 0,
+               **kwargs) -> EngineResult:
+    """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a
+    protonated inhibitor in acid)."""
     engine = engine.lower()
     if engine == "xtb":
-        return run_xtb(symbols, coords)
+        return run_xtb(symbols, coords, charge=charge)
     if engine == "pyscf":
-        return run_pyscf(symbols, coords, **kwargs)
+        return run_pyscf(symbols, coords, charge=charge, **kwargs)
     if engine == "orca":
-        return run_orca(symbols, coords, **kwargs)
+        return run_orca(symbols, coords, charge=charge, **kwargs)
     if engine == "gaussian":
-        return run_gaussian(symbols, coords, **kwargs)
+        return run_gaussian(symbols, coords, charge=charge, **kwargs)
     raise ValueError(f"Unknown engine '{engine}'. "
                      "Use 'xtb', 'pyscf', 'orca', or 'gaussian'.")
 

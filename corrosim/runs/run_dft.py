@@ -1,0 +1,129 @@
+"""
+corrosim.runs.run_dft  (M1 driver)
+==================================
+Production DFT descriptor matrix for the Arghel flavonoids — the foundation for
+the article (see docs/article-plan.local.md, milestone M1).
+
+Runs the adopted level (B3LYP/6-311++G(d,p) + ddCOSMO water; ADR 0002) over
+
+    molecules  x  {gas, aqueous}  x  {neutral, protonated}
+
+For each molecule the protonation site is chosen as the lowest-energy conjugate
+acid (fast screening engine), then the reported descriptors come from DFT. Results
+are cached to JSON and printed as a table.
+
+Local use (needs rdkit + pyscf — long jobs are expected):
+
+    python -m corrosim.runs.run_dft \
+        --molecules kaempferol,quercetin,isorhamnetin \
+        --engine pyscf --out-json dft_descriptors.json --out-csv dft_descriptors.csv
+
+Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
+
+    python -m corrosim.runs.run_dft --engine xtb --no-protonated
+"""
+from __future__ import annotations
+import argparse
+import json
+import sys
+
+import corrosim
+from corrosim.molecules import (build_molecule, build_protonated,
+                                enumerate_protonation_sites)
+from corrosim.engines import run_engine
+
+DEFAULT_MOLECULES = ["kaempferol", "quercetin", "isorhamnetin"]
+
+
+def _best_protonation_site(name: str, select_engine: str = "xtb"):
+    """Return (site_idx, protonated Molecule) for the lowest-energy conjugate acid.
+
+    All protonation isomers share the same atoms, so total energies are directly
+    comparable; the most stable cation is the preferred protonation site.
+    """
+    best = None
+    for idx in enumerate_protonation_sites(name):
+        try:
+            mol = build_protonated(name, idx)
+            res = run_engine(mol.symbols, mol.coords, engine=select_engine,
+                             charge=mol.charge)
+        except Exception as exc:                 # skip sites RDKit/the engine reject
+            print(f"    site {idx}: skipped ({exc})", file=sys.stderr)
+            continue
+        print(f"    site {idx}: E = {res.e_total_ev:.3f} eV", file=sys.stderr)
+        if best is None or res.e_total_ev < best[1]:
+            best = (idx, res.e_total_ev, mol)
+    if best is None:
+        raise RuntimeError(f"No usable protonation site for {name!r}")
+    return best[0], best[2]
+
+
+def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
+                   basis="6-311++G(d,p)", xc="b3lyp",
+                   protonated=True, select_engine="xtb"):
+    """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts."""
+    rows = []
+    for name in molecules:
+        print(f"[{name}]", file=sys.stderr)
+        forms = [("neutral", build_molecule(name))]
+        if protonated:
+            print("  selecting protonation site ...", file=sys.stderr)
+            _, prot = _best_protonation_site(name, select_engine)
+            forms.append(("protonated", prot))
+        for form, mol in forms:
+            for phase, solvent in (("gas", None), ("aqueous", "water")):
+                print(f"  DFT {form}/{phase} ...", file=sys.stderr)
+                kw = (dict(basis=basis, xc=xc, solvent=solvent)
+                      if engine == "pyscf" else {})
+                row = corrosim.analyse_molecule(mol, metal=metal, engine=engine, **kw)
+                row.update(form=form, phase=phase)
+                rows.append(row)
+    return rows
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="corrosim-run-dft",
+        description="Production DFT descriptor matrix (M1).",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES),
+                   help="Comma-separated names or SMILES.")
+    p.add_argument("--engine", default="pyscf",
+                   choices=["pyscf", "xtb", "orca", "gaussian"])
+    p.add_argument("--metal", default="Fe(110)")
+    p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
+    p.add_argument("--xc", default="b3lyp", help="PySCF XC functional.")
+    p.add_argument("--no-protonated", action="store_true",
+                   help="Neutral forms only (skip the acid-relevant cations).")
+    p.add_argument("--select-engine", default="xtb",
+                   help="Fast engine for protonation-site selection.")
+    p.add_argument("--out-json", default=None, help="Cache rows to this JSON file.")
+    p.add_argument("--out-csv", default=None, help="Also write the table to CSV.")
+    args = p.parse_args(argv)
+
+    molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
+                          basis=args.basis, xc=args.xc,
+                          protonated=not args.no_protonated,
+                          select_engine=args.select_engine)
+
+    if args.out_json:
+        with open(args.out_json, "w") as f:
+            json.dump(rows, f, indent=2)
+        print(f"JSON: {args.out_json}", file=sys.stderr)
+
+    import pandas as pd
+    df = pd.DataFrame(rows)
+    show = [c for c in ["name", "form", "phase", "charge", "homo_ev", "lumo_ev",
+                        "gap_ev", "hardness_ev", "softness_inv_ev",
+                        "electronegativity_ev", "electrophilicity_ev", "delta_n",
+                        "back_donation_ev", "tnc"] if c in df.columns]
+    print("\n" + df[show].round(3).to_string(index=False))
+    if args.out_csv:
+        df.to_csv(args.out_csv, index=False)
+        print(f"CSV: {args.out_csv}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

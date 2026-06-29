@@ -15,9 +15,9 @@ from .descriptors import DESCRIPTOR_META
 def results_dataframe(rows: list[dict]) -> pd.DataFrame:
     """rows: list of {name, formula, level, **descriptor fields}."""
     df = pd.DataFrame(rows)
-    cols = ["name", "formula", "level", "homo_ev", "lumo_ev", "gap_ev",
+    cols = ["name", "formula", "charge", "level", "homo_ev", "lumo_ev", "gap_ev",
             "hardness_ev", "softness_inv_ev", "electronegativity_ev",
-            "electrophilicity_ev", "delta_n", "back_donation_ev"]
+            "electrophilicity_ev", "delta_n", "back_donation_ev", "tnc"]
     if "e_ads_kjmol" in df.columns:
         cols.append("e_ads_kjmol")
     cols = [c for c in cols if c in df.columns]

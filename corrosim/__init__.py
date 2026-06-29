@@ -11,42 +11,58 @@ Quick use:
                         out_html="report.html")
 """
 from __future__ import annotations
-from .molecules import build_molecule, Molecule, LIBRARY
+from .molecules import (build_molecule, build_protonated,
+                        enumerate_protonation_sites, Molecule, LIBRARY)
 from .engines import run_engine, EngineResult
-from .descriptors import compute_descriptors, METAL_WORK_FUNCTION
+from .descriptors import (compute_descriptors, total_negative_charge,
+                          METAL_WORK_FUNCTION)
 from .report import results_dataframe, rank_inhibitors, build_html_report
 from .adsorption import (build_adsorption_system, estimate_adsorption_energy,
                          LAMMPS_HANDOFF_NOTE)
 
-__all__ = ["screen", "analyse_one", "build_molecule", "Molecule", "LIBRARY",
-           "run_engine", "compute_descriptors", "build_adsorption_system",
+__all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
+           "build_protonated", "enumerate_protonation_sites", "Molecule",
+           "LIBRARY", "run_engine", "compute_descriptors",
+           "total_negative_charge", "build_adsorption_system",
            "estimate_adsorption_energy", "METAL_WORK_FUNCTION",
            "LAMMPS_HANDOFF_NOTE", "rank_inhibitors", "build_html_report"]
 
 
-def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
-                engine: str = "xtb", ff: str = "MMFF",
-                adsorption: bool = False, **engine_kwargs) -> dict:
-    """Full Stage-1 analysis of a single inhibitor. Returns a flat row dict.
+def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
+                     engine: str = "xtb", adsorption: bool = False,
+                     **engine_kwargs) -> dict:
+    """Full Stage-1 analysis of a pre-built Molecule. Returns a flat row dict.
 
-    adsorption=True also adds the fast UFF vdW physisorption estimate (Stage 2).
+    Respects mol.charge (e.g. +1 for a protonated inhibitor in acid) and records
+    TNC when the engine returns atomic charges. adsorption=True also adds the fast
+    UFF vdW physisorption estimate (Stage 2).
     """
-    mol = build_molecule(name_or_smiles, ff=ff)
-    res = run_engine(mol.symbols, mol.coords, engine=engine, **engine_kwargs)
+    res = run_engine(mol.symbols, mol.coords, engine=engine, charge=mol.charge,
+                     **engine_kwargs)
     desc = compute_descriptors(res.homo_ev, res.lumo_ev, metal=metal)
     row = {"name": mol.name, "formula": mol.formula, "n_atoms": mol.n_atoms,
-           "smiles": mol.smiles, "level": res.level}
+           "smiles": mol.smiles, "charge": mol.charge, "level": res.level}
     row.update(desc.as_dict())
+    row["tnc"] = total_negative_charge(res.charges)
     if adsorption:
         metal_symbol = metal.split("(")[0]
         try:
             ads = estimate_adsorption_energy(mol, metal=metal_symbol)
             row["e_ads_kjmol"] = ads["e_ads_kjmol"]
             row["e_ads_ev"] = ads["e_ads_ev"]
-        except ValueError as e:
+        except ValueError:
             row["e_ads_kjmol"] = None
             row["e_ads_ev"] = None
     return row
+
+
+def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
+                engine: str = "xtb", ff: str = "MMFF",
+                adsorption: bool = False, **engine_kwargs) -> dict:
+    """Build a single inhibitor from a name/SMILES, then analyse it (Stage 1)."""
+    mol = build_molecule(name_or_smiles, ff=ff)
+    return analyse_molecule(mol, metal=metal, engine=engine,
+                            adsorption=adsorption, **engine_kwargs)
 
 
 def screen(inhibitors, metal: str = "Fe(110)", medium: str = "1 M HCl",

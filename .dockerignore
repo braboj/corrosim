@@ -1,0 +1,20 @@
+# Keep the build context small + fast. The Dockerfile copies only what it needs.
+.git
+.venv
+venv
+env
+docs/whitepapers/      # ~150 MB of private PDFs — never send to the daemon
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+*.html
+*.cif
+*_slab.xyz
+results.csv
+orca_*/
+g16_*/
+*.local.md
+.idea/
+.vscode/

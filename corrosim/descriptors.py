@@ -58,6 +58,16 @@ class Descriptors:
         return asdict(self)
 
 
+def total_negative_charge(charges) -> float:
+    """TNC = sum of the negative atomic partial charges (Mulliken). A proxy for the
+    molecule's electron-rich / nucleophilic character; reported by the methodology
+    template (ADR 0002) alongside the global descriptors. Returns None if no
+    charges are available."""
+    if charges is None:
+        return None
+    return round(float(sum(q for q in charges if q < 0)), 4)
+
+
 def compute_descriptors(homo_ev: float, lumo_ev: float,
                         metal: str = "Fe(110)",
                         phi_metal_ev: float | None = None) -> Descriptors:
