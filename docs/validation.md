@@ -54,9 +54,13 @@ gas/aqueous matrix: `dft_descriptors.{json,csv}` (run `python -m corrosim.runs.r
 
 | Source | Method | Quercetin | Kaempferol |
 |---|---|---|---|
-| **corrosim** | UFF vdW estimate | −4.5 kJ/mol | −4.3 kJ/mol |
+| **corrosim (Stage-2 MC)** | UFF vdW, Metropolis/annealing pose search | −16.0 kJ/mol | −16.6 kJ/mol |
+| **corrosim (Stage-3 MD)** | Brownian MD, Fe–O RDF first peak | 3.65 Å (physisorption) | 3.35 Å |
 | **Black tea extract study** (Mater. Chem. Phys., 2025) | DFT, periodic + dispersion | strongest constituent; ΔGads ≈ −20 kJ/mol (overall physicochemical ~−35) | weaker than quercetin |
 | **Lady's mantle study** (Results in Chemistry, 2025) | DFT/MC | — | strong adsorption confirmed (reference compound) |
+
+(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `mc_adsorption.json`,
+`md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
 ## Reading
 
@@ -64,12 +68,16 @@ gas/aqueous matrix: `dft_descriptors.{json,csv}` (run `python -m corrosim.runs.r
   found quercetin the strongest-adsorbing constituent — the same conclusion
   `corrosim` reaches, now confirmed at our own DFT level. Lady's mantle adds a
   second source affirming kaempferol/Fe(110) adsorption.
-- **The adsorption-energy gap is expected, not an error.** `corrosim`'s
-  −4.5 kJ/mol is a *physisorption* proxy (UFF van der Waals, rigid bodies, no
-  charge transfer, no water displacement). The literature's ~−20 to −35 kJ/mol is
-  a full DFT adsorption free energy. Same *order* (quercetin > kaempferol), at a
-  deliberately conservative magnitude. Closing the magnitude gap is what the
-  Stage-3 MD on the exported structures is for.
+- **The adsorption-energy gap is now small.** The crude single-orientation height
+  scan gave only ≈ −4.5 kJ/mol; the **Metropolis/annealing pose search (Stage-2
+  MC) reaches ≈ −16 kJ/mol**, at the lower edge of the published black-tea DFT band
+  (−20 to −35 kJ/mol) — full rotational sampling finds the high-contact poses the
+  height scan missed. It remains a *physisorption* proxy (UFF van der Waals, no
+  charge transfer / water displacement), consistent with the Fe–O RDF peaking at
+  ~3.3–3.8 Å (the > 3.5 Å physisorption range) and with experimental reports of
+  physical adsorption. The residual gap to the DFT free energy is the
+  charge-transfer/chemisorption contribution, which the LAMMPS EAM+GAFF Stage-3
+  hand-off (or periodic DFT) would add.
 
 ## Defensible claim
 
