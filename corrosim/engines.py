@@ -99,6 +99,36 @@ def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
                         charges=charges)
 
 
+def optimize_geometry(symbols, coords, basis: str = "6-31G(d)", xc: str = "b3lyp",
+                      charge: int = 0, solvent: str | None = None,
+                      maxsteps: int = 100):
+    """
+    DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
+
+    Returns (symbols, coords_angstrom) for the relaxed structure — atom order is
+    preserved. The intended protocol is *optimise at a modest level, then run the
+    production single point* on the relaxed geometry: orbital energies are far more
+    sensitive to geometry than to the opt basis, so B3LYP/6-31G(d) gas-phase relaxation
+    is a good, cheap default. Pass solvent='water' to relax in implicit solvent
+    (slower; gas-phase opt → solvated single point is the standard, robust choice).
+    """
+    from pyscf import gto, dft
+    from pyscf.geomopt.geometric_solver import optimize
+    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                basis=basis, charge=charge, verbose=0)
+    mf = dft.RKS(mol)
+    mf.xc = xc
+    if solvent:
+        from pyscf import solvent as pyscf_solvent  # noqa: F401
+        mf = mf.ddCOSMO()
+        mf.with_solvent.eps = 78.3553
+    mol_eq = optimize(mf, maxsteps=maxsteps)
+    opt_symbols = [mol_eq.atom_symbol(i) for i in range(mol_eq.natm)]
+    opt_coords = [tuple(float(x) for x in r)
+                  for r in mol_eq.atom_coords(unit="Angstrom")]
+    return opt_symbols, opt_coords
+
+
 def run_engine(symbols, coords, engine: str = "xtb", charge: int = 0,
                **kwargs) -> EngineResult:
     """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a

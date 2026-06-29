@@ -27,7 +27,8 @@ dependencies = [
 
 [project.optional-dependencies]
 # Quantum engines (xTB is cheap; PySCF is the open DFT path).
-qm = ["tblite", "pyscf"]
+# geometric = geomeTRIC backend for PySCF DFT geometry optimisation.
+qm = ["tblite", "pyscf", "geometric"]
 # Notebook + HTML rendering tooling.
 notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel", "markdown"]
 # Tests / dev.

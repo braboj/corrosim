@@ -24,13 +24,14 @@ Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliabl
 """
 from __future__ import annotations
 import argparse
+import dataclasses
 import json
 import sys
 
 import corrosim
 from corrosim.molecules import (build_molecule, build_protonated,
                                 enumerate_protonation_sites)
-from corrosim.engines import run_engine
+from corrosim.engines import run_engine, optimize_geometry
 
 DEFAULT_MOLECULES = ["kaempferol", "quercetin", "isorhamnetin"]
 
@@ -60,8 +61,19 @@ def _best_protonation_site(name: str, select_engine: str = "xtb"):
 
 def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                    basis="6-311++G(d,p)", xc="b3lyp",
-                   protonated=True, select_engine="xtb"):
-    """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts."""
+                   protonated=True, select_engine="xtb",
+                   optimize=False, opt_basis="6-31G(d)", opt_xc="b3lyp",
+                   opt_solvent=None, opt_maxsteps=100):
+    """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts.
+
+    If ``optimize`` is set, each species' geometry is DFT-relaxed once (at
+    ``opt_basis``/``opt_xc``, gas-phase by default) before the production single
+    points, replacing the force-field geometry. A ``geometry`` provenance field
+    records which was used.
+    """
+    geom_tag = (f"DFT-opt {opt_xc}/{opt_basis}"
+                + (f" ({opt_solvent})" if opt_solvent else " (gas)")) \
+        if optimize else "FF (MMFF)"
     rows = []
     for name in molecules:
         print(f"[{name}]", file=sys.stderr)
@@ -71,12 +83,19 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
             _, prot = _best_protonation_site(name, select_engine)
             forms.append(("protonated", prot))
         for form, mol in forms:
+            if optimize:
+                print(f"  optimising {form} geometry ({opt_xc}/{opt_basis}) ...",
+                      file=sys.stderr)
+                _, opt_coords = optimize_geometry(
+                    mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
+                    charge=mol.charge, solvent=opt_solvent, maxsteps=opt_maxsteps)
+                mol = dataclasses.replace(mol, coords=opt_coords)
             for phase, solvent in (("gas", None), ("aqueous", "water")):
                 print(f"  DFT {form}/{phase} ...", file=sys.stderr)
                 kw = (dict(basis=basis, xc=xc, solvent=solvent)
                       if engine == "pyscf" else {})
                 row = corrosim.analyse_molecule(mol, metal=metal, engine=engine, **kw)
-                row.update(form=form, phase=phase)
+                row.update(form=form, phase=phase, geometry=geom_tag)
                 rows.append(row)
     return rows
 
@@ -97,6 +116,15 @@ def main(argv=None) -> int:
                    help="Neutral forms only (skip the acid-relevant cations).")
     p.add_argument("--select-engine", default="xtb",
                    help="Fast engine for protonation-site selection.")
+    p.add_argument("--optimize", action="store_true",
+                   help="DFT-relax each geometry before the single point (M1 refinement).")
+    p.add_argument("--opt-basis", default="6-31G(d)",
+                   help="Basis for the geometry optimisation (kept small on purpose).")
+    p.add_argument("--opt-xc", default="b3lyp", help="XC functional for the optimisation.")
+    p.add_argument("--opt-solvent", default=None,
+                   help="Relax in implicit solvent (e.g. 'water'); default gas phase.")
+    p.add_argument("--opt-maxsteps", type=int, default=100,
+                   help="Max geometry-optimisation steps.")
     p.add_argument("--out-json", default=None, help="Cache rows to this JSON file.")
     p.add_argument("--out-csv", default=None, help="Also write the table to CSV.")
     args = p.parse_args(argv)
@@ -105,7 +133,10 @@ def main(argv=None) -> int:
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,
                           protonated=not args.no_protonated,
-                          select_engine=args.select_engine)
+                          select_engine=args.select_engine,
+                          optimize=args.optimize, opt_basis=args.opt_basis,
+                          opt_xc=args.opt_xc, opt_solvent=args.opt_solvent,
+                          opt_maxsteps=args.opt_maxsteps)
 
     if args.out_json:
         with open(args.out_json, "w") as f:
