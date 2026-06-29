@@ -100,6 +100,29 @@ def plot_descriptor_comparison(rows, keys=None, out: str | None = None):
     return _save(fig, out) or fig
 
 
+# --- Neutral vs protonated descriptor effect --------------------------------
+def plot_protonation_effect(df, order, out: str | None = None):
+    """Gap and ΔN, neutral vs protonated (aqueous), across molecules. `df` is the
+    run_dft results frame (columns name/form/phase/gap_ev/delta_n)."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
+                           (axes[1], "delta_n", "ΔN (electrons transferred)")):
+        def val(name, form, mol):
+            sub = df[(df.name == mol) & (df.form == form) & (df.phase == "aqueous")]
+            return sub[key].iloc[0] if len(sub) else float("nan")
+        neu = [val(m, "neutral", m) for m in order]
+        pro = [val(m, "protonated", m + "+H+") for m in order]
+        x = np.arange(len(order))
+        ax.bar(x - 0.2, neu, 0.4, label="neutral", color=C_BAR)
+        ax.bar(x + 0.2, pro, 0.4, label="protonated", color=C_LUMO)
+        ax.set_xticks(x); ax.set_xticklabels(order, rotation=15)
+        ax.set_title(title, fontsize=10); ax.axhline(0, color="grey", lw=0.6)
+        ax.legend(fontsize=8)
+    fig.suptitle("Neutral vs protonated (aqueous, B3LYP/6-311++G(d,p))")
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
 # --- Adsorption pose (template MC-config analog) ---------------------------
 def plot_adsorption_pose(system, out: str | None = None):
     """Top and side views of a slab + adsorbed molecule (an AdsorptionSystem)."""

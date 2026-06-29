@@ -36,3 +36,6 @@ docs/whitepapers
 
 # Local-only notes (kept with the project, never pushed)
 *.local.md
+
+# loose run-output figures in repo root (figures/ holds the curated set)
+/*.png
