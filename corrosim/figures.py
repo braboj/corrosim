@@ -115,6 +115,22 @@ def plot_adsorption_pose(system, out: str | None = None):
     return _save(fig, out) or fig
 
 
+# --- Monte Carlo annealing energy trace -------------------------------------
+def plot_mc_energy(result, out: str | None = None):
+    """Adsorption-energy trace of the MC simulated annealing (an MCResult)."""
+    e = np.asarray(result.energies)
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    ax.plot(e, color=C_BAR, lw=0.7)
+    ax.axhline(result.e_ads_ev, color=C_METAL, ls="--", lw=1.2,
+               label=f"best = {result.e_ads_ev:.3f} eV "
+                     f"({result.e_ads_kjmol:.1f} kJ/mol) @ {result.best_height_A} Å")
+    ax.set_xlabel("MC step"); ax.set_ylabel("Interaction energy (eV)")
+    ax.set_title(f"Monte Carlo adsorption annealing — {result.metal}{result.surface}")
+    ax.legend(fontsize=8, loc="upper right")
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
 # --- Fukui / dual-descriptor map (template local-reactivity figure) ---------
 def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None = None):
     """Condensed Fukui f-/f+ per heavy atom (which atoms donate/accept electrons),

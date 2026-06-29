@@ -1,0 +1,26 @@
+[
+  {
+    "name": "kaempferol",
+    "surface": "Fe(110)",
+    "e_ads_ev": -0.1715,
+    "e_ads_kjmol": -16.55,
+    "best_height_A": 2.0,
+    "accept_ratio": 0.542
+  },
+  {
+    "name": "quercetin",
+    "surface": "Fe(110)",
+    "e_ads_ev": -0.1656,
+    "e_ads_kjmol": -15.97,
+    "best_height_A": 2.0,
+    "accept_ratio": 0.507
+  },
+  {
+    "name": "isorhamnetin",
+    "surface": "Fe(110)",
+    "e_ads_ev": -0.1735,
+    "e_ads_kjmol": -16.74,
+    "best_height_A": 2.04,
+    "accept_ratio": 0.527
+  }
+]
