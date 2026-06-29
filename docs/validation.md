@@ -18,20 +18,37 @@ literature, which uniformly models "mild/carbon steel" as Fe(110). The very low
 S (0.001 %) means almost no MnS inclusions, i.e. uniform corrosion dominates over
 pitting — relevant to the *experiment*, not the simulation.
 
-## Stage-1 descriptors (B3LYP/6-31G, gas phase)
+## Stage-1 descriptors (B3LYP/6-311++G(d,p))
 
-Quercetin leads kaempferol at the DFT level — the same order the fast xTB screen
-gives, confirming the ranking is engine-independent. DFT also restores a physical
-ΔN (xTB orbital energies are off the Koopmans scale, giving the spurious negatives).
+Full DFT at the adopted production level (ADR 0002), neutral form, gas and aqueous
+(ddCOSMO). All three flavonoids show a **physical, positive ΔN (0.16–0.24)** inside
+the Lukovits 0 < ΔN < 3.6 window — DFT corrects the spurious negative ΔN that xTB
+gives (its orbital energies sit off the Koopmans scale). **Quercetin** has the
+smallest gap and highest softness (the composite-ranking lead), while
+**isorhamnetin** leads on charge transfer (ΔN) and electron richness (TNC) via its
+methoxy group; kaempferol is third. The three are close on gap/η/σ, but ΔN and ω
+separate them.
 
-| Molecule | Method | HOMO (eV) | LUMO (eV) | Gap (eV) | η (eV) | ΔN |
-|---|---|---|---|---|---|---|
-| Quercetin | DFT B3LYP/6-31G | −5.902 | −1.880 | **4.022** | 2.011 | **+0.231** |
-| Kaempferol | DFT B3LYP/6-31G | −5.960 | −1.829 | 4.130 | 2.065 | +0.224 |
-| Quercetin | xTB (GFN2) | −10.383 | −7.870 | 2.513 | 1.257 | −1.714 ✗ |
-| Kaempferol | xTB (GFN2) | −10.427 | −7.830 | 2.597 | 1.298 | −1.659 ✗ |
+| Molecule | Phase | HOMO (eV) | LUMO (eV) | Gap (eV) | η (eV) | ΔN | TNC |
+|---|---|---|---|---|---|---|---|
+| Quercetin | aqueous | −6.134 | −2.052 | **4.082** | 2.041 | +0.178 | −4.71 |
+| Isorhamnetin | aqueous | −6.009 | −1.910 | 4.099 | 2.049 | **+0.210** | **−5.52** |
+| Kaempferol | aqueous | −6.193 | −2.047 | 4.146 | 2.073 | +0.169 | −4.42 |
+| Quercetin | gas | −6.201 | −2.101 | 4.099 | 2.050 | +0.163 | −4.36 |
+| Isorhamnetin | gas | −5.897 | −1.781 | 4.116 | 2.058 | +0.238 | −5.31 |
+| Kaempferol | gas | −6.234 | −2.063 | 4.171 | 2.086 | +0.161 | −4.07 |
 
-(Gas phase; implicit solvent shifts absolutes slightly but not the ranking.)
+For contrast, xTB (GFN2) gives the right gap *ordering* but unphysical ΔN/χ — use
+it only for screening, never for reported descriptors:
+
+| Molecule | Method | HOMO (eV) | LUMO (eV) | Gap (eV) | ΔN |
+|---|---|---|---|---|---|
+| Quercetin | xTB (GFN2) | −10.383 | −7.870 | 2.513 | −1.714 ✗ |
+| Kaempferol | xTB (GFN2) | −10.427 | −7.830 | 2.597 | −1.659 ✗ |
+
+In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
+aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
+gas/aqueous matrix: `dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
 ## Cross-check against published Fe(110) studies
 
