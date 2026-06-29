@@ -131,6 +131,31 @@ def plot_mc_energy(result, out: str | None = None):
     return _save(fig, out) or fig
 
 
+# --- MD radial distribution function (adsorption distance) -------------------
+def plot_rdf(result, out: str | None = None):
+    """Fe-X radial distribution from MD (an MDResult); first peak = adsorption
+    distance, <3.5 A indicates chemisorption-range contact."""
+    r = np.asarray(result.rdf_r)
+    fig, ax = plt.subplots(figsize=(7.2, 4))
+    ax.axvspan(0, 3.5, color="#f0fff4")
+    ax.axvline(3.5, color="grey", ls=":", lw=1)
+    ax.text(3.52, 0.95, "3.5 Å (chemisorption cutoff)", fontsize=8, color="grey")
+    feo = np.asarray(result.rdf_FeO)
+    if feo.any():
+        ax.plot(r, feo / feo.max(), color=C_HOMO,
+                label=f"Fe–O (peak {result.first_peak_FeO} Å)")
+    fen = np.asarray(result.rdf_FeN)
+    if fen.any():
+        ax.plot(r, fen / fen.max(), color=C_LUMO,
+                label=f"Fe–N (peak {result.first_peak_FeN} Å)")
+    ax.set_xlabel("r (Å)"); ax.set_ylabel("g(r) (normalised)")
+    ax.set_title(f"Fe–X radial distribution — {result.metal}{result.surface}, "
+                 f"{int(result.temperature)} K")
+    ax.legend(fontsize=8); ax.set_xlim(0, 6)
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
 # --- Fukui / dual-descriptor map (template local-reactivity figure) ---------
 def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None = None):
     """Condensed Fukui f-/f+ per heavy atom (which atoms donate/accept electrons),
