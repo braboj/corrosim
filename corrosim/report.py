@@ -165,6 +165,21 @@ def _grid(blocks: list[str]) -> str:
     return f'<div class="grid">{"".join(blocks)}</div>'
 
 
+def _geometry_block(figdir: str) -> str:
+    """Geometry-refinement subsection — only emitted when the FF-vs-DFT-opt
+    comparison figure (fig8) is present, so a report built without the optimised
+    matrix simply omits it."""
+    if not os.path.exists(os.path.join(figdir, "fig8_geometry_comparison.png")):
+        return ""
+    return ("<h3>Geometry refinement (FF vs DFT-optimised)</h3>"
+            "<p>Relaxing each structure at B3LYP/6-31G(d) before the production "
+            "single point lowers the gap (~0.4–0.5 eV) and hardness and raises ΔN, "
+            "but leaves both the gap and ΔN rankings unchanged — the lead "
+            "assignments are geometry-robust.</p>"
+            + _img_block(figdir, "fig8_geometry_comparison.png",
+                         "Force-field vs DFT-optimised geometry"))
+
+
 def top_donor_sites(fukui_rows: list[dict], element: str = "O", n: int = 3) -> list[dict]:
     """Atoms most susceptible to electrophilic attack (highest f⁻) — the
     electron-donating sites that coordinate the metal. Defaults to oxygens."""
@@ -285,6 +300,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         ]),
         "<h3>Full descriptor table (neutral, aqueous)</h3>",
         _html_table(full),
+        _geometry_block(figdir),
 
         # Stage 1b — Fukui -------------------------------------------------
         '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',

@@ -123,6 +123,39 @@ def plot_protonation_effect(df, order, out: str | None = None):
     return _save(fig, out) or fig
 
 
+def plot_geometry_comparison(ff_df, opt_df, order, phase: str = "aqueous",
+                             keys=("gap_ev", "hardness_ev", "delta_n"),
+                             out: str | None = None):
+    """FF-geometry vs DFT-optimised-geometry descriptors (neutral, one phase).
+
+    ff_df / opt_df are the full descriptor frames (with form/phase columns); this
+    shows, per descriptor, grouped bars contrasting the two geometry sources to
+    document that the M1 refinement shifts magnitudes but preserves the ranking.
+    """
+    from .descriptors import DESCRIPTOR_META
+
+    def col(df, name, key):
+        sub = df[(df.name == name) & (df.form == "neutral") & (df.phase == phase)]
+        return float(sub[key].iloc[0]) if len(sub) else float("nan")
+
+    fig, axes = plt.subplots(1, len(keys), figsize=(4.0 * len(keys), 3.6))
+    axes = np.atleast_1d(axes)
+    x = np.arange(len(order))
+    for ax, k in zip(axes, keys):
+        ff = [col(ff_df, n, k) for n in order]
+        op = [col(opt_df, n, k) for n in order]
+        ax.bar(x - 0.2, ff, 0.4, label="FF geom", color=C_BAR)
+        ax.bar(x + 0.2, op, 0.4, label="DFT-opt geom", color=C_METAL)
+        ax.set_xticks(x); ax.set_xticklabels(order, rotation=18, ha="right")
+        ax.set_title(DESCRIPTOR_META.get(k, (k, ""))[0], fontsize=10)
+        ax.axhline(0, color="grey", lw=0.6)
+    axes[0].legend(fontsize=8)
+    fig.suptitle(f"Force-field vs DFT-optimised geometry "
+                 f"(neutral, {phase}, B3LYP/6-311++G(d,p))")
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
 # --- Adsorption pose (template MC-config analog) ---------------------------
 def plot_adsorption_pose(system, out: str | None = None):
     """Top and side views of a slab + adsorbed molecule (an AdsorptionSystem)."""

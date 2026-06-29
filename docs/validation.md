@@ -50,6 +50,27 @@ In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
 aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
 gas/aqueous matrix: `dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
+### Geometry refinement (FF vs DFT-optimised)
+
+The matrix above uses force-field (MMFF) geometries with a DFT single point. Re-running
+the neutral set with a **DFT geometry optimisation** first (B3LYP/6-31G(d), gas phase;
+`run_dft --optimize`, data in `dft_descriptors_opt.{json,csv}`) shifts every descriptor
+in the same direction but **leaves both rankings unchanged** — the lead assignments are
+geometry-robust:
+
+| Descriptor (neutral, aqueous) | Shift FF → DFT-opt | Effect |
+|---|---|---|
+| Gap ΔE | −0.41 to −0.48 eV | FF over-estimates the gap |
+| Hardness η | −0.21 to −0.24 eV | softer, more polarisable |
+| Softness σ | +0.06 | — |
+| ΔN | +0.019 to +0.023 | stronger predicted donation |
+| TNC | −1.3 to −1.8 | more electron-rich |
+
+Ranking by gap stays **quercetin < isorhamnetin < kaempferol**; ranking by ΔN stays
+**isorhamnetin > quercetin > kaempferol**. So the FF-geometry screening is a sound,
+cheap proxy, and the production numbers tighten with the relaxed geometry (figure
+`fig8_geometry_comparison.png`; reproduce with `python -m corrosim.runs.compare_geometry`).
+
 ## Cross-check against published Fe(110) studies
 
 | Source | Method | Quercetin | Kaempferol |
