@@ -77,12 +77,20 @@ def main(argv=None) -> int:
         md = run_md(m, metal="Fe", n_steps=args.steps_md, start_positions=mc.best_positions)
         figures.plot_rdf(md, out=out(f"fig6_{name}_rdf.png"))
 
-    log("Fig 2b: orbital isosurfaces (from existing cubes)")
-    for which in ("homo", "lumo"):
-        cube = f"quercetin_{which}.cube"
-        if os.path.exists(cube):
-            figures.render_orbital(cube, out=out(f"fig2b_quercetin_{which}.png"),
-                                   title=f"quercetin {which.upper()}")
+    log("Fig 2b: HOMO/LUMO isosurfaces (from existing cubes)")
+    for name in ORDER:
+        for which in ("homo", "lumo"):
+            cube = f"{name}_{which}.cube"
+            if os.path.exists(cube):
+                figures.render_orbital(cube, out=out(f"fig2b_{name}_{which}.png"),
+                                       title=f"{name} {which.upper()}")
+
+    log("Fig 7: ESP / MEP maps (from existing density+esp cubes)")
+    for name in ORDER:
+        dens, esp = f"{name}_density.cube", f"{name}_esp.cube"
+        if os.path.exists(dens) and os.path.exists(esp):
+            figures.render_esp(dens, esp, out=out(f"fig7_{name}_esp.png"),
+                               title=f"{name} — ESP on density isosurface")
 
     print(f"figures written to {args.outdir}/")
     return 0

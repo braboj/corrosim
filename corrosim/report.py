@@ -273,10 +273,11 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
             _img_block(figdir, "fig2_mo_diagram.png",
                        "Frontier-orbital energies vs Fe(110) work function"),
         ]),
-        _grid([
-            _img_block(figdir, "fig2b_quercetin_homo.png", "quercetin HOMO"),
-            _img_block(figdir, "fig2b_quercetin_lumo.png", "quercetin LUMO"),
-        ]),
+        "<h3>Frontier-orbital isosurfaces (HOMO / LUMO)</h3>",
+        _grid([_img_block(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO")
+               for n in df["name"]]),
+        _grid([_img_block(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO")
+               for n in df["name"]]),
         _grid([
             _img_block(figdir, "fig3_descriptors.png", "Reactivity descriptors"),
             _img_block(figdir, "fig3b_protonation.png",
@@ -292,6 +293,15 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         "metal-coordinating sites:</p>",
         fukui_summary,
         _grid([_img_block(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
+               for n in df["name"]]),
+
+        # Stage 1c — ESP / MEP map ----------------------------------------
+        '<h3>Electrostatic-potential (ESP) map</h3>',
+        "<p>The electron-density isosurface coloured by the molecular electrostatic "
+        "potential. Red (negative) regions over the catechol and carbonyl oxygens are "
+        "the electron-rich, metal-coordinating sites — corroborating the Fukui "
+        "donor analysis above.</p>",
+        _grid([_img_block(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map")
                for n in df["name"]]),
 
         # Stage 2 — Monte Carlo -------------------------------------------

@@ -279,6 +279,32 @@ def write_orbital_cubes(symbols, coords, prefix: str = "mol",
     return paths
 
 
+def write_density_esp_cubes(symbols, coords, prefix: str = "mol",
+                            basis: str = "6-31G(d)", xc: str = "b3lyp",
+                            charge: int = 0, solvent: str | None = None,
+                            nx: int = 80, margin: float = 3.5) -> dict:
+    """One SCF, then write the electron-density and electrostatic-potential cubes
+    on a *shared* grid: {prefix}_density.cube and {prefix}_esp.cube. Pairing the
+    two on the same grid lets render_esp() colour the density isosurface by the
+    MEP (the classic ESP map). The MEP integral is the slow part — a modest grid
+    (nx≈80) and valence basis are plenty for a qualitative map. Run in the QM
+    container; render with render_esp(). Returns {'density','esp'} paths."""
+    from pyscf import gto, dft
+    from pyscf.tools import cubegen
+    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                basis=basis, charge=charge, verbose=0)
+    mf = dft.RKS(mol); mf.xc = xc
+    if solvent:
+        mf = mf.ddCOSMO(); mf.with_solvent.eps = 78.3553
+    mf.kernel()
+    dm = mf.make_rdm1()
+    paths = {"density": f"{prefix}_density.cube", "esp": f"{prefix}_esp.cube"}
+    # identical (mol, nx, margin) -> identical grid for both cubes
+    cubegen.density(mol, paths["density"], dm, nx=nx, ny=nx, nz=nx, margin=margin)
+    cubegen.mep(mol, paths["esp"], dm, nx=nx, ny=nx, nz=nx, margin=margin)
+    return paths
+
+
 # --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
 _ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
                "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000"}
@@ -333,6 +359,79 @@ def render_orbital(cubefile, out: str | None = None, iso: float = 0.03,
         pass
     ax.set_axis_off()
     ax.view_init(elev=elev, azim=azim)
+    if title:
+        ax.set_title(title, fontsize=11)
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
+def render_esp(density_cube, esp_cube, out: str | None = None,
+               iso: float = 0.002, title: str | None = None,
+               clip_pct: float = 2.0, elev: int = 16, azim: int = -64):
+    """Render a molecular electrostatic-potential (ESP/MEP) map: the electron-
+    density isosurface (default 0.002 e/bohr³) coloured by the electrostatic
+    potential sampled on it. Red = negative potential (electron-rich, nucleophilic
+    O lone pairs — the metal-binding sites); blue = positive.
+
+    density_cube / esp_cube must share a grid (see write_density_esp_cubes).
+    clip_pct symmetrically clips the colour scale at the given percentile so a few
+    near-nucleus outliers don't wash out the map. Needs scikit-image + scipy.
+    """
+    from ase.io.cube import read_cube
+    from skimage import measure
+    from scipy.ndimage import map_coordinates
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    import matplotlib as mpl
+
+    with open(density_cube) as fh:
+        dens = read_cube(fh)
+    with open(esp_cube) as fh:
+        esp = read_cube(fh)
+    rho = np.asarray(dens["data"], dtype=float)
+    pot = np.asarray(esp["data"], dtype=float)
+    atoms = dens["atoms"]
+    origin = np.asarray(dens.get("origin", [0, 0, 0]), dtype=float)[:3]
+    cell = np.asarray(atoms.cell)
+    spacing = np.array([cell[i, i] / rho.shape[i] for i in range(3)])
+
+    if not (rho.min() < iso < rho.max()):
+        iso = float(np.quantile(rho[rho > 0], 0.85))   # fall back to a present level
+    # marching cubes in *index* space so we can sample the ESP grid directly
+    verts_idx, faces, _, _ = measure.marching_cubes(rho, level=iso)
+    pot_at_vert = map_coordinates(pot, verts_idx.T, order=1, mode="nearest")
+    verts = verts_idx * spacing + origin                 # physical coords (Å)
+
+    face_pot = pot_at_vert[faces].mean(axis=1)
+    vmax = np.percentile(np.abs(pot_at_vert), 100 - clip_pct) or np.abs(pot_at_vert).max()
+    norm = mpl.colors.Normalize(vmin=-vmax, vmax=vmax)
+    cmap = plt.get_cmap("RdBu")                           # low/negative -> red
+    facecolors = cmap(norm(face_pot))
+
+    fig = plt.figure(figsize=(6.0, 5.2))
+    ax = fig.add_subplot(111, projection="3d")
+    surf = Poly3DCollection(verts[faces], facecolors=facecolors,
+                            edgecolor="none", alpha=0.97)
+    ax.add_collection3d(surf)
+
+    P = atoms.get_positions()
+    syms = atoms.get_chemical_symbols()
+    for i in range(len(P)):
+        for j in range(i + 1, len(P)):
+            d = np.linalg.norm(P[i] - P[j])
+            if d < 1.75 and not (syms[i] == "H" and syms[j] == "H"):
+                ax.plot(*zip(P[i], P[j]), color="#444", lw=1.0, alpha=0.6)
+    lo, hi = P.min(0) - 1.8, P.max(0) + 1.8
+    ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
+    try:
+        ax.set_box_aspect(hi - lo)
+    except Exception:
+        pass
+    ax.set_axis_off()
+    ax.view_init(elev=elev, azim=azim)
+    cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
+                      shrink=0.6, pad=0.02)
+    cb.set_label("electrostatic potential (a.u.)", fontsize=9)
+    cb.ax.tick_params(labelsize=7)
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
