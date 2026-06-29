@@ -143,3 +143,84 @@ def write_mep_cube(symbols, coords, basis: str = "6-311++G(d,p)",
     mf = dft.RKS(mol); mf.xc = xc; mf.kernel()
     cubegen.mep(mol, out, mf.make_rdm1())
     return out
+
+
+def write_orbital_cubes(symbols, coords, prefix: str = "mol",
+                        basis: str = "6-31G(d)", xc: str = "b3lyp",
+                        charge: int = 0, nx: int = 70) -> dict:
+    """One SCF, then write {prefix}_homo.cube and {prefix}_lumo.cube. A modest
+    basis is enough — orbital *shapes* are basis-insensitive, so this stays fast
+    and looks the same as the descriptor-level basis. Returns {'homo','lumo'} paths.
+    Run in the QM container; render with render_orbital()."""
+    from pyscf import gto, dft
+    from pyscf.tools import cubegen
+    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                basis=basis, charge=charge, verbose=0)
+    mf = dft.RKS(mol); mf.xc = xc; mf.kernel()
+    occ = mf.mo_occ
+    homo = int(np.where(occ > 0)[0].max())
+    lumo = int(np.where(occ == 0)[0].min())
+    paths = {"homo": f"{prefix}_homo.cube", "lumo": f"{prefix}_lumo.cube"}
+    cubegen.orbital(mol, paths["homo"], mf.mo_coeff[:, homo], nx=nx, ny=nx, nz=nx)
+    cubegen.orbital(mol, paths["lumo"], mf.mo_coeff[:, lumo], nx=nx, ny=nx, nz=nx)
+    return paths
+
+
+# --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
+_ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
+               "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000"}
+_ELEM_SIZE = {"C": 45, "H": 16, "O": 65, "N": 58, "S": 80, "P": 80}
+
+
+def render_orbital(cubefile, out: str | None = None, iso: float = 0.03,
+                   title: str | None = None, elev: int = 16, azim: int = -64):
+    """Render an orbital .cube as +/- isosurface lobes over the molecular skeleton.
+
+    iso < 1 is treated as a fraction of the orbital's max amplitude (default 3 %).
+    Needs scikit-image (marching cubes).
+    """
+    from ase.io.cube import read_cube
+    from skimage import measure
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    with open(cubefile) as fh:
+        cube = read_cube(fh)
+    data = np.asarray(cube["data"], dtype=float)
+    atoms = cube["atoms"]
+    origin = np.asarray(cube.get("origin", [0, 0, 0]), dtype=float)[:3]
+    cell = np.asarray(atoms.cell)
+    spacing = np.array([cell[i, i] / data.shape[i] for i in range(3)])
+
+    fig = plt.figure(figsize=(5.2, 5.2))
+    ax = fig.add_subplot(111, projection="3d")
+    level = iso * float(np.abs(data).max()) if abs(iso) < 1 else iso
+    for lvl, color in ((level, C_HOMO), (-level, C_LUMO)):
+        if not (data.min() < lvl < data.max()):
+            continue
+        verts, faces, _, _ = measure.marching_cubes(data, level=lvl, spacing=tuple(spacing))
+        verts = verts + origin
+        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.45,
+                                             facecolor=color, edgecolor="none"))
+    P = atoms.get_positions()
+    syms = atoms.get_chemical_symbols()
+    for s, p in zip(syms, P):
+        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888"),
+                   s=_ELEM_SIZE.get(s, 40), depthshade=True, edgecolors="k", linewidths=0.3)
+    # simple covalent bonds
+    for i in range(len(P)):
+        for j in range(i + 1, len(P)):
+            d = np.linalg.norm(P[i] - P[j])
+            if d < 1.75 and not (syms[i] == "H" and syms[j] == "H"):
+                ax.plot(*zip(P[i], P[j]), color="#666", lw=1.2)
+    lo = P.min(0) - 1.5
+    hi = P.max(0) + 1.5
+    ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
+    try:
+        ax.set_box_aspect(hi - lo)
+    except Exception:
+        pass
+    ax.set_axis_off()
+    ax.view_init(elev=elev, azim=azim)
+    if title:
+        ax.set_title(title, fontsize=11)
+    fig.tight_layout()
+    return _save(fig, out) or fig

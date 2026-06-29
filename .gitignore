@@ -16,6 +16,7 @@ env/
 # Tool / run outputs
 *.html
 *.cif
+*.cube
 *_slab.xyz
 results.csv
 !examples/*.csv
