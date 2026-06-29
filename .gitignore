@@ -1,0 +1,36 @@
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Tool / run outputs
+*.html
+*.cif
+*_slab.xyz
+results.csv
+!examples/*.csv
+
+# QC scratch dirs
+orca_*/
+g16_*/
+*.gbw
+*.chk
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local-only notes (kept with the project, never pushed)
+*.local.md

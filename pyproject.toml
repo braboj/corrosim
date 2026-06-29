@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corrosim"
+version = "0.1.0"
+description = "Automated screening of green corrosion inhibitors (DFT descriptors, adsorption estimate, reports)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Branimir Georgiev", email = "branimir@imbra.io" }]
+keywords = ["corrosion", "inhibitor", "DFT", "xtb", "adsorption", "computational-chemistry"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = [
+    "numpy",
+    "rdkit",
+    "ase",
+    "pandas",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+# Quantum engines (xTB is cheap; PySCF is the open DFT path).
+qm = ["tblite", "pyscf"]
+# Notebook + HTML rendering tooling.
+notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel", "markdown"]
+# Tests / dev.
+dev = ["pytest", "tblite"]
+
+[project.scripts]
+corrosim = "corrosim.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/braboj/corrosim"
+Repository = "https://github.com/braboj/corrosim"
+Issues = "https://github.com/braboj/corrosim/issues"
+
+[tool.setuptools.packages.find]
+include = ["corrosim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
