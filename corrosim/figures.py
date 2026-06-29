@@ -115,6 +115,55 @@ def plot_adsorption_pose(system, out: str | None = None):
     return _save(fig, out) or fig
 
 
+# --- Fukui / dual-descriptor map (template local-reactivity figure) ---------
+def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None = None):
+    """Condensed Fukui f-/f+ per heavy atom (which atoms donate/accept electrons),
+    optionally beside the 2D structure with atom indices. `fukui` is a FukuiResult
+    or a dict with symbols/f_plus/f_minus."""
+    def g(k):
+        return getattr(fukui, k) if hasattr(fukui, k) else fukui[k]
+    syms, fmin, fpl = g("symbols"), g("f_minus"), g("f_plus")
+    heavy = [i for i, s in enumerate(syms) if s != "H"]
+    labels = [f"{syms[i]}{i}" for i in heavy]
+    fm = [fmin[i] for i in heavy]
+    fp = [fpl[i] for i in heavy]
+
+    struct = None
+    if molecule is not None and getattr(molecule, "rdkit_mol", None) is not None:
+        try:
+            import io
+            from rdkit import Chem
+            from rdkit.Chem import AllChem
+            from rdkit.Chem.Draw import rdMolDraw2D
+            from PIL import Image
+            mm = Chem.RemoveHs(molecule.rdkit_mol)
+            AllChem.Compute2DCoords(mm)
+            d = rdMolDraw2D.MolDraw2DCairo(480, 400)
+            d.drawOptions().addAtomIndices = True
+            rdMolDraw2D.PrepareAndDrawMolecule(d, mm)
+            d.FinishDrawing()
+            struct = Image.open(io.BytesIO(d.GetDrawingText()))
+        except Exception:
+            struct = None
+
+    if struct is not None:
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(11.5, 4.5),
+                                       gridspec_kw={"width_ratios": [1, 1.5]})
+        ax0.imshow(struct); ax0.axis("off"); ax0.set_title("atom indices", fontsize=10)
+    else:
+        fig, ax1 = plt.subplots(figsize=(max(6.5, 0.45 * len(heavy)), 4.3))
+    x = np.arange(len(heavy))
+    ax1.bar(x - 0.2, fm, 0.4, label="f⁻ (donor / binds metal)", color=C_HOMO)
+    ax1.bar(x + 0.2, fp, 0.4, label="f⁺ (acceptor)", color=C_LUMO)
+    ax1.set_xticks(x); ax1.set_xticklabels(labels, rotation=90, fontsize=7)
+    ax1.axhline(0, color="grey", lw=0.6)
+    ax1.set_ylabel("Condensed Fukui")
+    ax1.set_title(title or "Condensed Fukui functions (heavy atoms)", fontsize=11)
+    ax1.legend(fontsize=8)
+    fig.tight_layout()
+    return _save(fig, out) or fig
+
+
 # --- 3D orbital / ESP cubes (run in the QM container, after the DFT run) ----
 def write_orbital_cube(symbols, coords, which: str = "homo",
                        basis: str = "6-311++G(d,p)", xc: str = "b3lyp",

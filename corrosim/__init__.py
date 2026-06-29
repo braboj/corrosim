@@ -16,6 +16,7 @@ from .molecules import (build_molecule, build_protonated,
 from .engines import run_engine, EngineResult
 from .descriptors import (compute_descriptors, total_negative_charge,
                           METAL_WORK_FUNCTION)
+from .fukui import compute_fukui, FukuiResult
 from .report import results_dataframe, rank_inhibitors, build_html_report
 from .adsorption import (build_adsorption_system, estimate_adsorption_energy,
                          LAMMPS_HANDOFF_NOTE)
@@ -23,7 +24,8 @@ from .adsorption import (build_adsorption_system, estimate_adsorption_energy,
 __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
            "build_protonated", "enumerate_protonation_sites", "Molecule",
            "LIBRARY", "run_engine", "compute_descriptors",
-           "total_negative_charge", "build_adsorption_system",
+           "total_negative_charge", "compute_fukui", "FukuiResult",
+           "build_adsorption_system",
            "estimate_adsorption_energy", "METAL_WORK_FUNCTION",
            "LAMMPS_HANDOFF_NOTE", "rank_inhibitors", "build_html_report"]
 
