@@ -15,6 +15,8 @@ env/
 
 # Tool / run outputs
 *.html
+# curated multiscale report is tracked (see runs/make_report.py)
+!report.html
 *.cif
 *.cube
 *_slab.xyz
