@@ -17,13 +17,18 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install ruff
+      - name: Install ruff + mypy
         run: |
           python -m pip install --upgrade pip
-          pip install "ruff==0.15.*"
+          pip install "ruff==0.15.*" "mypy==2.1.*"
 
       - name: Lint (ruff check)
         run: ruff check .
+
+      - name: Type-check (mypy)
+        # Non-strict; the scientific deps aren't installed in this job, so mypy
+        # treats them as untyped via ignore_missing_imports (see [tool.mypy]).
+        run: mypy
 
   test:
     runs-on: ubuntu-latest

@@ -19,6 +19,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class CaseStudy:
+    """A named screening case study: molecule set + substrate metal + medium."""
+
     name: str
     molecules: tuple[str, ...]      # library names or SMILES, in display order
     metal: str = "Fe(110)"          # work-function / slab substrate label

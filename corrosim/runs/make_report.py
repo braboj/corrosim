@@ -30,6 +30,7 @@ def _load_json(path: str):
 
 
 def main(argv=None) -> int:
+    """CLI entry point: build the self-contained multiscale HTML pipeline report."""
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     p.add_argument("--descriptors", default="results/dft_descriptors.csv")
     p.add_argument("--mc", default="results/mc_adsorption.json")

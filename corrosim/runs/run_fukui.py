@@ -29,6 +29,7 @@ DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
+    """CLI entry point: compute condensed Fukui / dual descriptors per molecule (M2)."""
     p = argparse.ArgumentParser(prog="corrosim-run-fukui",
                                 description="Condensed Fukui / dual descriptor (M2).")
     p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES),

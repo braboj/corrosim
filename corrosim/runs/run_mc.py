@@ -27,6 +27,7 @@ DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
+    """CLI entry point: run the Monte Carlo adsorption pose search (M3)."""
     p = argparse.ArgumentParser(prog="corrosim-run-mc",
                                 description="Monte Carlo adsorption pose search (M3).")
     p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES))

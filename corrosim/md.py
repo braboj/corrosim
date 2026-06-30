@@ -26,6 +26,9 @@ KB_EV = 8.617333262e-5   # Boltzmann constant, eV/K
 
 @dataclass
 class MDResult:
+    """Brownian-MD outputs: the metal–O/N RDFs and their first-peak adsorption
+    distances (Å), the thermal-mean interaction energy (eV/kJ·mol⁻¹), and the
+    final pose."""
     metal: str
     surface: str
     temperature: float
@@ -43,6 +46,7 @@ class MDResult:
 
     @property
     def combined(self):
+        """slab + molecule (final pose) as an ASE Atoms — for plot_adsorption_pose."""
         from ase import Atoms
         mol = Atoms(symbols=self.mol_symbols, positions=self.final_positions)
         c = self.slab + mol
@@ -51,13 +55,24 @@ class MDResult:
 
     # --- back-compat aliases (pre-substrate-agnostic field names) ----------
     @property
-    def rdf_FeO(self): return self.rdf_metal_O
+    def rdf_FeO(self):
+        """Back-compat alias for ``rdf_metal_O``."""
+        return self.rdf_metal_O
+
     @property
-    def rdf_FeN(self): return self.rdf_metal_N
+    def rdf_FeN(self):
+        """Back-compat alias for ``rdf_metal_N``."""
+        return self.rdf_metal_N
+
     @property
-    def first_peak_FeO(self): return self.first_peak_metal_O
+    def first_peak_FeO(self):
+        """Back-compat alias for ``first_peak_metal_O``."""
+        return self.first_peak_metal_O
+
     @property
-    def first_peak_FeN(self): return self.first_peak_metal_N
+    def first_peak_FeN(self):
+        """Back-compat alias for ``first_peak_metal_N``."""
+        return self.first_peak_metal_N
 
 
 def _forces_energy(p, s_pos, x_mix, D_mix):

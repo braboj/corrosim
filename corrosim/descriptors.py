@@ -40,6 +40,8 @@ METAL_HARDNESS = 0.0   # eta_metal ~ 0, standard assumption
 
 @dataclass
 class Descriptors:
+    """Global reactivity descriptors for one molecule (all energies in eV). See the
+    module docstring for the Koopmans definitions of each field."""
     homo_ev: float
     lumo_ev: float
     gap_ev: float
@@ -56,6 +58,7 @@ class Descriptors:
     phi_metal_ev: float
 
     def as_dict(self) -> dict:
+        """Return the descriptor fields as a plain dict."""
         return asdict(self)
 
 
@@ -72,6 +75,11 @@ def total_negative_charge(charges) -> float | None:
 def compute_descriptors(homo_ev: float, lumo_ev: float,
                         metal: str = "Fe(110)",
                         phi_metal_ev: float | None = None) -> Descriptors:
+    """Compute the global reactivity descriptors from the frontier-orbital energies.
+
+    ``homo_ev`` / ``lumo_ev`` in eV. ``metal`` selects the work function Φ used for
+    ΔN; pass ``phi_metal_ev`` to override it for an unknown substrate. Returns a
+    :class:`Descriptors`. See the module docstring for the Koopmans definitions."""
     if phi_metal_ev is None:
         if metal not in METAL_WORK_FUNCTION:
             raise ValueError(
