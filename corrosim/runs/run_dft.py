@@ -31,6 +31,7 @@ import sys
 
 import corrosim
 from corrosim.engines import optimize_geometry, run_engine
+from corrosim.medium import parse_medium, relevant_forms
 from corrosim.molecules import build_molecule, build_protonated, enumerate_protonation_sites
 from corrosim.presets import ARGHEL
 
@@ -120,6 +121,9 @@ def main(argv=None) -> int:
     p.add_argument("--engine", default="pyscf",
                    choices=["pyscf", "xtb", "orca", "gaussian"])
     p.add_argument("--metal", default=ARGHEL.metal)
+    p.add_argument("--medium", default=ARGHEL.medium,
+                   help="Medium label (e.g. '1 M HCl'); checked against --forms to "
+                        "flag a protonation/medium mismatch.")
     p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
     p.add_argument("--xc", default="b3lyp", help="PySCF XC functional.")
     p.add_argument("--forms", default="both",
@@ -145,6 +149,19 @@ def main(argv=None) -> int:
 
     molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
     forms = "neutral" if args.no_protonated else args.forms
+
+    # Consistency check: does the requested protonation match the medium? (#8)
+    spec = parse_medium(args.medium)
+    ph_str = f" (pH ~{spec.ph})" if spec.ph is not None else ""
+    want_prot = forms in ("both", "protonated")
+    medium_wants_prot = "protonated" in relevant_forms(spec)
+    if want_prot and not medium_wants_prot:
+        print(f"warning: --forms includes the protonated cation, but medium "
+              f"{args.medium!r}{ph_str} is not acidic — the cation may not be the "
+              f"relevant species there.", file=sys.stderr)
+    elif medium_wants_prot and not want_prot:
+        print(f"warning: medium {args.medium!r}{ph_str} is acidic — the inhibitor is "
+              f"largely protonated there; consider --forms both.", file=sys.stderr)
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,
                           forms=forms,

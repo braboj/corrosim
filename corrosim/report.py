@@ -170,6 +170,28 @@ def _geometry_block(figdir: str) -> str:
                          "Force-field vs DFT-optimised geometry"))
 
 
+def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list[str]:
+    """In-acid comparison section (ADR 0003): the protonated-cation descriptors,
+    shown alongside the neutral headline ranking rather than replacing it. Returns
+    an empty list when there are no cation rows (non-acidic medium)."""
+    if not acid_cation_rows:
+        return []
+    return [
+        "<h3>Species in the acidic medium (protonated cation)</h3>",
+        f"<p>In <b>{medium}</b> the basic carbonyl / hydroxyl oxygens take up a "
+        "proton, so the inhibitor is present largely as its +1 cation. The ranking "
+        "above uses the <i>neutral</i> form (the conventional descriptor basis); the "
+        "protonated-cation descriptors are tabulated here for comparison.</p>",
+        _html_table(results_dataframe(acid_cation_rows)),
+        '<p class="meta">Protonation lowers the gap and raises softness, and ΔN turns '
+        "<b>negative</b> — the electron-poor cation no longer donates to the metal, so "
+        "the ΔN &gt; 0 donation heuristic does not apply to this form (cation adsorption "
+        "is electrostatic / back-donation driven). The most reactive species by the "
+        "gap/softness composite is therefore <i>form-dependent</i>, which is why the "
+        "neutral form is kept as the headline ranking (ADR 0003).</p>",
+    ]
+
+
 def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
                                n: int = 3) -> list[dict]:
     """Atoms of a given element most susceptible to electrophilic attack (highest
@@ -219,11 +241,16 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           figdir: str, out_path: str,
                           metal: str = "Fe(110)", medium: str = "1 M HCl",
                           order: list[str] | None = None,
-                          generated_at: str | None = None) -> str:
+                          generated_at: str | None = None,
+                          acid_cation_rows: list[dict] | None = None) -> str:
     """
     Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
     embedded inline (base64) from ``figdir`` so the file stands alone.
+
+    The headline ranking uses the neutral form. ``acid_cation_rows`` (the
+    protonated-cation descriptor rows) are surfaced as a labelled in-acid
+    comparison when the medium is acidic — see ADR 0003 and _acid_cation_block.
 
     ``generated_at`` overrides the timestamp (pass a fixed string for a
     reproducible, churn-free build).
@@ -242,7 +269,9 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
 
     df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
     df["ads_dist_A"] = df["name"].map(_md_peak)
-    df["ads_dist_A"] = df["ads_dist_A"].round(2)
+    # coerce first: an all-missing column (no MD data) is object dtype and would
+    # break Series.round on the None values — to_numeric makes it NaN-safe.
+    df["ads_dist_A"] = pd.to_numeric(df["ads_dist_A"], errors="coerce").round(2)
 
     ranked = rank_inhibitors(df)
     level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
@@ -305,6 +334,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         "<h3>Full descriptor table (neutral, aqueous)</h3>",
         _html_table(full),
         _geometry_block(figdir),
+        *_acid_cation_block(acid_cation_rows, medium),
 
         # Stage 1b — Fukui -------------------------------------------------
         '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',
