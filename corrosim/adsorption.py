@@ -23,7 +23,14 @@ import numpy as np
 from ase import Atoms
 from ase.io import write
 
-from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat
+from .surface import (
+    KCAL_TO_EV,
+    MIN_PAIR_DISTANCE_A,
+    SURFACE_FACET,
+    UFF,
+    build_slab,
+    orient_flat,
+)
 
 
 @dataclass
@@ -113,7 +120,7 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
             for sb, pb in zip(sym_s, pos_s):
                 xb, Db = UFF[sb]
                 r = float(np.linalg.norm(pa - pb))
-                if r < 0.1:
+                if r < MIN_PAIR_DISTANCE_A:        # close-contact guard (never fires in practice)
                     continue
                 t = (np.sqrt(xa * xb) / r) ** 6
                 e += np.sqrt(Da * Db) * (t * t - 2 * t)
