@@ -5,7 +5,7 @@ Stage-3 (light) molecular dynamics: rigid-body Brownian / overdamped-Langevin
 dynamics of the inhibitor over the metal slab under the UFF van-der-Waals field, at
 298 K. Yields the template's MD outputs on an open-source classical-vdW level:
 
-  * the Fe-X radial distribution (X = O/N) -> the adsorption distance, and
+  * the metal-X radial distribution (X = O/N) -> the adsorption distance, and
   * the thermal-averaged interaction energy.
 
 It is genuine time-evolved dynamics (force/torque-driven, thermostatted), but still
@@ -31,10 +31,10 @@ class MDResult:
     e_mean_ev: float
     e_mean_kjmol: float
     rdf_r: list
-    rdf_FeO: list
-    rdf_FeN: list
-    first_peak_FeO: float
-    first_peak_FeN: float
+    rdf_metal_O: list          # metal–O radial distribution (metal = self.metal)
+    rdf_metal_N: list          # metal–N radial distribution
+    first_peak_metal_O: float  # adsorption distance via the O donors
+    first_peak_metal_N: float  # adsorption distance via the N donors
     energies: list = field(repr=False, default_factory=list)
     final_positions: np.ndarray = field(repr=False, default=None)
     mol_symbols: list = field(repr=False, default_factory=list)
@@ -47,6 +47,16 @@ class MDResult:
         c = self.slab + mol
         c.set_cell(self.slab.get_cell()); c.set_pbc(self.slab.get_pbc())
         return c
+
+    # --- back-compat aliases (pre-substrate-agnostic field names) ----------
+    @property
+    def rdf_FeO(self): return self.rdf_metal_O
+    @property
+    def rdf_FeN(self): return self.rdf_metal_N
+    @property
+    def first_peak_FeO(self): return self.first_peak_metal_O
+    @property
+    def first_peak_FeN(self): return self.first_peak_metal_N
 
 
 def _forces_energy(p, s_pos, x_mix, D_mix):
@@ -69,7 +79,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     diffusion (A^2 / rad^2 per step). The molecule's nearest atom is confined to
     [min_height, max_height] above the surface so the run samples the *adsorbed
     state* (vdW physisorption is weak vs kT at 298 K, so an unconfined molecule
-    thermally desorbs). Records the Fe-X RDF after `equil` steps."""
+    thermally desorbs). Records the metal-X RDF after `equil` steps."""
     missing = set(molecule.symbols) - set(_UFF)
     if missing:
         raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
@@ -78,7 +88,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     slab = build_slab(metal, size=size, vacuum=vacuum)
     s_pos = slab.get_positions()
     s_sym = np.array(slab.get_chemical_symbols())
-    fe_pos = s_pos[s_sym == metal]
+    metal_pos = s_pos[s_sym == metal]
     cell = slab.get_cell()
     top = s_pos[:, 2].max()
 
@@ -98,7 +108,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
 
     edges = np.arange(0.0, 6.01, 0.1)
     r = 0.5 * (edges[:-1] + edges[1:])
-    hFeO = np.zeros(len(r)); hFeN = np.zeros(len(r)); nframes = 0
+    h_mO = np.zeros(len(r)); h_mN = np.zeros(len(r)); nframes = 0
     energies = []
 
     for step in range(n_steps):
@@ -118,20 +128,20 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         elif zmin > top + max_height:                 # confine to the adsorbed state
             p[:, 2] += top + max_height - zmin
         if step >= equil:
-            # closest O/N-to-Fe contact per frame = the adsorption-distance
+            # closest O/N-to-metal contact per frame = the adsorption-distance
             # distribution (a 3D shell normalisation is wrong above a 2D slab; and
             # the molecule's far-side heteroatoms must not swamp the binding ones).
             if o_idx:
-                d = np.linalg.norm(p[o_idx][:, None, :] - fe_pos[None, :, :], axis=2)
-                hFeO += np.histogram([float(d.min())], bins=edges)[0]
+                d = np.linalg.norm(p[o_idx][:, None, :] - metal_pos[None, :, :], axis=2)
+                h_mO += np.histogram([float(d.min())], bins=edges)[0]
             if n_idx:
-                d = np.linalg.norm(p[n_idx][:, None, :] - fe_pos[None, :, :], axis=2)
-                hFeN += np.histogram([float(d.min())], bins=edges)[0]
+                d = np.linalg.norm(p[n_idx][:, None, :] - metal_pos[None, :, :], axis=2)
+                h_mN += np.histogram([float(d.min())], bins=edges)[0]
             nframes += 1
 
     norm = max(nframes, 1)
-    gFeO = hFeO / norm
-    gFeN = hFeN / norm
+    g_mO = h_mO / norm
+    g_mN = h_mN / norm
 
     def _peak(g):
         win = (r >= 1.5) & (r <= 4.0)
@@ -140,6 +150,6 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     e_mean = float(np.mean(energies[equil:])) if len(energies) > equil else float(np.mean(energies))
     return MDResult(metal=metal, surface=_SURFACE.get(metal, ""), temperature=temperature,
                     e_mean_ev=round(e_mean, 4), e_mean_kjmol=round(e_mean * 96.485, 2),
-                    rdf_r=r.tolist(), rdf_FeO=gFeO.tolist(), rdf_FeN=gFeN.tolist(),
-                    first_peak_FeO=_peak(gFeO), first_peak_FeN=_peak(gFeN),
+                    rdf_r=r.tolist(), rdf_metal_O=g_mO.tolist(), rdf_metal_N=g_mN.tolist(),
+                    first_peak_metal_O=_peak(g_mO), first_peak_metal_N=_peak(g_mN),
                     energies=energies, final_positions=p, mol_symbols=m_sym, slab=slab)

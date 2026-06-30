@@ -235,17 +235,23 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     if order:
         df = (df.set_index("name").loc[[n for n in order if n in set(df["name"])]]
               .reset_index())
+    m_elem = str(metal).split("(")[0].strip()        # "Fe(110)" -> "Fe"
     mc_by = {r["name"]: r for r in mc_rows}
     md_by = {r["name"]: r for r in md_rows}
-    df["e_ads_kjmol"] = df["name"].map(lambda n: mc_by.get(n, {}).get("e_ads_kjmol"))
-    df["feo_peak_a"] = df["name"].map(lambda n: md_by.get(n, {}).get("FeO_peak_A"))
-    df["feo_peak_a"] = df["feo_peak_a"].round(2)
+
+    def _md_peak(n):                                  # generic key, legacy fallback
+        row = md_by.get(n) or {}
+        return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
+
+    df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
+    df["ads_dist_A"] = df["name"].map(_md_peak)
+    df["ads_dist_A"] = df["ads_dist_A"].round(2)
 
     ranked = rank_inhibitors(df)
     level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
 
     summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                      "delta_n", "e_ads_kjmol", "feo_peak_a", "score"]].round(3)
+                      "delta_n", "e_ads_kjmol", "ads_dist_A", "score"]].round(3)
     full = results_dataframe(df.to_dict("records"))
 
     # --- Fukui textual summary: top donor oxygens per molecule -------------
@@ -278,7 +284,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _html_table(summary, best_first_row=True),
         '<p class="meta">Composite score z-scores a smaller gap, lower hardness and '
         "higher softness (higher = stronger predicted reactivity). E<sub>ads</sub> "
-        "(Stage&nbsp;2 Monte Carlo) and the Fe–O distance (Stage&nbsp;3 MD) are shown "
+        f"(Stage&nbsp;2 Monte Carlo) and the {m_elem}–O distance (Stage&nbsp;3 MD) are shown "
         "alongside for the adsorption picture.</p>",
 
         # Stage 1 ----------------------------------------------------------
@@ -330,10 +336,10 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                for n in df["name"]]),
 
         # Stage 3 — MD -----------------------------------------------------
-        '<h2><span class="stage">Stage 3</span> &nbsp;Brownian MD — Fe–O RDF</h2>',
-        "<p>Rigid-body Brownian dynamics from the best MC pose; the first Fe–O "
+        f'<h2><span class="stage">Stage 3</span> &nbsp;Brownian MD — {m_elem}–O RDF</h2>',
+        f"<p>Rigid-body Brownian dynamics from the best MC pose; the first {m_elem}–O "
         "radial-distribution peak (~3.5 Å) sets the adsorption distance.</p>",
-        _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — Fe–O RDF")
+        _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {m_elem}–O RDF")
                for n in df["name"]]),
 
         # Method -----------------------------------------------------------

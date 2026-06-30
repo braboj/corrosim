@@ -2,7 +2,7 @@
 corrosim.runs.run_md  (M4 driver)
 =================================
 Brownian (overdamped-Langevin) rigid-body MD of the inhibitor over the metal slab
-at 298 K -> Fe-X radial distribution (adsorption distance) + thermal-averaged
+at 298 K -> metal-X radial distribution (adsorption distance) + thermal-averaged
 interaction energy. Pure classical (numpy + ASE); runs anywhere.
 
     python -m corrosim.runs.run_md --molecules kaempferol,quercetin,isorhamnetin \
@@ -47,10 +47,11 @@ def main(argv=None) -> int:
                    start_positions=mc.best_positions)
         figures.plot_rdf(r, out=f"{args.outdir}/{name}_rdf.png")
         figures.plot_adsorption_pose(r, out=f"{args.outdir}/{name}_md_pose.png")
-        summary.append(dict(name=name, surface=f"{r.metal}{r.surface}",
+        summary.append(dict(name=name, metal=r.metal, surface=f"{r.metal}{r.surface}",
                             e_mean_kjmol=r.e_mean_kjmol,
-                            FeO_peak_A=r.first_peak_FeO, FeN_peak_A=r.first_peak_FeN))
-        print(f"  <E> = {r.e_mean_kjmol:.1f} kJ/mol | Fe-O peak {r.first_peak_FeO} Å",
+                            metal_O_peak_A=r.first_peak_metal_O,
+                            metal_N_peak_A=r.first_peak_metal_N))
+        print(f"  <E> = {r.e_mean_kjmol:.1f} kJ/mol | {r.metal}-O peak {r.first_peak_metal_O} Å",
               file=sys.stderr)
 
     json.dump(summary, open(f"{args.outdir}/md_rdf.json", "w"), indent=2)
