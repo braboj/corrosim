@@ -84,3 +84,25 @@ def test_pipeline_report_reads_legacy_md_key(tmp_path):
     report.build_pipeline_report(rows, [], md, {}, figdir=str(tmp_path / "nope"),
                                  out_path=str(out), order=["quercetin"])
     assert "3.71" in out.read_text(encoding="utf-8")
+
+
+def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
+    # given protonated-cation rows (acidic medium), a labelled in-acid comparison
+    # appears — but the neutral lead is unchanged (ADR 0003).
+    rows = [_descr_row("quercetin", 4.0, 2.0)]
+    acid = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05}]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(rows, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), medium="1 M HCl",
+                                 order=["quercetin"], acid_cation_rows=acid)
+    html = out.read_text(encoding="utf-8")
+    assert "Species in the acidic medium" in html
+    assert "quercetin+H+" in html
+    assert 'class="best"><td>quercetin<' in html        # neutral lead still headline
+
+    # no cation rows (non-acidic medium) -> no in-acid section
+    out2 = tmp_path / "report2.html"
+    report.build_pipeline_report(rows, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out2), medium="pH 7 buffer",
+                                 order=["quercetin"], acid_cation_rows=None)
+    assert "Species in the acidic medium" not in out2.read_text(encoding="utf-8")

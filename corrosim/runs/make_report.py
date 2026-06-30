@@ -20,6 +20,7 @@ import sys
 import pandas as pd
 
 from corrosim import report
+from corrosim.medium import parse_medium
 from corrosim.presets import ARGHEL
 
 ORDER = ARGHEL.molecule_list()
@@ -53,17 +54,32 @@ def main(argv=None) -> int:
     present = [n for n in ORDER if n in set(naq["name"])]
     rows = naq.set_index("name").loc[present].reset_index().to_dict("records")
 
+    # In an acidic medium the inhibitor protonates; surface the cation descriptors
+    # as a labelled in-acid comparison (the headline ranking stays neutral — ADR 0003).
+    spec = parse_medium(args.medium)
+    acid_rows = None
+    if spec.acidic and {"form", "phase"} <= set(df.columns):
+        paq = df[(df.form == "protonated") & (df.phase == "aqueous")].copy()
+        paq["_base"] = paq["name"].str.replace(r"\+H\+$", "", regex=True)
+        paq = paq[paq["_base"].isin(present)]
+        paq["_ord"] = paq["_base"].map({n: i for i, n in enumerate(present)})
+        acid_rows = paq.sort_values("_ord").drop(columns=["_base", "_ord"]).to_dict("records") \
+            or None
+
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
     fukui_by_name = {n: _load_json(f"{args.datadir}/{n}_fukui.json") for n in present}
 
     log(f"DFT rows: {len(rows)} | MC: {len(mc_rows)} | MD: {len(md_rows)} | "
-        f"Fukui: {sum(1 for v in fukui_by_name.values() if v)}")
+        f"Fukui: {sum(1 for v in fukui_by_name.values() if v)} | "
+        f"medium: {args.medium!r} acidic={spec.acidic} "
+        f"acid-cation rows: {len(acid_rows) if acid_rows else 0}")
 
     out = report.build_pipeline_report(
         rows, mc_rows, md_rows, fukui_by_name,
         figdir=args.figdir, out_path=args.out,
         metal=args.metal, medium=args.medium, order=present,
+        acid_cation_rows=acid_rows,
     )
     size_kb = os.path.getsize(out) / 1024
     print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
