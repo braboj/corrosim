@@ -8,25 +8,10 @@ strongly it binds (molecular dynamics). All three aim to explain and rank
 *adsorption strength*, since inhibition efficiency is governed by how well a
 molecule adsorbs onto and shields the metal.
 
-```
-   Inhibitor molecule
-         │
-   ┌─────▼─────┐   Stage 1: DFT / quantum chemistry (isolated molecule, implicit solvent)
-   │   DFT     │   → HOMO/LUMO, gap, hardness, electrophilicity, ΔN, Fukui (where it reacts)
-   └─────┬─────┘
-         │
-   ┌─────▼─────┐   Stage 2: Monte Carlo (adsorption pose search)
-   │    MC     │   → best adsorption geometry + adsorption energy on the metal slab
-   └─────┬─────┘
-         │
-   ┌─────▼─────┐   Stage 3: Molecular Dynamics
-   │    MD     │   → interaction/binding energy, RDF (adsorption distance), film stability
-   └───────────┘
-         │
-   Compare to experiment (EIS, polarization, weight loss)
-```
+![corrosim pipeline](../figures/fig0_pipeline.png)
 
-How each stage maps to the code is summarised at the bottom.
+*Source: [`pipeline.drawio`](pipeline.drawio). How each stage maps to the code is
+summarised at the bottom.*
 
 ---
 
@@ -64,12 +49,15 @@ The metal is described by its work function Φ (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈
 with η_metal ≈ 0. A high E_HOMO and a small gap indicate a strong electron-donor
 that bonds readily to the metal. Implemented in `corrosim/descriptors.py`.
 
-### Local reactivity (roadmap)
+### Local reactivity
 
-The literature also uses **Fukui functions** f⁺/f⁻, the **dual descriptor** Δf,
-**ESP** maps and **NBO** charges to pinpoint *which atoms* adsorb. `corrosim`
-does not compute these yet — it is the planned Stage-1 completion (finite
-differences over the N, N±1 electron systems, which the existing engines support).
+The literature also uses **Fukui functions** f⁺/f⁻, the **dual descriptor** Δf and
+**ESP** maps to pinpoint *which atoms* adsorb. **`corrosim` implements** the
+condensed Fukui / dual descriptor (`corrosim/fukui.py`, FMO or finite-difference
+over the N, N±1 systems) and the **ESP / MEP map** (PySCF `cubegen` density+MEP on
+a shared grid, rendered onto the density isosurface — `figures.render_esp`). For
+the flavonoids both agree: the catechol B-ring + 3-OH oxygens are the metal-binding
+donor sites. (NBO charges remain a possible future add.)
 
 ---
 
@@ -83,11 +71,12 @@ water + H₃O⁺ + Cl⁻ box mimicking HCl. Key output: the **adsorption energy 
 (more negative = stronger).
 
 **`corrosim` implements** the slab construction and molecule placement
-(`corrosim/adsorption.py`, via ASE) and exports geometries for the full MD run.
-For a fast, bounded screening number it computes a **rigid-body UFF van-der-Waals
-physisorption estimate** (orient flat, height scan) rather than a full
-configurational search. A real Monte Carlo pose search (random rotate/translate +
-Metropolis/annealing) is on the roadmap.
+(`corrosim/adsorption.py`, via ASE) plus a **Monte Carlo pose search**
+(`corrosim/mc.py`: random rotate/translate + Metropolis simulated annealing) over a
+rigid-body **UFF van-der-Waals** energy. For the flavonoids it finds flat
+physisorption poses on Fe(110) at **E_ads ≈ −16 kJ/mol** — at the lower edge of the
+published black-tea periodic-DFT band (−20 to −35), as expected for a vdW-only
+model. Quantitative chemisorption E_ads is the LAMMPS/periodic-DFT hand-off.
 
 > A finite metal-cluster + GFN2-xTB shortcut for E_ads was evaluated and
 > **rejected** — bare clusters give unphysical (tens-of-eV) energies. See
@@ -108,10 +97,14 @@ Binding energy       E_binding     = − E_interaction
 Radial distribution function (RDF) → adsorption distance; <3.5 Å ⇒ chemisorption
 ```
 
-**`corrosim` does not run MD.** It exports the slab + molecule and provides a
-LAMMPS hand-off (`LAMMPS_HANDOFF_NOTE`): assign force fields (GAFF/OPLS for the
-organic, EAM for the metal), solvate, run NVT, compute E_ads and the RDF. This is
-the heavy, compute-bound step and stays outside the package. Stay on the
+**`corrosim` implements** a light **Brownian rigid-body MD** (`corrosim/md.py`):
+the molecule diffuses over the surface under the same UFF van-der-Waals field, and
+the **Fe–O radial distribution function** gives the adsorption distance — first
+peak ≈ **3.5 Å** for the flavonoids, in the > 3.5 Å physisorption range (consistent
+with the MC result). For a *quantitative, chemisorption-capable* E_ads it still
+provides a **LAMMPS hand-off** (`LAMMPS_HANDOFF_NOTE`): assign force fields
+(GAFF/OPLS for the organic, EAM for the metal), solvate, run NVT, compute E_ads and
+the RDF — the heavy, compute-bound step that stays outside the package. Stay on the
 **classical** path; first-principles MD is far more expensive.
 
 ---
@@ -125,9 +118,10 @@ licenses**:
 | Reference (commercial) | Free equivalent used here |
 |---|---|
 | Gaussian / DMol³ (DFT) | PySCF, xTB (ORCA optional, free for academia) |
-| Adsorption Locator (MC) | ASE slab + UFF estimate (MC search: roadmap) |
-| Forcite / QE (MD) | LAMMPS / Quantum ESPRESSO (hand-off) |
-| Multiwfn (Fukui/ESP) | Multiwfn / finite differences (roadmap) |
+| DMol³ geometry-opt | PySCF + geomeTRIC (`run_dft --optimize`) |
+| Adsorption Locator (MC) | ASE slab + UFF Monte Carlo pose search (`corrosim/mc.py`) |
+| Forcite (MD) | Brownian rigid-body MD → Fe–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
+| Multiwfn (Fukui / ESP) | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
 
 Spend any compute budget on the Stage-3 classical MD, not on software.
 
@@ -137,11 +131,15 @@ Spend any compute budget on the Stage-3 classical MD, not on software.
 
 | Stage | Module | Entry points |
 |---|---|---|
-| Build molecule | `corrosim/molecules.py` | `build_molecule` |
-| Stage 1 (engines) | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian` |
+| Build molecule | `corrosim/molecules.py` | `build_molecule`, `build_protonated` |
+| Stage 1 (engines) | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian`, `optimize_geometry` |
 | Stage 1 (descriptors) | `corrosim/descriptors.py` | `compute_descriptors` |
-| Stage 2 | `corrosim/adsorption.py` | `estimate_adsorption_energy`, `build_adsorption_system` |
-| Reporting | `corrosim/report.py` | `results_dataframe`, `rank_inhibitors`, `build_html_report` |
+| Stage 1b (Fukui) | `corrosim/fukui.py` | `compute_fukui` |
+| Stage 1c (ESP/orbitals) | `corrosim/figures.py` | `write_density_esp_cubes`, `render_esp`, `render_orbital` |
+| Stage 2 (MC) | `corrosim/adsorption.py`, `corrosim/mc.py` | `build_adsorption_system`, `run_mc` |
+| Stage 3 (MD) | `corrosim/md.py` | `run_md` |
+| Reporting | `corrosim/report.py` | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
+| Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
 | Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
 
 ## Important caveats

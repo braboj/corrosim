@@ -16,18 +16,11 @@ quercetin, isorhamnetin), but it accepts any molecule.
 A full open-source multiscale screen: electronic structure → adsorption pose →
 dynamics → report.
 
-```
- name / SMILES ─▶ 3D geometry (RDKit) ─▶ DFT / xTB (PySCF, tblite)
-                       │                   ├─ global descriptors  HOMO/LUMO, gap, η, σ, ω, ΔN
-                       │                   ├─ Fukui / dual         donor & acceptor atoms
-                       │                   └─ ESP / MEP map        electrostatic surface
-                       ▼
-                  Fe(110) slab (ASE) ─▶ Monte Carlo pose search ─▶ Brownian MD ─▶ Fe–O RDF
-                                          E_ads (UFF vdW)            adsorption distance
-                       │
-                       ▼
-                  self-contained HTML report  (ranking + all figures inlined)
-```
+![corrosim pipeline](figures/fig0_pipeline.png)
+
+*Diagram source: [`docs/pipeline.drawio`](docs/pipeline.drawio) — edit in
+[diagrams.net](https://app.diagrams.net), re-export with
+`drawio -x -f png -s 2 -o figures/fig0_pipeline.png docs/pipeline.drawio`.*
 
 | Stage | What | Tool | Status |
 |---|---|---|---|
