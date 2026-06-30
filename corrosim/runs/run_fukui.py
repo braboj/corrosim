@@ -13,6 +13,7 @@ Container use:
 from __future__ import annotations
 import argparse
 import json
+import os
 import sys
 import matplotlib
 matplotlib.use("Agg")
@@ -34,8 +35,9 @@ def main(argv=None) -> int:
     p.add_argument("--xc", default="b3lyp")
     p.add_argument("--method", default="fmo", choices=["fmo", "fd"],
                    help="fmo = fast one-SCF frontier-orbital; fd = finite difference.")
-    p.add_argument("--outdir", default=".")
+    p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
+    os.makedirs(args.outdir, exist_ok=True)
 
     for name in [m.strip() for m in args.molecules.split(",") if m.strip()]:
         print(f"[{name}] computing Fukui ({args.method}) ...", file=sys.stderr)

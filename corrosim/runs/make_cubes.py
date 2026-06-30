@@ -27,6 +27,8 @@ def main(argv=None) -> int:
                    help="Comma-separated names/SMILES (default: quercetin).")
     p.add_argument("--what", default="orbital,esp",
                    help="Which cubes: any of orbital,esp (comma-separated).")
+    p.add_argument("--outdir", default="cubes",
+                   help="Directory for the .cube files (gitignored, regenerable).")
     p.add_argument("--basis", default="6-31G(d)",
                    help="Cube basis (shapes are basis-insensitive; keep it small).")
     p.add_argument("--xc", default="b3lyp")
@@ -34,19 +36,21 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     what = {w.strip().lower() for w in args.what.split(",") if w.strip()}
     names = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    os.makedirs(args.outdir, exist_ok=True)
     log = lambda m: print(m, file=sys.stderr)
 
     for name in names:
         m = build_molecule(name)
+        prefix = os.path.join(args.outdir, name)
         if "orbital" in what:
             log(f"[{name}] HOMO/LUMO cubes ...")
-            paths = figures.write_orbital_cubes(m.symbols, m.coords, prefix=name,
+            paths = figures.write_orbital_cubes(m.symbols, m.coords, prefix=prefix,
                                                 basis=args.basis, xc=args.xc,
                                                 charge=m.charge, nx=args.nx)
             log(f"    {paths['homo']}, {paths['lumo']}")
         if "esp" in what:
             log(f"[{name}] density + ESP cubes (MEP integral, slow) ...")
-            paths = figures.write_density_esp_cubes(m.symbols, m.coords, prefix=name,
+            paths = figures.write_density_esp_cubes(m.symbols, m.coords, prefix=prefix,
                                                     basis=args.basis, xc=args.xc,
                                                     charge=m.charge, nx=args.nx)
             log(f"    {paths['density']}, {paths['esp']}")

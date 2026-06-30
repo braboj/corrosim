@@ -16,7 +16,7 @@ Local use (needs rdkit + pyscf — long jobs are expected):
 
     python -m corrosim.runs.run_dft \
         --molecules kaempferol,quercetin,isorhamnetin \
-        --engine pyscf --out-json dft_descriptors.json --out-csv dft_descriptors.csv
+        --engine pyscf --out-json results/dft_descriptors.json --out-csv results/dft_descriptors.csv
 
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 

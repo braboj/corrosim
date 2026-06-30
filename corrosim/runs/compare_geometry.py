@@ -8,8 +8,8 @@ CSV and a grouped-bar figure, and prints a summary.
 
 Runs in the venv (no QM container):
     python -m corrosim.runs.compare_geometry \
-        --ff dft_descriptors.csv --opt dft_descriptors_opt.csv \
-        --out-csv geometry_comparison.csv --out-fig figures/fig8_geometry_comparison.png
+        --ff results/dft_descriptors.csv --opt results/dft_descriptors_opt.csv \
+        --out-csv results/geometry_comparison.csv --out-fig figures/fig8_geometry_comparison.png
 """
 from __future__ import annotations
 import argparse
@@ -33,12 +33,12 @@ def _naq(df, order, phase):
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
-    p.add_argument("--ff", default="dft_descriptors.csv",
+    p.add_argument("--ff", default="results/dft_descriptors.csv",
                    help="Force-field-geometry descriptor matrix.")
-    p.add_argument("--opt", default="dft_descriptors_opt.csv",
+    p.add_argument("--opt", default="results/dft_descriptors_opt.csv",
                    help="DFT-optimised-geometry descriptor matrix.")
     p.add_argument("--phase", default="aqueous", choices=["gas", "aqueous"])
-    p.add_argument("--out-csv", default="geometry_comparison.csv")
+    p.add_argument("--out-csv", default="results/geometry_comparison.csv")
     p.add_argument("--out-fig", default="figures/fig8_geometry_comparison.png")
     args = p.parse_args(argv)
     log = lambda m: print(m, file=sys.stderr)

@@ -11,6 +11,7 @@ and a summary JSON. Pure classical (numpy + ASE); runs anywhere, no QM container
 from __future__ import annotations
 import argparse
 import json
+import os
 import sys
 import matplotlib
 matplotlib.use("Agg")
@@ -29,8 +30,9 @@ def main(argv=None) -> int:
     p.add_argument("--metal", default="Fe", help="Fe | Cu | Al")
     p.add_argument("--steps", type=int, default=4000)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--outdir", default=".")
+    p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
+    os.makedirs(args.outdir, exist_ok=True)
 
     summary = []
     for name in [m.strip() for m in args.molecules.split(",") if m.strip()]:

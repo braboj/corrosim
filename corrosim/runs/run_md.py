@@ -11,6 +11,7 @@ interaction energy. Pure classical (numpy + ASE); runs anywhere.
 from __future__ import annotations
 import argparse
 import json
+import os
 import sys
 import matplotlib
 matplotlib.use("Agg")
@@ -32,8 +33,9 @@ def main(argv=None) -> int:
     p.add_argument("--equil", type=int, default=1500)
     p.add_argument("--temperature", type=float, default=298.0)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--outdir", default=".")
+    p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
+    os.makedirs(args.outdir, exist_ok=True)
 
     summary = []
     for name in [m.strip() for m in args.molecules.split(",") if m.strip()]:

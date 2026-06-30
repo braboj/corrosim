@@ -40,6 +40,10 @@ def _fukui_from_json(path):
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
     p.add_argument("--outdir", default="figures")
+    p.add_argument("--datadir", default="results",
+                   help="Where the descriptor/Fukui data live.")
+    p.add_argument("--cubedir", default="cubes",
+                   help="Where the volumetric cubes live.")
     p.add_argument("--steps-mc", type=int, default=5000)
     p.add_argument("--steps-md", type=int, default=6000)
     args = p.parse_args(argv)
@@ -50,9 +54,9 @@ def main(argv=None) -> int:
     log("Fig 1: structures")
     figures.plot_structures(ORDER, out=out("fig1_structures.png"))
 
-    if os.path.exists("dft_descriptors.csv"):
+    if os.path.exists(f"{args.datadir}/dft_descriptors.csv"):
         log("Fig 2/3: FMO energy diagram, descriptors, protonation effect")
-        df = pd.read_csv("dft_descriptors.csv")
+        df = pd.read_csv(f"{args.datadir}/dft_descriptors.csv")
         naq = (df[(df.form == "neutral") & (df.phase == "aqueous")]
                .set_index("name").loc[ORDER].reset_index())
         rows = naq.to_dict("records")
@@ -62,7 +66,7 @@ def main(argv=None) -> int:
 
     log("Fig 4: Fukui maps")
     for name in ORDER:
-        jf = f"{name}_fukui.json"
+        jf = f"{args.datadir}/{name}_fukui.json"
         if os.path.exists(jf):
             figures.plot_fukui(_fukui_from_json(jf), molecule=build_molecule(name),
                                out=out(f"fig4_{name}_fukui.png"),
@@ -80,14 +84,14 @@ def main(argv=None) -> int:
     log("Fig 2b: HOMO/LUMO isosurfaces (from existing cubes)")
     for name in ORDER:
         for which in ("homo", "lumo"):
-            cube = f"{name}_{which}.cube"
+            cube = f"{args.cubedir}/{name}_{which}.cube"
             if os.path.exists(cube):
                 figures.render_orbital(cube, out=out(f"fig2b_{name}_{which}.png"),
                                        title=f"{name} {which.upper()}")
 
     log("Fig 7: ESP / MEP maps (from existing density+esp cubes)")
     for name in ORDER:
-        dens, esp = f"{name}_density.cube", f"{name}_esp.cube"
+        dens, esp = f"{args.cubedir}/{name}_density.cube", f"{args.cubedir}/{name}_esp.cube"
         if os.path.exists(dens) and os.path.exists(esp):
             figures.render_esp(dens, esp, out=out(f"fig7_{name}_esp.png"),
                                title=f"{name} — ESP on density isosurface")

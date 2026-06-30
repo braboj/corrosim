@@ -48,13 +48,13 @@ it only for screening, never for reported descriptors:
 
 In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
 aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
-gas/aqueous matrix: `dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
+gas/aqueous matrix: `results/dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
 ### Geometry refinement (FF vs DFT-optimised)
 
 The matrix above uses force-field (MMFF) geometries with a DFT single point. Re-running
 the neutral set with a **DFT geometry optimisation** first (B3LYP/6-31G(d), gas phase;
-`run_dft --optimize`, data in `dft_descriptors_opt.{json,csv}`) shifts every descriptor
+`run_dft --optimize`, data in `results/dft_descriptors_opt.{json,csv}`) shifts every descriptor
 in the same direction but **leaves both rankings unchanged** — the lead assignments are
 geometry-robust:
 
@@ -80,8 +80,8 @@ cheap proxy, and the production numbers tighten with the relaxed geometry (figur
 | **Black tea extract study** (Mater. Chem. Phys., 2025) | DFT, periodic + dispersion | strongest constituent; ΔGads ≈ −20 kJ/mol (overall physicochemical ~−35) | weaker than quercetin |
 | **Lady's mantle study** (Results in Chemistry, 2025) | DFT/MC | — | strong adsorption confirmed (reference compound) |
 
-(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `mc_adsorption.json`,
-`md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
+(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `results/mc_adsorption.json`,
+`results/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
 ## Reading
 

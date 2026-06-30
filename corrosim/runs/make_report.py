@@ -29,9 +29,11 @@ def _load_json(path: str):
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-make-report")
-    p.add_argument("--descriptors", default="dft_descriptors.csv")
-    p.add_argument("--mc", default="mc_adsorption.json")
-    p.add_argument("--md", default="md_rdf.json")
+    p.add_argument("--descriptors", default="results/dft_descriptors.csv")
+    p.add_argument("--mc", default="results/mc_adsorption.json")
+    p.add_argument("--md", default="results/md_rdf.json")
+    p.add_argument("--datadir", default="results",
+                   help="Where per-molecule Fukui JSON live.")
     p.add_argument("--figdir", default="figures")
     p.add_argument("--out", default="report.html")
     p.add_argument("--metal", default="Fe(110)")
@@ -50,7 +52,7 @@ def main(argv=None) -> int:
 
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
-    fukui_by_name = {n: _load_json(f"{n}_fukui.json") for n in present}
+    fukui_by_name = {n: _load_json(f"{args.datadir}/{n}_fukui.json") for n in present}
 
     log(f"DFT rows: {len(rows)} | MC: {len(mc_rows)} | MD: {len(md_rows)} | "
         f"Fukui: {sum(1 for v in fukui_by_name.values() if v)}")
