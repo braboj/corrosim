@@ -19,9 +19,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .adsorption import _KCAL_TO_EV, _UFF, _orient_flat, build_slab
-
-_SURFACE = {"Fe": "(110)", "Cu": "(111)", "Al": "(111)"}
+from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat, rot
 
 
 @dataclass
@@ -49,16 +47,6 @@ class MCResult:
         return c
 
 
-def _rot(axis, angle):
-    axis = axis / (np.linalg.norm(axis) + 1e-12)
-    x, y, z = axis
-    c, s = np.cos(angle), np.sin(angle)
-    C = 1.0 - c
-    return np.array([[c + x*x*C, x*y*C - z*s, x*z*C + y*s],
-                     [y*x*C + z*s, c + y*y*C, y*z*C - x*s],
-                     [z*x*C - y*s, z*y*C + x*s, c + z*z*C]])
-
-
 def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
            n_steps: int = 4000, seed: int = 0, kT_hi: float = 0.05,
            kT_lo: float = 0.003, min_height: float = 2.0,
@@ -68,22 +56,22 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     kT in eV; annealed geometrically from kT_hi to kT_lo. Returns the best pose and
     the accepted-energy trace.
     """
-    missing = set(molecule.symbols) - set(_UFF)
+    missing = set(molecule.symbols) - set(UFF)
     if missing:
         raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
     rng = np.random.default_rng(seed)
     slab = build_slab(metal, size=size, vacuum=vacuum)
     s_pos = slab.get_positions()
     s_sym = slab.get_chemical_symbols()
-    s_x = np.array([_UFF[s][0] for s in s_sym])
-    s_D = np.array([_UFF[s][1] for s in s_sym])
+    s_x = np.array([UFF[s][0] for s in s_sym])
+    s_D = np.array([UFF[s][1] for s in s_sym])
     cell = slab.get_cell()
     cx, cy = cell[0, 0] / 2.0, cell[1, 1] / 2.0
     top = s_pos[:, 2].max()
 
     m_sym = list(molecule.symbols)
-    m_x = np.array([_UFF[s][0] for s in m_sym])
-    m_D = np.array([_UFF[s][1] for s in m_sym])
+    m_x = np.array([UFF[s][0] for s in m_sym])
+    m_D = np.array([UFF[s][1] for s in m_sym])
     x_mix = np.sqrt(m_x[:, None] * s_x[None, :])
     D_mix = np.sqrt(m_D[:, None] * s_D[None, :])
 
@@ -91,9 +79,9 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         d = np.linalg.norm(p[:, None, :] - s_pos[None, :, :], axis=2)
         d = np.maximum(d, 0.3)
         t = (x_mix / d) ** 6
-        return float((D_mix * (t * t - 2.0 * t)).sum()) * _KCAL_TO_EV
+        return float((D_mix * (t * t - 2.0 * t)).sum()) * KCAL_TO_EV
 
-    pos = _orient_flat(molecule.coords)
+    pos = orient_flat(molecule.coords)
     pos[:, 0] += cx
     pos[:, 1] += cy
     pos[:, 2] += top + 3.0 - pos[:, 2].min()
@@ -107,7 +95,7 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         frac = i / n_steps
         kT = kT_hi * (kT_lo / kT_hi) ** frac
         scale = 1.0 - 0.7 * frac
-        trial = (pos - com) @ _rot(rng.normal(size=3), rng.normal(0, 0.6 * scale)).T + com
+        trial = (pos - com) @ rot(rng.normal(size=3), rng.normal(0, 0.6 * scale)).T + com
         trial += rng.normal(0, 0.4 * scale, size=3)
         zmin = trial[:, 2].min()
         trial[:, 2] += np.clip(zmin, top + min_height, top + max_height) - zmin
@@ -122,7 +110,7 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
                 best_e, best_pos = e, pos.copy()
         energies.append(e)
 
-    return MCResult(metal=metal, surface=_SURFACE.get(metal, ""),
+    return MCResult(metal=metal, surface=SURFACE_FACET.get(metal, ""),
                     e_ads_ev=round(best_e, 4), e_ads_kjmol=round(best_e * 96.485, 2),
                     best_height_A=round(float(best_pos[:, 2].min() - top), 2),
                     mol_symbols=m_sym, best_positions=best_pos, slab=slab,

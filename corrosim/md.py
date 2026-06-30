@@ -19,8 +19,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .adsorption import _KCAL_TO_EV, _UFF, _orient_flat, build_slab
-from .mc import _SURFACE, _rot
+from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat, rot
 
 KB_EV = 8.617333262e-5   # Boltzmann constant, eV/K
 
@@ -66,9 +65,9 @@ def _forces_energy(p, s_pos, x_mix, D_mix):
     diff = p[:, None, :] - s_pos[None, :, :]      # (n, m, 3)
     d = np.maximum(np.linalg.norm(diff, axis=2), 0.3)
     t6 = (x_mix / d) ** 6
-    E = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * _KCAL_TO_EV
+    E = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
     dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)       # kcal/mol/A
-    f = -(dEdr[:, :, None] * (diff / d[:, :, None])).sum(axis=1) * _KCAL_TO_EV
+    f = -(dEdr[:, :, None] * (diff / d[:, :, None])).sum(axis=1) * KCAL_TO_EV
     return E, f
 
 
@@ -82,7 +81,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     [min_height, max_height] above the surface so the run samples the *adsorbed
     state* (vdW physisorption is weak vs kT at 298 K, so an unconfined molecule
     thermally desorbs). Records the metal-X RDF after `equil` steps."""
-    missing = set(molecule.symbols) - set(_UFF)
+    missing = set(molecule.symbols) - set(UFF)
     if missing:
         raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
     kT = KB_EV * temperature
@@ -95,8 +94,8 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     top = s_pos[:, 2].max()
 
     m_sym = list(molecule.symbols)
-    m_x = np.array([_UFF[s][0] for s in m_sym]); m_D = np.array([_UFF[s][1] for s in m_sym])
-    s_x = np.array([_UFF[s][0] for s in s_sym]); s_D = np.array([_UFF[s][1] for s in s_sym])
+    m_x = np.array([UFF[s][0] for s in m_sym]); m_D = np.array([UFF[s][1] for s in m_sym])
+    s_x = np.array([UFF[s][0] for s in s_sym]); s_D = np.array([UFF[s][1] for s in s_sym])
     x_mix = np.sqrt(m_x[:, None] * s_x[None, :]); D_mix = np.sqrt(m_D[:, None] * s_D[None, :])
     o_idx = [i for i, s in enumerate(m_sym) if s == "O"]
     n_idx = [i for i, s in enumerate(m_sym) if s == "N"]
@@ -104,7 +103,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     if start_positions is not None:
         p = np.array(start_positions, float).copy()
     else:
-        p = _orient_flat(molecule.coords)
+        p = orient_flat(molecule.coords)
         p[:, 0] += cell[0, 0] / 2.0; p[:, 1] += cell[1, 1] / 2.0
         p[:, 2] += top + 2.5 - p[:, 2].min()
 
@@ -122,7 +121,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         trans = np.clip((D_t / kT) * F, -0.15, 0.15) + rng.normal(0, np.sqrt(2 * D_t), 3)
         dphi = np.clip((D_r / kT) * tau, -0.15, 0.15) + rng.normal(0, np.sqrt(2 * D_r), 3)
         ang = np.linalg.norm(dphi)
-        R = _rot(dphi / (ang + 1e-12), ang) if ang > 1e-12 else np.eye(3)
+        R = rot(dphi / (ang + 1e-12), ang) if ang > 1e-12 else np.eye(3)
         p = (p - com) @ R.T + com + trans
         zmin = p[:, 2].min()
         if zmin < top + min_height:
@@ -150,7 +149,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         return float(r[win][int(np.argmax(g[win]))]) if g[win].any() else None
 
     e_mean = float(np.mean(energies[equil:])) if len(energies) > equil else float(np.mean(energies))
-    return MDResult(metal=metal, surface=_SURFACE.get(metal, ""), temperature=temperature,
+    return MDResult(metal=metal, surface=SURFACE_FACET.get(metal, ""), temperature=temperature,
                     e_mean_ev=round(e_mean, 4), e_mean_kjmol=round(e_mean * 96.485, 2),
                     rdf_r=r.tolist(), rdf_metal_O=g_mO.tolist(), rdf_metal_N=g_mN.tolist(),
                     first_peak_metal_O=_peak(g_mO), first_peak_metal_N=_peak(g_mN),

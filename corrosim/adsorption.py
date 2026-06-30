@@ -11,6 +11,9 @@ compatible force field and real compute). What this gives you, automatically, is
   * a correct, periodic metal surface (Fe(110) / Cu(111) / Al(111)),
   * the inhibitor positioned flat above it inside a solvent-sized box,
   * exported files (.xyz / .cif / LAMMPS data) to hand to the MD engine.
+
+The shared substrate/vdW primitives (build_slab, UFF, orient_flat, the facet map)
+live in corrosim.surface; this module is the Stage-2 estimate built on top.
 """
 from __future__ import annotations
 
@@ -18,15 +21,9 @@ from dataclasses import dataclass
 
 import numpy as np
 from ase import Atoms
-from ase.build import bcc110, fcc111
 from ase.io import write
 
-# lattice constants (Angstrom) and crystal type per metal
-METAL_LATTICE = {
-    "Fe": ("bcc", 2.8665),
-    "Cu": ("fcc", 3.6149),
-    "Al": ("fcc", 4.0495),
-}
+from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat
 
 
 @dataclass
@@ -45,18 +42,6 @@ class AdsorptionSystem:
             write(p, self.combined)
             paths[ext] = p
         return paths
-
-
-def build_slab(metal: str = "Fe", size=(6, 6, 4), vacuum: float = 15.0) -> Atoms:
-    """Build a periodic metal slab with the conventional inhibitor facet."""
-    if metal not in METAL_LATTICE:
-        raise ValueError(f"Unknown metal '{metal}'. Known: {list(METAL_LATTICE)}")
-    crystal, a = METAL_LATTICE[metal]
-    if crystal == "bcc":      # Fe -> (110)
-        slab = bcc110(metal, size=size, a=a, vacuum=vacuum)
-    else:                     # Cu, Al -> (111)
-        slab = fcc111(metal, size=size, a=a, vacuum=vacuum)
-    return slab
 
 
 def place_molecule(slab: Atoms, symbols, coords, height: float = 2.5) -> Atoms:
@@ -78,7 +63,7 @@ def place_molecule(slab: Atoms, symbols, coords, height: float = 2.5) -> Atoms:
 def build_adsorption_system(molecule, metal: str = "Fe",
                             size=(6, 6, 4), vacuum: float = 15.0,
                             height: float = 2.5) -> AdsorptionSystem:
-    surface = {"Fe": "(110)", "Cu": "(111)", "Al": "(111)"}[metal]
+    surface = SURFACE_FACET[metal]
     slab = build_slab(metal, size=size, vacuum=vacuum)
     combined = place_molecule(slab, molecule.symbols, molecule.coords, height)
     box = tuple(np.diag(combined.get_cell()))
@@ -87,29 +72,6 @@ def build_adsorption_system(molecule, metal: str = "Fe",
 
 
 # --- UFF van-der-Waals physisorption estimate -----------------------------
-# UFF nonbonded parameters (Rappe et al. 1992): element -> (x_vdw [A], D [kcal/mol])
-_UFF = {
-    "H": (2.886, 0.044), "C": (3.851, 0.105), "N": (3.660, 0.069),
-    "O": (3.500, 0.060), "S": (4.035, 0.274), "F": (3.364, 0.050),
-    "Cl": (3.947, 0.227), "P": (4.147, 0.305),
-    "Fe": (2.912, 0.013), "Cu": (3.495, 0.005), "Al": (4.499, 0.505),
-}
-_KCAL_TO_EV = 0.0433641
-
-
-def _orient_flat(coords):
-    """Rotate the molecule so its largest plane lies parallel to xy (max contact)."""
-    c = np.asarray(coords, float)
-    c = c - c.mean(axis=0)
-    # principal axes; smallest-variance axis -> z
-    _, _, vt = np.linalg.svd(c, full_matrices=False)
-    R = vt[::-1].T               # least-spread direction becomes z
-    out = c @ R
-    if np.linalg.det(R) < 0:     # keep right-handed
-        out[:, 0] *= -1
-    return out
-
-
 def estimate_adsorption_energy(molecule, metal: str = "Fe",
                                size=(5, 5, 3), vacuum: float = 10.0,
                                heights=None) -> dict:
@@ -124,7 +86,7 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
     """
     if heights is None:
         heights = np.arange(2.0, 4.01, 0.25)
-    missing = set(molecule.symbols) - set(_UFF)
+    missing = set(molecule.symbols) - set(UFF)
     if missing:
         raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
 
@@ -135,7 +97,7 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
     cx, cy = cell[0, 0] / 2.0, cell[1, 1] / 2.0
     top = pos_s[:, 2].max()
 
-    base = _orient_flat(molecule.coords)
+    base = orient_flat(molecule.coords)
     best_e, best_h = float("inf"), None
     for h in heights:
         p = base.copy()
@@ -144,15 +106,15 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
         p[:, 1] += cy
         e = 0.0
         for sa, pa in zip(molecule.symbols, p):
-            xa, Da = _UFF[sa]
+            xa, Da = UFF[sa]
             for sb, pb in zip(sym_s, pos_s):
-                xb, Db = _UFF[sb]
+                xb, Db = UFF[sb]
                 r = float(np.linalg.norm(pa - pb))
                 if r < 0.1:
                     continue
                 t = (np.sqrt(xa * xb) / r) ** 6
                 e += np.sqrt(Da * Db) * (t * t - 2 * t)
-        e *= _KCAL_TO_EV
+        e *= KCAL_TO_EV
         if e < best_e:
             best_e, best_h = e, float(h)
 
