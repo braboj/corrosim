@@ -13,25 +13,54 @@ quercetin, isorhamnetin), but it accepts any molecule.
 
 ## Pipeline
 
+A full open-source multiscale screen: electronic structure → adsorption pose →
+dynamics → report.
+
 ```
- name / SMILES ─▶ 3D geometry (RDKit) ─▶ quantum engine ─▶ descriptors ─▶ report
-                                          xTB | PySCF |       HOMO, LUMO,     + ranking
-                                          ORCA | Gaussian      gap, η, σ, ω, ΔN  + HTML
-         └───────────────────────────▶ slab + molecule (ASE) ─▶ UFF E_ads est. + MD handoff
+ name / SMILES ─▶ 3D geometry (RDKit) ─▶ DFT / xTB (PySCF, tblite)
+                       │                   ├─ global descriptors  HOMO/LUMO, gap, η, σ, ω, ΔN
+                       │                   ├─ Fukui / dual         donor & acceptor atoms
+                       │                   └─ ESP / MEP map        electrostatic surface
+                       ▼
+                  Fe(110) slab (ASE) ─▶ Monte Carlo pose search ─▶ Brownian MD ─▶ Fe–O RDF
+                                          E_ads (UFF vdW)            adsorption distance
+                       │
+                       ▼
+                  self-contained HTML report  (ranking + all figures inlined)
 ```
 
 | Stage | What | Tool | Status |
 |---|---|---|---|
-| 1 | DFT/QM reactivity descriptors | tblite (xTB), PySCF, ORCA/Gaussian | ✅ global; ⏳ local (Fukui) |
-| 2a | Fast adsorption-energy estimate | UFF van der Waals (built-in) | ✅ screening proxy |
-| 2b | Adsorption structure prep | ASE (Fe(110)/Cu(111)/Al(111)) | ✅ |
-| 2c | Monte Carlo pose search | — | ⏳ roadmap |
-| 3 | Full adsorption-energy MD | LAMMPS | 🔌 hand-off (runs outside) |
+| 1 | Global reactivity descriptors | tblite (xTB), PySCF, ORCA/Gaussian | ✅ |
+| 1 | DFT geometry optimisation | PySCF + geomeTRIC | ✅ (`run_dft --optimize`) |
+| 1b | Local reactivity — Fukui / dual descriptor | PySCF | ✅ |
+| 1c | ESP / MEP map | PySCF cubegen + skimage | ✅ |
+| 2 | Monte Carlo adsorption pose search | UFF van der Waals (built-in) | ✅ |
+| 3 | Brownian MD → Fe–O RDF / adsorption distance | built-in | ✅ (physisorption proxy) |
+| 3+ | Quantitative chemisorption E_ads | LAMMPS (EAM+GAFF) or periodic DFT | 🔌 hand-off (runs outside) |
 
-The scientific basis — the three-stage methodology, the descriptor equations, the
-engine choices, and how each stage maps to the code — is in
-[`docs/pipeline.md`](docs/pipeline.md). Results vs. published Fe(110) studies are
-in [`docs/validation.md`](docs/validation.md).
+The scientific basis — the methodology, the descriptor equations, the engine
+choices, and how each stage maps to the code — is in
+[`docs/pipeline.md`](docs/pipeline.md). Results vs. published Fe(110) studies
+(and the FF-vs-DFT-geometry robustness check) are in
+[`docs/validation.md`](docs/validation.md).
+
+### Reproduce the multiscale pipeline
+
+The `corrosim.runs.*` drivers run each stage and write data to `results/`,
+figures to `figures/`, and volumetric cubes to `cubes/`. The DFT/xTB stages need
+the QM engines (see the Docker path under [Install](#install)); the rest run in a
+plain venv.
+
+```bash
+python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors.csv            # Stage 1 descriptors
+python -m corrosim.runs.run_fukui                                                  # Stage 1b — Fukui
+python -m corrosim.runs.make_cubes --what orbital,esp                              # HOMO/LUMO + ESP cubes
+python -m corrosim.runs.run_mc                                                     # Stage 2 — MC poses
+python -m corrosim.runs.run_md                                                     # Stage 3 — Brownian MD / RDF
+python -m corrosim.runs.make_figures                                               # render the figure set
+python -m corrosim.runs.make_report                                                # one self-contained report.html
+```
 
 ## Install
 
@@ -45,12 +74,26 @@ pip install -e ".[qm,notebook]"     # core + quantum engines + notebook tooling
 missing on your platform, install that one via conda
 (`conda install -c conda-forge rdkit pyscf tblite`).
 
+**Quantum engines via Docker (recommended on Windows).** PySCF/tblite have no
+native-Windows wheels, so the DFT/xTB stages run in the bundled `corrosim-qm`
+image; everything else (MC, MD, figures, report, tests) runs in a plain venv.
+
+```bash
+docker compose build qm                                    # build once
+docker compose run --rm qm pytest -q                       # smoke test
+docker compose run --rm qm python -m corrosim.runs.run_dft --out-csv results/dft_descriptors.csv
+```
+
+The repo is bind-mounted at `/work`, so outputs land back in `results/` / `figures/`
+and code edits need no rebuild. Long jobs (geometry-opt, MEP cubes) should be run
+detached (`docker compose run -d --name <job> qm …`) so they survive a shell exit.
+
 ## Use
 
 **Command line / batch CSV**
 ```bash
 corrosim --input examples/molecules.csv --metal "Fe(110)" \
-         --engine xtb --adsorption --out report.html --csv results.csv
+         --engine xtb --adsorption --out report.html --csv results/screen.csv
 ```
 CSV columns: `name` (and optional `smiles`).
 
@@ -84,11 +127,20 @@ jupyter notebook notebooks/corrosion_inhibitor_tool.ipynb
 ## Project structure
 
 ```
-corrosim/        package (molecules, engines, descriptors, adsorption, report, cli)
+corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
+                 adsorption, figures, report, cli
+corrosim/runs/   stage drivers (run_dft/fukui/mc/md, make_cubes/figures/report,
+                 compare_geometry)
+results/         tracked output data (descriptors, Fukui, MC/MD json, comparison)
+figures/         curated manuscript figure set (PNG)
+cubes/           volumetric .cube files — regenerable, gitignored
+report.html      self-contained pipeline report (make_report)
 notebooks/       the interactive front end
 examples/        sample batch CSV
 tests/           pytest suite (no DFT — fast)
-docs/adr/        architecture decision records
+docs/            pipeline.md, validation.md, adr/ (decision records)
+Dockerfile,      the corrosim-qm QM environment (PySCF + tblite)
+docker-compose.yml
 tools/           notebook builder + HTML renderer
 ```
 
@@ -105,12 +157,12 @@ why cluster-xTB was rejected for the adsorption energy.
 
 ## Limitations & roadmap
 
-- Stage-1 descriptors are **global**; **local reactivity (Fukui / dual descriptor /
-  ESP)** is not computed yet — *roadmap*.
-- Stage-2a is a **UFF van-der-Waals physisorption estimate** (rigid bodies, no
-  charge transfer): bounded and good for ranking, not a quantitative E_ads. A real
-  Monte Carlo pose search is *roadmap*; the full chemisorption-capable E_ads needs
-  Stage-3 MD on the exported structure.
+- The adsorption stages (MC pose search + Brownian MD) use a **UFF van-der-Waals
+  model** (rigid bodies, no charge transfer): bounded and good for ranking and the
+  physisorption distance, but **not a quantitative chemisorption E_ads**. That last
+  step is the LAMMPS (EAM+GAFF) or periodic-DFT hand-off — *roadmap*.
+- Geometry optimisation covers the **neutral** forms; a vibrational-frequency check
+  (confirm true minima) and optimised **protonated** cations are *roadmap*.
 - The flavonoids are **documented major constituents** of *S. argel*, simulated as
   representatives — confirm a specific extract with LC-MS/GC-MS.
 - Simulations **screen and explain**; they don't prove efficiency. Validate with
