@@ -1,55 +1,61 @@
 <mxfile host="corrosim" type="device">
   <diagram name="corrosim-pipeline" id="corrosim-pipeline">
-    <mxGraphModel dx="900" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="760" math="0" shadow="0">
+    <mxGraphModel dx="900" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="742" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="corrosim — multiscale inhibitor-screening pipeline" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1a202c;" vertex="1" parent="1">
-          <mxGeometry x="40" y="16" width="700" height="30" as="geometry" />
+        <mxCell id="in" value="Inhibitor&#10;name / SMILES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
+          <mxGeometry x="5" y="16" width="170" height="54" as="geometry" />
         </mxCell>
 
-        <mxCell id="in" value="Inhibitor&#10;name / SMILES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
-          <mxGeometry x="150" y="64" width="240" height="46" as="geometry" />
+        <mxCell id="sub" value="Substrate&#10;metal slab (Fe/Cu/Al)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
+          <mxGeometry x="185" y="16" width="170" height="54" as="geometry" />
+        </mxCell>
+
+        <mxCell id="med" value="Medium&#10;acid → protonation (1 M HCl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
+          <mxGeometry x="365" y="16" width="170" height="54" as="geometry" />
         </mxCell>
 
         <mxCell id="geo" value="3D geometry — RDKit (MMFF)&#10;optional DFT geometry-opt (geomeTRIC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
-          <mxGeometry x="150" y="138" width="240" height="54" as="geometry" />
+          <mxGeometry x="150" y="120" width="240" height="54" as="geometry" />
         </mxCell>
 
         <mxCell id="s1" value="Stage 1 — DFT / xTB&#10;PySCF · tblite · (ORCA / Gaussian)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#2b6cb0;fontSize=12;fontStyle=1;fontColor=#1a365d;" vertex="1" parent="1">
-          <mxGeometry x="150" y="220" width="240" height="62" as="geometry" />
+          <mxGeometry x="150" y="202" width="240" height="62" as="geometry" />
         </mxCell>
 
         <mxCell id="s1out" value="Global descriptors — HOMO/LUMO, gap, η, σ, ω, ΔN&#10;Fukui / dual descriptor → donor &amp; acceptor atoms&#10;ESP / MEP electrostatic-potential map" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#90b4e0;fontSize=11;fontColor=#2b4a6f;align=left;spacingLeft=10;" vertex="1" parent="1">
-          <mxGeometry x="440" y="218" width="300" height="66" as="geometry" />
+          <mxGeometry x="440" y="200" width="300" height="66" as="geometry" />
         </mxCell>
 
-        <mxCell id="s2" value="Stage 2 — Monte Carlo&#10;pose search on Fe(110) slab (ASE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4efeb;strokeColor=#319795;fontSize=12;fontStyle=1;fontColor=#1d4e4a;" vertex="1" parent="1">
-          <mxGeometry x="150" y="320" width="240" height="62" as="geometry" />
+        <mxCell id="s2" value="Stage 2 — Monte Carlo&#10;pose search on metal slab (ASE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4efeb;strokeColor=#319795;fontSize=12;fontStyle=1;fontColor=#1d4e4a;" vertex="1" parent="1">
+          <mxGeometry x="150" y="302" width="240" height="62" as="geometry" />
         </mxCell>
 
-        <mxCell id="s2out" value="Adsorption energy E_ads (UFF van der Waals)&#10;flat physisorption pose, ≈ −16 kJ/mol" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7fc8c0;fontSize=11;fontColor=#1d4e4a;align=left;spacingLeft=10;" vertex="1" parent="1">
-          <mxGeometry x="440" y="328" width="300" height="46" as="geometry" />
+        <mxCell id="s2out" value="Adsorption energy E_ads (UFF van der Waals)&#10;flat physisorption pose" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7fc8c0;fontSize=11;fontColor=#1d4e4a;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="300" height="46" as="geometry" />
         </mxCell>
 
         <mxCell id="s3" value="Stage 3 — Brownian molecular dynamics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6d5;strokeColor=#dd6b20;fontSize=12;fontStyle=1;fontColor=#7c3a10;" vertex="1" parent="1">
-          <mxGeometry x="150" y="420" width="240" height="54" as="geometry" />
+          <mxGeometry x="150" y="402" width="240" height="54" as="geometry" />
         </mxCell>
 
-        <mxCell id="s3out" value="Fe–O radial distribution → adsorption distance&#10;first peak ≈ 3.5 Å (physisorption)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#eaa472;fontSize=11;fontColor=#7c3a10;align=left;spacingLeft=10;" vertex="1" parent="1">
-          <mxGeometry x="440" y="424" width="300" height="46" as="geometry" />
+        <mxCell id="s3out" value="metal–O radial distribution → adsorption distance&#10;Fe example: first peak ≈ 3.5 Å" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#eaa472;fontSize=11;fontColor=#7c3a10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="406" width="300" height="46" as="geometry" />
         </mxCell>
 
         <mxCell id="rep" value="Self-contained HTML report&#10;ranking + all figures inlined" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d3748;strokeColor=#1a202c;fontSize=12;fontStyle=1;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="150" y="512" width="240" height="54" as="geometry" />
+          <mxGeometry x="150" y="494" width="240" height="54" as="geometry" />
         </mxCell>
 
         <mxCell id="exp" value="Compare to experiment&#10;EIS · potentiodynamic polarization · weight loss" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=11;fontColor=#475569;" vertex="1" parent="1">
-          <mxGeometry x="150" y="600" width="240" height="50" as="geometry" />
+          <mxGeometry x="150" y="582" width="240" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;" edge="1" parent="1" source="in" target="geo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="in" target="geo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e1b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sub" target="geo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e1c" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="med" target="geo"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;" edge="1" parent="1" source="geo" target="s1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;" edge="1" parent="1" source="s1" target="s2"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;" edge="1" parent="1" source="s2" target="s3"><mxGeometry relative="1" as="geometry" /></mxCell>
