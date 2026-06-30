@@ -60,12 +60,15 @@ python -m corrosim.runs.make_report                                             
 ```bash
 git clone https://github.com/braboj/corrosim
 cd corrosim
-pip install -e ".[qm,notebook]"     # core + quantum engines + notebook tooling
+pip install -e ".[qm,notebook,viz]"  # core + QM engines + notebook + figure rendering
 ```
 
 `rdkit`, `ase`, `tblite`, `pyscf` ship pip wheels on Linux/macOS; if a wheel is
 missing on your platform, install that one via conda
 (`conda install -c conda-forge rdkit pyscf tblite`).
+
+The `viz` extra (`scikit-image`, `scipy`, `Pillow`) powers the orbital/ESP
+isosurface figures and is bundled into `[dev]`, so the test suite can render them.
 
 **Quantum engines via Docker (recommended on Windows).** PySCF/tblite have no
 native-Windows wheels, so the DFT/xTB stages run in the bundled `corrosim-qm`
