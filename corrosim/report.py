@@ -192,6 +192,38 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
     ]
 
 
+def _speciation_block(summary: dict | None, medium: str) -> list[str]:
+    """Quantitative pH-speciation section (ADR 0004): the neutral/protonated
+    population at the medium pH, the population-weighted descriptor table, and the
+    lead-crossover sensitivity to the (uncertain) protonation pKa. Empty when no
+    summary is supplied (non-acidic medium or unknown pH)."""
+    if not summary:
+        return []
+    spec = summary["speciation"]
+    lo_f, hi_f = summary["band_fraction"]
+    cross_f, cross_pk = summary["crossover_fraction"], summary["crossover_pkah"]
+    sens = " The lead is insensitive to the protonation pKa over the plausible range."
+    if cross_f and cross_pk is not None:
+        sens = (f" The gap/softness composite lead changes from "
+                f"<b>{summary['neutral_lead']}</b> to <b>{summary['crossover_lead']}</b> "
+                f"at only ~{cross_f:.0%} protonation (pKaH ≈ {cross_pk:.1f}); the "
+                f"pKaH±1 band ({min(lo_f, hi_f):.0%}–{max(lo_f, hi_f):.0%} protonated) "
+                f"straddles that crossover — so the lead is sensitive to the "
+                f"protonation pKa, the key uncertainty here.")
+    return [
+        f"<h3>Speciation in {medium} (pH ≈ {spec.ph:.1f})</h3>",
+        "<p>The most basic site of these flavonoids is the 4-oxo carbonyl, a very "
+        f"weak base (estimated conjugate-acid pKaH ≈ {spec.pkah:.1f}; ADR 0004). By "
+        f"Henderson–Hasselbalch the inhibitor is <b>{spec.f_neutral:.0%} neutral / "
+        f"{spec.f_protonated:.0%} protonated</b> at this pH — the <b>{spec.dominant}</b> "
+        "form dominates, which is why the headline ranking uses the neutral form.</p>",
+        f"<p>Population-weighted (pH-weighted) descriptors — blended lead: "
+        f"<b>{summary['blended_lead']}</b>:</p>",
+        _html_table(results_dataframe(summary["blended_rows"])),
+        f'<p class="meta"><b>Sensitivity.</b>{sens}</p>',
+    ]
+
+
 def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
                                n: int = 3) -> list[dict]:
     """Atoms of a given element most susceptible to electrophilic attack (highest
@@ -242,7 +274,8 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           metal: str = "Fe(110)", medium: str = "1 M HCl",
                           order: list[str] | None = None,
                           generated_at: str | None = None,
-                          acid_cation_rows: list[dict] | None = None) -> str:
+                          acid_cation_rows: list[dict] | None = None,
+                          speciation_summary: dict | None = None) -> str:
     """
     Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
@@ -335,6 +368,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _html_table(full),
         _geometry_block(figdir),
         *_acid_cation_block(acid_cation_rows, medium),
+        *_speciation_block(speciation_summary, medium),
 
         # Stage 1b — Fukui -------------------------------------------------
         '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',

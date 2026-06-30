@@ -106,3 +106,21 @@ def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
                                  out_path=str(out2), medium="pH 7 buffer",
                                  order=["quercetin"], acid_cation_rows=None)
     assert "Species in the acidic medium" not in out2.read_text(encoding="utf-8")
+
+
+def test_pipeline_report_renders_speciation_section(tmp_path):
+    from corrosim.speciation import analyse_speciation
+    neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
+    protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
+                  {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]
+    summary = analyse_speciation(
+        neutral, protonated, ph=0.0,
+        rank_fn=lambda r: report.rank_inhibitors(pd.DataFrame(r)).to_dict("records"))
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(neutral, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), medium="1 M HCl",
+                                 order=["quercetin", "kaempferol"],
+                                 speciation_summary=summary)
+    html = out.read_text(encoding="utf-8")
+    assert "Speciation in 1 M HCl" in html
+    assert "Henderson" in html and "pH-weighted" in html
