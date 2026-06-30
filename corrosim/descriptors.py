@@ -59,7 +59,7 @@ class Descriptors:
         return asdict(self)
 
 
-def total_negative_charge(charges) -> float:
+def total_negative_charge(charges) -> float | None:
     """TNC = sum of the negative atomic partial charges (Mulliken). A proxy for the
     molecule's electron-rich / nucleophilic character; reported by the methodology
     template (ADR 0002) alongside the global descriptors. Returns None if no

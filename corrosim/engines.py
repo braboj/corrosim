@@ -49,9 +49,13 @@ def run_xtb(symbols, coords, charge: int = 0) -> EngineResult:
     homo_i = np.where(occ > 0.5)[0].max()
     homo = orb[homo_i]
     lumo = orb[homo_i + 1]
+    # tblite exposes Mulliken charges for GFN2-xTB; guard only the narrow case
+    # where the property is absent (older tblite yields None -> a 0-d array that
+    # won't iterate), so a real coding error here surfaces instead of silently
+    # dropping the TNC.
     try:
         charges = [float(q) for q in np.asarray(res.get("charges"))]
-    except Exception:
+    except (KeyError, TypeError, ValueError):
         charges = None
     return EngineResult("xtb", "GFN2-xTB",
                         e_total * HARTREE_TO_EV,
@@ -89,9 +93,12 @@ def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
     mo = mf.mo_energy
     homo = mo[occ > 0].max()
     lumo = mo[occ == 0].min()
+    # mulliken_pop returns (pop, charges); guard only the narrow Mulliken failure
+    # (missing/short result) so a real bug, e.g. an API change, surfaces instead
+    # of silently dropping the TNC.
     try:
         charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
-    except Exception:
+    except (IndexError, TypeError, ValueError):
         charges = None
     level = f"{xc.upper()}/{basis}" + (f" (ddCOSMO:{solvent})" if solvent else " (gas)")
     return EngineResult("pyscf", level,
