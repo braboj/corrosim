@@ -21,8 +21,9 @@ matplotlib.use("Agg")
 from corrosim import build_molecule
 from corrosim.fukui import compute_fukui
 from corrosim import figures
+from corrosim.presets import ARGHEL
 
-DEFAULT_MOLECULES = ["kaempferol", "quercetin", "isorhamnetin"]
+DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:

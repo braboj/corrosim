@@ -22,8 +22,9 @@ from corrosim import build_molecule, figures
 from corrosim.fukui import FukuiResult
 from corrosim.mc import run_mc
 from corrosim.md import run_md
+from corrosim.presets import ARGHEL
 
-ORDER = ["kaempferol", "quercetin", "isorhamnetin"]
+ORDER = ARGHEL.molecule_list()
 
 
 def _fukui_from_json(path):
@@ -60,7 +61,7 @@ def main(argv=None) -> int:
         naq = (df[(df.form == "neutral") & (df.phase == "aqueous")]
                .set_index("name").loc[ORDER].reset_index())
         rows = naq.to_dict("records")
-        figures.plot_mo_energy_diagram(rows, metal="Fe(110)", out=out("fig2_mo_diagram.png"))
+        figures.plot_mo_energy_diagram(rows, metal=ARGHEL.metal, out=out("fig2_mo_diagram.png"))
         figures.plot_descriptor_comparison(rows, out=out("fig3_descriptors.png"))
         figures.plot_protonation_effect(df, ORDER, out=out("fig3b_protonation.png"))
 
@@ -75,10 +76,10 @@ def main(argv=None) -> int:
     log("Fig 5/6: MC pose + annealing, MD RDF (re-running)")
     for name in ORDER:
         m = build_molecule(name)
-        mc = run_mc(m, metal="Fe", n_steps=args.steps_mc)
+        mc = run_mc(m, metal=ARGHEL.metal_element, n_steps=args.steps_mc)
         figures.plot_adsorption_pose(mc, out=out(f"fig5_{name}_mc_pose.png"))
         figures.plot_mc_energy(mc, out=out(f"fig5_{name}_mc_energy.png"))
-        md = run_md(m, metal="Fe", n_steps=args.steps_md, start_positions=mc.best_positions)
+        md = run_md(m, metal=ARGHEL.metal_element, n_steps=args.steps_md, start_positions=mc.best_positions)
         figures.plot_rdf(md, out=out(f"fig6_{name}_rdf.png"))
 
     log("Fig 2b: HOMO/LUMO isosurfaces (from existing cubes)")

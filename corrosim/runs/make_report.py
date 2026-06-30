@@ -19,8 +19,9 @@ import sys
 import pandas as pd
 
 from corrosim import report
+from corrosim.presets import ARGHEL
 
-ORDER = ["kaempferol", "quercetin", "isorhamnetin"]
+ORDER = ARGHEL.molecule_list()
 
 
 def _load_json(path: str):
@@ -36,8 +37,8 @@ def main(argv=None) -> int:
                    help="Where per-molecule Fukui JSON live.")
     p.add_argument("--figdir", default="figures")
     p.add_argument("--out", default="report.html")
-    p.add_argument("--metal", default="Fe(110)")
-    p.add_argument("--medium", default="1 M HCl")
+    p.add_argument("--metal", default=ARGHEL.metal)
+    p.add_argument("--medium", default=ARGHEL.medium)
     args = p.parse_args(argv)
     log = lambda m: print(m, file=sys.stderr)
 

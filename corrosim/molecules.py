@@ -26,8 +26,9 @@ LIBRARY = {
     "caffeine":      "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
 }
 
-# Friendly aliases
-ALIASES = {"argel": "kaempferol", "arghel": "kaempferol"}
+# Single-molecule synonyms (name -> library key). "arghel"/"argel" is NOT here:
+# Arghel is a *set* of flavonoids, not one molecule — see corrosim.presets.ARGHEL.
+ALIASES: dict[str, str] = {}
 
 
 @dataclass

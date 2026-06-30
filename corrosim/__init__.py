@@ -20,6 +20,7 @@ from .fukui import compute_fukui, FukuiResult
 from .report import results_dataframe, rank_inhibitors, build_html_report
 from .adsorption import (build_adsorption_system, estimate_adsorption_energy,
                          LAMMPS_HANDOFF_NOTE)
+from .presets import CaseStudy, ARGHEL, case_study
 
 __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
            "build_protonated", "enumerate_protonation_sites", "Molecule",
@@ -27,7 +28,8 @@ __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
            "total_negative_charge", "compute_fukui", "FukuiResult",
            "build_adsorption_system",
            "estimate_adsorption_energy", "METAL_WORK_FUNCTION",
-           "LAMMPS_HANDOFF_NOTE", "rank_inhibitors", "build_html_report"]
+           "LAMMPS_HANDOFF_NOTE", "rank_inhibitors", "build_html_report",
+           "CaseStudy", "ARGHEL", "case_study"]
 
 
 def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",

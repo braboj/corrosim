@@ -16,10 +16,12 @@ def test_build_from_smiles():
     assert all(len(c) == 3 for c in mol.coords)
 
 
-def test_alias_resolves():
-    name, smi = resolve_smiles("arghel")
-    assert name == "kaempferol"
-    assert smi == LIBRARY["kaempferol"]
+def test_arghel_is_a_set_not_a_molecule():
+    # "arghel" is a case study (a set of flavonoids), not a single-molecule alias
+    from corrosim.presets import ARGHEL
+    assert tuple(ARGHEL.molecules) == ("kaempferol", "quercetin", "isorhamnetin")
+    with pytest.raises(ValueError):
+        resolve_smiles("arghel")
 
 
 def test_bad_input_raises():

@@ -121,7 +121,7 @@ jupyter notebook notebooks/corrosion_inhibitor_tool.ipynb
 
 ```
 corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
-                 adsorption, figures, report, cli
+                 adsorption, figures, report, cli, presets (case studies)
 corrosim/runs/   stage drivers (run_dft/fukui/mc/md, make_cubes/figures/report,
                  compare_geometry)
 results/         tracked output data (descriptors, Fukui, MC/MD json, comparison)

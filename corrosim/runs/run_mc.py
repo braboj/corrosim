@@ -19,15 +19,16 @@ matplotlib.use("Agg")
 from corrosim import build_molecule
 from corrosim.mc import run_mc
 from corrosim import figures
+from corrosim.presets import ARGHEL
 
-DEFAULT_MOLECULES = ["kaempferol", "quercetin", "isorhamnetin"]
+DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-run-mc",
                                 description="Monte Carlo adsorption pose search (M3).")
     p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES))
-    p.add_argument("--metal", default="Fe", help="Fe | Cu | Al")
+    p.add_argument("--metal", default=ARGHEL.metal_element, help="Fe | Cu | Al")
     p.add_argument("--steps", type=int, default=4000)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--outdir", default="results")

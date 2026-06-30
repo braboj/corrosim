@@ -20,8 +20,9 @@ matplotlib.use("Agg")
 import pandas as pd
 
 from corrosim import figures
+from corrosim.presets import ARGHEL
 
-ORDER = ["kaempferol", "quercetin", "isorhamnetin"]
+ORDER = ARGHEL.molecule_list()
 KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]
 
 

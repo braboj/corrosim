@@ -32,8 +32,9 @@ import corrosim
 from corrosim.molecules import (build_molecule, build_protonated,
                                 enumerate_protonation_sites)
 from corrosim.engines import run_engine, optimize_geometry
+from corrosim.presets import ARGHEL
 
-DEFAULT_MOLECULES = ["kaempferol", "quercetin", "isorhamnetin"]
+DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def _best_protonation_site(name: str, select_engine: str = "xtb"):
@@ -117,7 +118,7 @@ def main(argv=None) -> int:
                    help="Comma-separated names or SMILES.")
     p.add_argument("--engine", default="pyscf",
                    choices=["pyscf", "xtb", "orca", "gaussian"])
-    p.add_argument("--metal", default="Fe(110)")
+    p.add_argument("--metal", default=ARGHEL.metal)
     p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
     p.add_argument("--xc", default="b3lyp", help="PySCF XC functional.")
     p.add_argument("--forms", default="both",

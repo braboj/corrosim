@@ -17,8 +17,9 @@ import argparse
 import sys
 
 from corrosim import build_molecule, figures
+from corrosim.presets import ARGHEL
 
-ORDER = ["kaempferol", "quercetin", "isorhamnetin"]
+ORDER = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
