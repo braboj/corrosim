@@ -22,7 +22,7 @@ import pandas as pd
 from corrosim import report
 from corrosim.medium import parse_medium
 from corrosim.presets import ARGHEL
-from corrosim.speciation import analyse_speciation
+from corrosim.speciation import analyse_speciation, protonation_fraction
 
 ORDER = ARGHEL.molecule_list()
 
@@ -39,6 +39,8 @@ def main(argv=None) -> int:
     p.add_argument("--md", default="results/md_rdf.json")
     p.add_argument("--datadir", default="results",
                    help="Where per-molecule Fukui JSON live.")
+    p.add_argument("--pka", default="results/pka.json",
+                   help="Computed-pKaH JSON (run_pka); shown in the speciation section.")
     p.add_argument("--figdir", default="figures")
     p.add_argument("--out", default="report.html")
     p.add_argument("--metal", default=ARGHEL.metal)
@@ -75,6 +77,17 @@ def main(argv=None) -> int:
             return report.rank_inhibitors(pd.DataFrame(blend_rows)).to_dict("records")
         speciation_summary = analyse_speciation(rows, acid_rows, spec.ph, _rank)
 
+    # Computed per-molecule pKaH (run_pka, DFT cycle) -> populations that resolve
+    # the crossover (ADR 0005).
+    computed_pkah = None
+    if spec.ph is not None and os.path.exists(args.pka):
+        order_ix = {n: i for i, n in enumerate(present)}
+        computed_pkah = sorted(
+            ({"name": r["name"], "pkah": r["pkah_electronic"],
+              "f_protonated": protonation_fraction(spec.ph, r["pkah_electronic"])}
+             for r in _load_json(args.pka) if r["name"] in order_ix),
+            key=lambda r: order_ix[r["name"]]) or None
+
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
     fukui_by_name = {n: _load_json(f"{args.datadir}/{n}_fukui.json") for n in present}
@@ -89,6 +102,7 @@ def main(argv=None) -> int:
         figdir=args.figdir, out_path=args.out,
         metal=args.metal, medium=args.medium, order=present,
         acid_cation_rows=acid_rows, speciation_summary=speciation_summary,
+        computed_pkah=computed_pkah,
     )
     size_kb = os.path.getsize(out) / 1024
     print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
