@@ -23,15 +23,15 @@ Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliabl
     python -m corrosim.runs.run_dft --engine xtb --no-protonated
 """
 from __future__ import annotations
+
 import argparse
 import dataclasses
 import json
 import sys
 
 import corrosim
-from corrosim.molecules import (build_molecule, build_protonated,
-                                enumerate_protonation_sites)
-from corrosim.engines import run_engine, optimize_geometry
+from corrosim.engines import optimize_geometry, run_engine
+from corrosim.molecules import build_molecule, build_protonated, enumerate_protonation_sites
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()

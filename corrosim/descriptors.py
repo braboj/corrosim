@@ -23,7 +23,8 @@ below; override per study if you use a different convention (some older work
 uses chi_Fe = 7.0 eV instead of the work function).
 """
 from __future__ import annotations
-from dataclasses import dataclass, asdict
+
+from dataclasses import asdict, dataclass
 
 # Metal work functions (eV) for the common inhibitor substrates.
 METAL_WORK_FUNCTION = {

@@ -1,7 +1,12 @@
 import math
-from corrosim.engines import (parse_orca_output, parse_gaussian_output,
-                              write_orca_input, write_gaussian_input,
-                              HARTREE_TO_EV)
+
+from corrosim.engines import (
+    HARTREE_TO_EV,
+    parse_gaussian_output,
+    parse_orca_output,
+    write_gaussian_input,
+    write_orca_input,
+)
 
 ORCA_OUT = """
 ----------------

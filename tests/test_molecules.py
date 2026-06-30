@@ -1,6 +1,7 @@
 import pytest
-from corrosim.molecules import build_molecule, resolve_smiles, LIBRARY
+
 from corrosim.cli import read_input_csv
+from corrosim.molecules import build_molecule, resolve_smiles
 
 
 def test_build_from_library_name():

@@ -13,10 +13,12 @@ compatible force field and real compute). What this gives you, automatically, is
   * exported files (.xyz / .cif / LAMMPS data) to hand to the MD engine.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 import numpy as np
 from ase import Atoms
-from ase.build import bcc110, fcc111, add_adsorbate
+from ase.build import bcc110, fcc111
 from ase.io import write
 
 # lattice constants (Angstrom) and crystal type per metal

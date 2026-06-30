@@ -9,7 +9,9 @@ The built-in library focuses on the major documented constituents of Arghel
 (Solenostemma argel) plus a couple of reference inhibitors for comparison.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass, field
+
 from rdkit import Chem
 from rdkit.Chem import AllChem
 

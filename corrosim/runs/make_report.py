@@ -11,6 +11,7 @@ Runs in the venv (no QM container needed):
     python -m corrosim.runs.make_report --out report.html --figdir figures
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os

@@ -32,7 +32,7 @@ qm = ["tblite", "pyscf", "geometric"]
 # Notebook + HTML rendering tooling.
 notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel", "markdown"]
 # Tests / dev.
-dev = ["pytest", "tblite"]
+dev = ["pytest", "tblite", "ruff"]
 
 [project.scripts]
 corrosim = "corrosim.cli:main"
@@ -48,3 +48,20 @@ include = ["corrosim*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["docs/solid-ai-templates"]
+
+[tool.ruff.lint]
+# Lean starter set: pyflakes + pycodestyle + import sorting.
+select = ["E", "F", "I", "W"]
+# corrosim keeps a deliberately compact scientific style; accept it:
+#   E741 single-letter math names (l, O, N); E702 `a; b` step chains;
+#   E731 `log = lambda ...` driver shorthands; E401 grouped stdlib imports.
+ignore = ["E741", "E702", "E731", "E401"]
+
+[tool.ruff.lint.per-file-ignores]
+# report.py embeds long single-line CSS rules inside HTML string literals.
+"corrosim/report.py" = ["E501"]

@@ -14,10 +14,12 @@ hand-off. What MC adds over the height scan: full rotational+translational
 sampling, the best pose, and an adsorption-energy distribution.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass, field
+
 import numpy as np
 
-from .adsorption import build_slab, _UFF, _KCAL_TO_EV, _orient_flat
+from .adsorption import _KCAL_TO_EV, _UFF, _orient_flat, build_slab
 
 _SURFACE = {"Fe": "(110)", "Cu": "(111)", "Al": "(111)"}
 

@@ -12,10 +12,12 @@ Runs in the venv (no QM container):
         --out-csv results/geometry_comparison.csv --out-fig figures/fig8_geometry_comparison.png
 """
 from __future__ import annotations
+
 import argparse
 import sys
 
 import matplotlib
+
 matplotlib.use("Agg")
 import pandas as pd
 

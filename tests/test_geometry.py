@@ -1,8 +1,10 @@
 """Smoke test for the FF-vs-DFT-optimised geometry comparison plotter."""
 import matplotlib
+
 matplotlib.use("Agg")
 
 import pandas as pd
+
 from corrosim import figures
 
 

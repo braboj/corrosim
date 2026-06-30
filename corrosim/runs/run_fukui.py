@@ -11,16 +11,18 @@ Container use:
         --molecules kaempferol,quercetin,isorhamnetin
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
+
 import matplotlib
+
 matplotlib.use("Agg")
 
-from corrosim import build_molecule
+from corrosim import build_molecule, figures
 from corrosim.fukui import compute_fukui
-from corrosim import figures
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()

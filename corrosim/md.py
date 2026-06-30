@@ -14,11 +14,13 @@ MD (metal EAM + organic GAFF/OPLS, explicit solvent) remains the LAMMPS Stage-3
 hand-off (see adsorption.LAMMPS_HANDOFF_NOTE).
 """
 from __future__ import annotations
+
 from dataclasses import dataclass, field
+
 import numpy as np
 
-from .adsorption import build_slab, _UFF, _KCAL_TO_EV, _orient_flat
-from .mc import _rot, _SURFACE
+from .adsorption import _KCAL_TO_EV, _UFF, _orient_flat, build_slab
+from .mc import _SURFACE, _rot
 
 KB_EV = 8.617333262e-5   # Boltzmann constant, eV/K
 

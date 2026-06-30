@@ -19,7 +19,10 @@ Examples
                      --basis "6-311++G(d,p)" --solvent water --out report.html
 """
 from __future__ import annotations
-import argparse, csv, sys
+
+import argparse
+import csv
+import sys
 
 
 def read_input_csv(path: str) -> list[str]:

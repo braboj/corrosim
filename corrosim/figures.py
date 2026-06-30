@@ -11,6 +11,7 @@ the QM container (see write_orbital_cube / write_mep_cube). Fukui/MC/MD figures
 arrive with milestones M2/M3/M4.
 """
 from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -29,7 +30,8 @@ def _save(fig, out, dpi=150):
 def plot_structures(names, mols_per_row: int = 3, out: str | None = None):
     """RDKit 2D depiction grid for a list of library names / SMILES."""
     from rdkit import Chem
-    from rdkit.Chem import Draw, AllChem
+    from rdkit.Chem import AllChem, Draw
+
     from .molecules import resolve_smiles
     mols, legends = [], []
     for n in names:
@@ -230,10 +232,11 @@ def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None =
     if molecule is not None and getattr(molecule, "rdkit_mol", None) is not None:
         try:
             import io
+
+            from PIL import Image
             from rdkit import Chem
             from rdkit.Chem import AllChem
             from rdkit.Chem.Draw import rdMolDraw2D
-            from PIL import Image
             mm = Chem.RemoveHs(molecule.rdkit_mol)
             AllChem.Compute2DCoords(mm)
             d = rdMolDraw2D.MolDraw2DCairo(480, 400)
@@ -268,7 +271,7 @@ def write_orbital_cube(symbols, coords, which: str = "homo",
                        charge: int = 0, out: str = "orbital.cube"):
     """Write a HOMO or LUMO .cube for a molecule (PySCF cubegen). Render the cube
     with py3Dmol (notebook) or skimage marching-cubes (static) — see M5."""
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -283,7 +286,7 @@ def write_orbital_cube(symbols, coords, which: str = "homo",
 def write_mep_cube(symbols, coords, basis: str = "6-311++G(d,p)",
                    xc: str = "b3lyp", charge: int = 0, out: str = "mep.cube"):
     """Write a molecular electrostatic-potential .cube (PySCF cubegen.mep)."""
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -299,7 +302,7 @@ def write_orbital_cubes(symbols, coords, prefix: str = "mol",
     basis is enough — orbital *shapes* are basis-insensitive, so this stays fast
     and looks the same as the descriptor-level basis. Returns {'homo','lumo'} paths.
     Run in the QM container; render with render_orbital()."""
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -323,7 +326,7 @@ def write_density_esp_cubes(symbols, coords, prefix: str = "mol",
     MEP (the classic ESP map). The MEP integral is the slow part — a modest grid
     (nx≈80) and valence basis are plenty for a qualitative map. Run in the QM
     container; render with render_esp(). Returns {'density','esp'} paths."""
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -353,8 +356,8 @@ def render_orbital(cubefile, out: str | None = None, iso: float = 0.03,
     Needs scikit-image (marching cubes).
     """
     from ase.io.cube import read_cube
-    from skimage import measure
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from skimage import measure
     with open(cubefile) as fh:
         cube = read_cube(fh)
     data = np.asarray(cube["data"], dtype=float)
@@ -411,11 +414,11 @@ def render_esp(density_cube, esp_cube, out: str | None = None,
     clip_pct symmetrically clips the colour scale at the given percentile so a few
     near-nucleus outliers don't wash out the map. Needs scikit-image + scipy.
     """
-    from ase.io.cube import read_cube
-    from skimage import measure
-    from scipy.ndimage import map_coordinates
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     import matplotlib as mpl
+    from ase.io.cube import read_cube
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from scipy.ndimage import map_coordinates
+    from skimage import measure
 
     with open(density_cube) as fh:
         dens = read_cube(fh)

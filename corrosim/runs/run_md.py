@@ -9,17 +9,19 @@ interaction energy. Pure classical (numpy + ASE); runs anywhere.
         --metal Fe --steps 6000
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
+
 import matplotlib
+
 matplotlib.use("Agg")
 
-from corrosim import build_molecule
+from corrosim import build_molecule, figures
 from corrosim.mc import run_mc
 from corrosim.md import run_md
-from corrosim import figures
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()

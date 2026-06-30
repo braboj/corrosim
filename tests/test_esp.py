@@ -2,6 +2,7 @@
 validates that render_esp marches the density isosurface, samples the potential on
 the shared grid, and writes a non-trivial PNG."""
 import matplotlib
+
 matplotlib.use("Agg")
 
 import numpy as np

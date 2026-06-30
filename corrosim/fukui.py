@@ -22,7 +22,9 @@ Dual descriptor df_k = f+_k - f-_k  (>0 electrophilic site, <0 nucleophilic site
 local softness s±_k = f±_k * sigma (global softness, 1/eV).
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 import numpy as np
 
 
@@ -57,7 +59,7 @@ def _atom_pop(mol, c, S):
 
 
 def _scf(symbols, coords, charge, spin, basis, xc):
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, spin=spin, verbose=0)
     mf = (dft.RKS(mol) if spin == 0 else dft.UKS(mol))

@@ -1,6 +1,7 @@
 import pytest
-from corrosim.molecules import build_molecule
+
 from corrosim.adsorption import build_slab, estimate_adsorption_energy
+from corrosim.molecules import build_molecule
 
 
 def test_build_slab_fe():

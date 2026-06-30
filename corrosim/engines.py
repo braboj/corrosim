@@ -11,7 +11,9 @@ Both return the same EngineResult so the rest of the pipeline is engine-agnostic
 Energies in the result are reported in eV.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 import numpy as np
 
 HARTREE_TO_EV = 27.211386245988
@@ -34,8 +36,8 @@ class EngineResult:
 
 def run_xtb(symbols, coords, charge: int = 0) -> EngineResult:
     """GFN2-xTB single point. coords in Angstrom. charge: net molecular charge."""
-    from tblite.interface import Calculator
     from ase.data import atomic_numbers
+    from tblite.interface import Calculator
     Z = np.array([atomic_numbers[s] for s in symbols])
     xyz_bohr = np.asarray(coords, dtype=float) * ANG_TO_BOHR
     calc = Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
@@ -72,7 +74,7 @@ def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
     solvent: None for gas phase, or a solvent name to switch on the ddCOSMO
              implicit-solvation model (mirrors the PCM/COSMO used in the papers).
     """
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
     mf = dft.RKS(mol)
@@ -112,7 +114,7 @@ def optimize_geometry(symbols, coords, basis: str = "6-31G(d)", xc: str = "b3lyp
     is a good, cheap default. Pass solvent='water' to relax in implicit solvent
     (slower; gas-phase opt → solvated single point is the standard, robust choice).
     """
-    from pyscf import gto, dft
+    from pyscf import dft, gto
     from pyscf.geomopt.geometric_solver import optimize
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -191,7 +193,9 @@ def parse_orca_output(text: str):
 def run_orca(symbols, coords, keywords: str = "B3LYP def2-TZVP",
              solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
              orca_cmd: str | None = None, workdir: str | None = None) -> EngineResult:
-    import os, subprocess, tempfile
+    import os
+    import subprocess
+    import tempfile
     orca_cmd = orca_cmd or os.environ.get("ORCA_CMD", "orca")
     workdir = workdir or tempfile.mkdtemp(prefix="orca_")
     inp = os.path.join(workdir, "job.inp")
@@ -234,7 +238,9 @@ def run_gaussian(symbols, coords, route: str = "B3LYP/6-311++G(d,p)",
                  solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
                  mem: str = "2GB", gaussian_cmd: str | None = None,
                  workdir: str | None = None) -> EngineResult:
-    import os, subprocess, tempfile
+    import os
+    import subprocess
+    import tempfile
     gaussian_cmd = gaussian_cmd or os.environ.get("GAUSSIAN_CMD", "g16")
     workdir = workdir or tempfile.mkdtemp(prefix="g16_")
     gjf = os.path.join(workdir, "job.gjf")

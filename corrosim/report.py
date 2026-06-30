@@ -5,9 +5,14 @@ Turn the per-molecule results into outputs: a tidy table, comparison plots, a
 ranking, and a self-contained HTML report.
 """
 from __future__ import annotations
-import base64, datetime, io, os
+
+import base64
+import datetime
+import io
+import os
+
+import matplotlib.pyplot as plt  # backend auto-selected: inline in Jupyter, Agg headless
 import pandas as pd
-import matplotlib.pyplot as plt   # backend auto-selected: inline in Jupyter, Agg headless
 
 from .descriptors import DESCRIPTOR_META
 

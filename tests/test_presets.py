@@ -1,6 +1,6 @@
 import pytest
-from corrosim import ARGHEL, CaseStudy, case_study
-from corrosim.presets import CASE_STUDIES
+
+from corrosim import ARGHEL, case_study
 
 
 def test_arghel_is_the_single_source_of_truth():
@@ -23,7 +23,7 @@ def test_case_study_lookup():
 
 def test_drivers_share_the_preset_list():
     # the run drivers must derive their defaults from ARGHEL, not re-declare them
-    from corrosim.runs import run_dft, run_mc, make_report
+    from corrosim.runs import make_report, run_dft, run_mc
     assert run_dft.DEFAULT_MOLECULES == list(ARGHEL.molecules)
     assert run_mc.DEFAULT_MOLECULES == list(ARGHEL.molecules)
     assert make_report.ORDER == list(ARGHEL.molecules)

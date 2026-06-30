@@ -11,20 +11,24 @@ Quick use:
                         out_html="report.html")
 """
 from __future__ import annotations
-from .molecules import (build_molecule, build_protonated,
-                        enumerate_protonation_sites, Molecule, LIBRARY)
-from .engines import run_engine, EngineResult
-from .descriptors import (compute_descriptors, total_negative_charge,
-                          METAL_WORK_FUNCTION)
-from .fukui import compute_fukui, FukuiResult
-from .report import results_dataframe, rank_inhibitors, build_html_report
-from .adsorption import (build_adsorption_system, estimate_adsorption_energy,
-                         LAMMPS_HANDOFF_NOTE)
-from .presets import CaseStudy, ARGHEL, case_study
+
+from .adsorption import LAMMPS_HANDOFF_NOTE, build_adsorption_system, estimate_adsorption_energy
+from .descriptors import METAL_WORK_FUNCTION, compute_descriptors, total_negative_charge
+from .engines import EngineResult, run_engine
+from .fukui import FukuiResult, compute_fukui
+from .molecules import (
+    LIBRARY,
+    Molecule,
+    build_molecule,
+    build_protonated,
+    enumerate_protonation_sites,
+)
+from .presets import ARGHEL, CaseStudy, case_study
+from .report import build_html_report, rank_inhibitors, results_dataframe
 
 __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
            "build_protonated", "enumerate_protonation_sites", "Molecule",
-           "LIBRARY", "run_engine", "compute_descriptors",
+           "LIBRARY", "run_engine", "EngineResult", "compute_descriptors",
            "total_negative_charge", "compute_fukui", "FukuiResult",
            "build_adsorption_system",
            "estimate_adsorption_energy", "METAL_WORK_FUNCTION",

@@ -9,16 +9,18 @@ and a summary JSON. Pure classical (numpy + ASE); runs anywhere, no QM container
         --metal Fe --steps 4000
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
+
 import matplotlib
+
 matplotlib.use("Agg")
 
-from corrosim import build_molecule
+from corrosim import build_molecule, figures
 from corrosim.mc import run_mc
-from corrosim import figures
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()

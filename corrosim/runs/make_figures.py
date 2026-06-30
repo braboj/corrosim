@@ -9,11 +9,14 @@ Runs in the venv (no QM container needed unless you want fresh orbital cubes):
     python -m corrosim.runs.make_figures
 """
 from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
+
 import matplotlib
+
 matplotlib.use("Agg")
 
 import pandas as pd
@@ -79,7 +82,8 @@ def main(argv=None) -> int:
         mc = run_mc(m, metal=ARGHEL.metal_element, n_steps=args.steps_mc)
         figures.plot_adsorption_pose(mc, out=out(f"fig5_{name}_mc_pose.png"))
         figures.plot_mc_energy(mc, out=out(f"fig5_{name}_mc_energy.png"))
-        md = run_md(m, metal=ARGHEL.metal_element, n_steps=args.steps_md, start_positions=mc.best_positions)
+        md = run_md(m, metal=ARGHEL.metal_element, n_steps=args.steps_md,
+                    start_positions=mc.best_positions)
         figures.plot_rdf(md, out=out(f"fig6_{name}_rdf.png"))
 
     log("Fig 2b: HOMO/LUMO isosurfaces (from existing cubes)")
