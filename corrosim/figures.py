@@ -245,6 +245,9 @@ def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None =
             d.FinishDrawing()
             struct = Image.open(io.BytesIO(d.GetDrawingText()))
         except Exception:
+            # The atom-index structure panel is optional decoration; RDKit 2D
+            # drawing / PIL can fail for many unrelated reasons (no 2D coords,
+            # Cairo missing). Degrade to the bar-chart-only layout, never abort.
             struct = None
 
     if struct is not None:
@@ -392,7 +395,9 @@ def render_orbital(cubefile, out: str | None = None, iso: float = 0.03,
     ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
     try:
         ax.set_box_aspect(hi - lo)
-    except Exception:
+    except (AttributeError, ValueError):
+        # set_box_aspect was added in matplotlib 3.3 (AttributeError on older),
+        # and a degenerate zero-span axis raises ValueError. Aspect is cosmetic.
         pass
     ax.set_axis_off()
     ax.view_init(elev=elev, azim=azim)
@@ -461,7 +466,9 @@ def render_esp(density_cube, esp_cube, out: str | None = None,
     ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
     try:
         ax.set_box_aspect(hi - lo)
-    except Exception:
+    except (AttributeError, ValueError):
+        # set_box_aspect was added in matplotlib 3.3 (AttributeError on older),
+        # and a degenerate zero-span axis raises ValueError. Aspect is cosmetic.
         pass
     ax.set_axis_off()
     ax.view_init(elev=elev, azim=azim)
