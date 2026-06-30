@@ -19,9 +19,21 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat, rot
+from .surface import (
+    KCAL_TO_EV,
+    MIN_PAIR_DISTANCE_A,
+    SURFACE_FACET,
+    UFF,
+    build_slab,
+    orient_flat,
+    rot,
+)
 
 KB_EV = 8.617333262e-5   # Boltzmann constant, eV/K
+# First-shell search window (Å) for the metal–donor RDF peak = the physisorption
+# adsorption distance. Lower bound clears the unphysical close-contact spike; upper
+# bound stays within the first coordination shell (peak observed ~3.5 Å).
+RDF_PEAK_WINDOW_A = (1.5, 4.0)
 
 
 @dataclass
@@ -78,7 +90,7 @@ class MDResult:
 def _forces_energy(p, s_pos, x_mix, D_mix):
     """UFF vdW energy (eV) and per-molecule-atom forces (eV/A)."""
     diff = p[:, None, :] - s_pos[None, :, :]      # (n, m, 3)
-    d = np.maximum(np.linalg.norm(diff, axis=2), 0.3)
+    d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
     t6 = (x_mix / d) ** 6
     E = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
     dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)       # kcal/mol/A
@@ -160,7 +172,8 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     g_mN = h_mN / norm
 
     def _peak(g):
-        win = (r >= 1.5) & (r <= 4.0)
+        lo, hi = RDF_PEAK_WINDOW_A
+        win = (r >= lo) & (r <= hi)
         return float(r[win][int(np.argmax(g[win]))]) if g[win].any() else None
 
     e_mean = float(np.mean(energies[equil:])) if len(energies) > equil else float(np.mean(energies))

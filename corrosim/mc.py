@@ -19,7 +19,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat, rot
+from .surface import (
+    KCAL_TO_EV,
+    MIN_PAIR_DISTANCE_A,
+    SURFACE_FACET,
+    UFF,
+    build_slab,
+    orient_flat,
+    rot,
+)
 
 
 @dataclass
@@ -79,7 +87,7 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
 
     def energy(p):
         d = np.linalg.norm(p[:, None, :] - s_pos[None, :, :], axis=2)
-        d = np.maximum(d, 0.3)
+        d = np.maximum(d, MIN_PAIR_DISTANCE_A)
         t = (x_mix / d) ** 6
         return float((D_mix * (t * t - 2.0 * t)).sum()) * KCAL_TO_EV
 

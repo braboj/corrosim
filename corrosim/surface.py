@@ -37,6 +37,12 @@ UFF = {
 }
 KCAL_TO_EV = 0.0433641
 
+# Close-contact floor (Å) for the UFF pair distance: caps the r -> 0 Lennard-Jones
+# singularity so a transient overlap can't blow up the energy. Defensive only — the
+# adsorbate is confined well above the slab (min_height >= 1.6 Å), so in practice the
+# molecule–slab separation never approaches this floor. Shared by mc / md / adsorption.
+MIN_PAIR_DISTANCE_A = 0.3
+
 
 def build_slab(metal: str = "Fe", size=(6, 6, 4), vacuum: float = 15.0) -> Atoms:
     """Build a periodic metal slab with the conventional inhibitor facet."""

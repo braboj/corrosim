@@ -102,13 +102,15 @@ and higher softness (each z-scored). Higher score = stronger predicted adsorptio
 
 
 def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
-                      out_path: str) -> str:
-    """Write a self-contained Stage-1 HTML report (ranking, table, plots). Returns its path."""
+                      out_path: str, generated_at: str | None = None) -> str:
+    """Write a self-contained Stage-1 HTML report (ranking, table, plots). Returns its
+    path. ``generated_at`` overrides the timestamp (pass a fixed string for a
+    reproducible, churn-free build)."""
     ranked = rank_inhibitors(df)
     html = _HTML.format(
         style=_REPORT_CSS,
         metal=metal, medium=medium, level=level,
-        ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+        ts=generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         caveat=("These molecules are documented major constituents of the extract, "
                 "simulated as representatives — not a verified profile of your specific "
                 "sample. Confirm with LC-MS/GC-MS for a publication."),
@@ -216,11 +218,15 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
                           figdir: str, out_path: str,
                           metal: str = "Fe(110)", medium: str = "1 M HCl",
-                          order: list[str] | None = None) -> str:
+                          order: list[str] | None = None,
+                          generated_at: str | None = None) -> str:
     """
     Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
     embedded inline (base64) from ``figdir`` so the file stands alone.
+
+    ``generated_at`` overrides the timestamp (pass a fixed string for a
+    reproducible, churn-free build).
     """
     df = pd.DataFrame(neutral_aq_rows).copy()
     if order:
@@ -264,7 +270,8 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
         f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
         f' &nbsp;|&nbsp; DFT level <b>{level}</b>'
-        f' &nbsp;|&nbsp; Generated {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}</p>',
+        f' &nbsp;|&nbsp; Generated '
+        f'{generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}</p>',
         '<div class="note">Flavonoids modelled here (kaempferol, quercetin, '
         "isorhamnetin) are documented major constituents of the extract, simulated "
         "as <i>representatives</i> — not a verified profile of a specific sample. "

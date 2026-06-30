@@ -39,13 +39,15 @@ def test_build_html_report_is_self_contained_and_nan_safe(tmp_path):
     ])
     out = tmp_path / "screen.html"
     report.build_html_report(df, metal="Fe(110)", medium="1 M HCl",
-                             level="B3LYP/6-311++G(d,p)", out_path=str(out))
+                             level="B3LYP/6-311++G(d,p)", out_path=str(out),
+                             generated_at="2026-01-01 00:00")
 
     html = out.read_text(encoding="utf-8")
     assert os.path.exists(out)
     assert "quercetin" in html and "kaempferol" in html
     assert ">nan<" not in html                       # NaN-safe table (was the style_table bug)
     assert 'class="best"' in html                    # ranking highlight present
+    assert "2026-01-01 00:00" in html                # injectable timestamp honoured
     # self-contained: figures inlined as data URIs, no external references
     assert 'src="http' not in html and 'src="figures' not in html
     assert "data:image/png;base64," in html
