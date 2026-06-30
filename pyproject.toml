@@ -34,7 +34,7 @@ notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel", "markdown"]
 # Figure/cube rendering: orbital + ESP isosurfaces (marching cubes + grid sampling).
 viz = ["scikit-image", "scipy", "Pillow"]
 # Tests / dev (viz deps listed explicitly so test_esp's renderer is importable).
-dev = ["pytest", "tblite", "ruff", "scikit-image", "scipy", "Pillow"]
+dev = ["pytest", "pytest-cov", "tblite", "ruff", "scikit-image", "scipy", "Pillow"]
 
 [project.scripts]
 corrosim = "corrosim.cli:main"
@@ -54,7 +54,9 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-exclude = ["docs/solid-ai-templates"]
+# Notebooks carry exploratory, cell-scoped imports (re-imports per cell, imports
+# after setup code) that fight ruff's I001/E402; lint the .py tooling, not the .ipynb.
+extend-exclude = ["docs/solid-ai-templates", "notebooks/*.ipynb"]
 
 [tool.ruff.lint]
 # Lean starter set: pyflakes + pycodestyle + import sorting.
@@ -67,3 +69,5 @@ ignore = ["E741", "E702", "E731", "E401"]
 [tool.ruff.lint.per-file-ignores]
 # report.py embeds long single-line CSS rules inside HTML string literals.
 "corrosim/report.py" = ["E501"]
+# render_notebook.py embeds CSS + HTML string literals that exceed the limit.
+"tools/render_notebook.py" = ["E501"]

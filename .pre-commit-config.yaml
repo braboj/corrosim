@@ -1,0 +1,39 @@
+# Pre-commit hooks for corrosim. Install once with `pre-commit install`;
+# run across the tree with `pre-commit run --all-files`.
+#
+# Generated data and the rendered report are tracked but machine-written, so the
+# whitespace/newline hooks skip them (see the global `exclude` below).
+exclude: |
+  (?x)^(
+    docs/solid-ai-templates/.*|
+    results/.*|
+    figures/.*|
+    cubes/.*|
+    report\.html|
+    .*\.(csv|json|cube)
+  )$
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      # ruff-format is intentionally omitted: corrosim keeps a deliberate,
+      # hand-aligned scientific style (see CLAUDE.md §2.2). Re-enable here once
+      # the project decides to adopt the formatter project-wide.
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
