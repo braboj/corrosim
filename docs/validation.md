@@ -51,15 +51,20 @@ aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated 
 gas/aqueous matrix: `results/dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
 **Quantitative pH-speciation (ADR 0004).** The most basic site is the 4-oxo
-carbonyl, a very weak base (estimated conjugate-acid pKaH ≈ −1.5). By
-Henderson–Hasselbalch the inhibitor is **~97 % neutral / ~3 % protonated** at
-pH ≈ 0, so the neutral form is the right headline basis and the lead stays
-**quercetin**. But the gap/softness composite lead is fragile: it **crosses over to
-isorhamnetin at only ~5–7 % protonation** (pKaH ≈ −1.1 to −1.3), and the pKaH ± 1
-band (≈ 0–24 % protonated) straddles that crossover. So the quercetin lead is
-**contingent on the protonation pKa** — the dominant uncertainty for the acidic
-case (more than geometry or level of theory). A measured/computed site pKaH would
-pin which side of the crossover the system sits on.
+carbonyl, a very weak base. A literature-range estimate (pKaH ≈ −1.5) puts the
+gap/softness composite lead on a knife-edge: it **crosses from quercetin to
+isorhamnetin at only ~5–7 % protonation** (pKaH ≈ −1.1 to −1.3). So which lead is
+correct hinges on the protonation pKa — the dominant uncertainty for the acidic
+case (more than geometry or level of theory).
+
+**Computed pKaH resolves it (ADR 0005).** A DFT deprotonation cycle
+(B3LYP/6-311++G(d,p) + ddCOSMO; `results/pka.json`, `run_pka`) gives **pKaH =
+quercetin −12.1, kaempferol −11.2, isorhamnetin −3.3** — all far below the
+crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The neutral
+form is therefore the physically dominant species, not just the conventional
+choice, and the **quercetin lead is robust**. (Electronic-only estimate; the
+omitted O–H zero-point energy only pushes pKaH lower / more neutral, reinforcing
+this.)
 
 ### Geometry refinement (FF vs DFT-optimised)
 

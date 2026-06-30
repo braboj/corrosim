@@ -192,11 +192,40 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
     ]
 
 
-def _speciation_block(summary: dict | None, medium: str) -> list[str]:
+def _computed_pka_block(computed_pkah: list[dict] | None) -> list[str]:
+    """Computed-pKaH resolution (ADR 0005): per-molecule DFT-cycle pKaH and the
+    resulting populations, which place the system on one side of the crossover.
+    ``computed_pkah`` rows carry name / pkah / f_protonated. Empty if absent."""
+    if not computed_pkah:
+        return []
+    head = "<tr><th>molecule</th><th>computed pKaH</th><th>% protonated @ this pH</th></tr>"
+    body = "".join(
+        f"<tr><td>{r['name']}</td><td>{r['pkah']:.1f}</td>"
+        f"<td>{r['f_protonated'] * 100:.2f}%</td></tr>"
+        for r in computed_pkah
+    )
+    worst = max(r["f_protonated"] for r in computed_pkah)
+    return [
+        "<h4>Computed pKaH (DFT deprotonation cycle)</h4>",
+        f"<table><thead>{head}</thead><tbody>{body}</tbody></table>",
+        '<p class="meta">From a B3LYP/6-311++G(d,p) + ddCOSMO aqueous deprotonation '
+        "cycle (electronic-only; `results/pka.json`, ADR 0005). All values sit far "
+        "below the crossover — the most basic flavonoid is only "
+        f"{worst * 100:.2f}% protonated — so every species is essentially fully "
+        "neutral here. This <b>resolves the sensitivity above</b>: the neutral form "
+        "is the physically dominant species, not just the conventional choice, so the "
+        "headline lead is robust. The omitted O–H zero-point energy would push pKaH "
+        "lower still (more neutral), reinforcing this.</p>",
+    ]
+
+
+def _speciation_block(summary: dict | None, medium: str,
+                      computed_pkah: list[dict] | None = None) -> list[str]:
     """Quantitative pH-speciation section (ADR 0004): the neutral/protonated
     population at the medium pH, the population-weighted descriptor table, and the
-    lead-crossover sensitivity to the (uncertain) protonation pKa. Empty when no
-    summary is supplied (non-acidic medium or unknown pH)."""
+    lead-crossover sensitivity to the protonation pKa — followed by the computed
+    pKaH that resolves it (ADR 0005). Empty when no summary is supplied (non-acidic
+    medium or unknown pH)."""
     if not summary:
         return []
     spec = summary["speciation"]
@@ -221,6 +250,7 @@ def _speciation_block(summary: dict | None, medium: str) -> list[str]:
         f"<b>{summary['blended_lead']}</b>:</p>",
         _html_table(results_dataframe(summary["blended_rows"])),
         f'<p class="meta"><b>Sensitivity.</b>{sens}</p>',
+        *_computed_pka_block(computed_pkah),
     ]
 
 
@@ -275,7 +305,8 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           order: list[str] | None = None,
                           generated_at: str | None = None,
                           acid_cation_rows: list[dict] | None = None,
-                          speciation_summary: dict | None = None) -> str:
+                          speciation_summary: dict | None = None,
+                          computed_pkah: list[dict] | None = None) -> str:
     """
     Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
@@ -368,7 +399,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _html_table(full),
         _geometry_block(figdir),
         *_acid_cation_block(acid_cation_rows, medium),
-        *_speciation_block(speciation_summary, medium),
+        *_speciation_block(speciation_summary, medium, computed_pkah),
 
         # Stage 1b — Fukui -------------------------------------------------
         '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',

@@ -51,6 +51,7 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
     row = {"name": mol.name, "formula": mol.formula, "n_atoms": mol.n_atoms,
            "smiles": mol.smiles, "charge": mol.charge, "level": res.level}
     row.update(desc.as_dict())
+    row["e_total_ev"] = res.e_total_ev          # total SCF energy (for pKa cycles)
     row["tnc"] = total_negative_charge(res.charges)
     if adsorption:
         metal_symbol = metal.split("(")[0]

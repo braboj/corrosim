@@ -124,3 +124,23 @@ def test_pipeline_report_renders_speciation_section(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Speciation in 1 M HCl" in html
     assert "Henderson" in html and "pH-weighted" in html
+
+
+def test_pipeline_report_renders_computed_pka_block(tmp_path):
+    from corrosim.speciation import analyse_speciation, protonation_fraction
+    neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
+    protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
+                  {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]
+    summary = analyse_speciation(
+        neutral, protonated, ph=0.0,
+        rank_fn=lambda r: report.rank_inhibitors(pd.DataFrame(r)).to_dict("records"))
+    computed = [{"name": n, "pkah": pk, "f_protonated": protonation_fraction(0.0, pk)}
+                for n, pk in [("quercetin", -12.1), ("kaempferol", -11.2)]]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(neutral, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), medium="1 M HCl",
+                                 order=["quercetin", "kaempferol"],
+                                 speciation_summary=summary, computed_pkah=computed)
+    html = out.read_text(encoding="utf-8")
+    assert "Computed pKaH" in html
+    assert "-12.1" in html and "resolves the sensitivity" in html
