@@ -81,18 +81,7 @@ def plot_descriptor_bars(df: pd.DataFrame):
 
 _HTML = """<!doctype html><html><head><meta charset="utf-8">
 <title>Corrosion-inhibitor report</title>
-<style>
- body{{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-       max-width:980px;margin:2rem auto;color:#1a202c;padding:0 1rem;}}
- h1{{font-size:1.5rem}} h2{{font-size:1.15rem;margin-top:1.8rem;border-bottom:1px solid #e2e8f0;padding-bottom:.3rem}}
- table{{border-collapse:collapse;width:100%;font-size:.9rem;margin:.6rem 0}}
- th,td{{border:1px solid #e2e8f0;padding:.4rem .6rem;text-align:right}}
- th:first-child,td:first-child{{text-align:left}}
- thead{{background:#f7fafc}} tr:nth-child(even){{background:#fbfdff}}
- .best{{background:#f0fff4!important;font-weight:600}}
- .meta{{color:#718096;font-size:.85rem}} img{{max-width:100%;margin:.5rem 0}}
- .note{{background:#fffaf0;border:1px solid #feebc8;padding:.6rem .9rem;border-radius:6px;font-size:.88rem}}
-</style></head><body>
+<style>{style}</style></head><body>
 <h1>Corrosion-inhibitor screening report</h1>
 <p class="meta">Substrate: <b>{metal}</b> &nbsp;|&nbsp; Medium: <b>{medium}</b>
  &nbsp;|&nbsp; Engine: <b>{level}</b> &nbsp;|&nbsp; Generated {ts}</p>
@@ -113,26 +102,17 @@ and higher softness (each z-scored). Higher score = stronger predicted adsorptio
 def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                       out_path: str) -> str:
     ranked = rank_inhibitors(df)
-
-    def style_table(d, best_first_row=False):
-        rows = []
-        for i, (_, r) in enumerate(d.iterrows()):
-            cls = ' class="best"' if (best_first_row and i == 0) else ""
-            cells = "".join(f"<td>{r[c]}</td>" for c in d.columns)
-            rows.append(f"<tr{cls}>{cells}</tr>")
-        head = "".join(f"<th>{c}</th>" for c in d.columns)
-        return f"<table><thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
-
     html = _HTML.format(
+        style=_REPORT_CSS,
         metal=metal, medium=medium, level=level,
         ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         caveat=("These molecules are documented major constituents of the extract, "
                 "simulated as representatives — not a verified profile of your specific "
                 "sample. Confirm with LC-MS/GC-MS for a publication."),
-        rank_table=style_table(ranked[["name", "gap_ev", "hardness_ev",
+        rank_table=_html_table(ranked[["name", "gap_ev", "hardness_ev",
                                        "softness_inv_ev", "delta_n", "score"]],
                                best_first_row=True),
-        full_table=style_table(df),
+        full_table=_html_table(df),
         img_hl=_fig_to_b64(plot_homo_lumo(df)),
         img_desc=_fig_to_b64(plot_descriptor_bars(df)),
         method=("Descriptors from frontier-orbital energies (Koopmans' theorem). "
@@ -140,7 +120,7 @@ def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                 "η(metal)=0. Ranking is a screening heuristic, not a substitute for "
                 "the Stage-2/3 adsorption MD or for electrochemical validation."),
     )
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
     return out_path
 
@@ -185,9 +165,12 @@ def _geometry_block(figdir: str) -> str:
                          "Force-field vs DFT-optimised geometry"))
 
 
-def top_donor_sites(fukui_rows: list[dict], element: str = "O", n: int = 3) -> list[dict]:
-    """Atoms most susceptible to electrophilic attack (highest f⁻) — the
-    electron-donating sites that coordinate the metal. Defaults to oxygens."""
+def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
+                               n: int = 3) -> list[dict]:
+    """Atoms of a given element most susceptible to electrophilic attack (highest
+    f⁻) — the electron-donating sites that coordinate the metal. Defaults to
+    oxygens. (Distinct from FukuiResult.top_donor_sites, which ranks all non-H
+    atoms; this one filters by element.)"""
     sel = [r for r in fukui_rows if r.get("symbol") == element]
     sel.sort(key=lambda r: r.get("f_minus", 0.0), reverse=True)
     return sel[:n]
@@ -204,7 +187,7 @@ def _html_table(d: pd.DataFrame, best_first_row: bool = False) -> str:
             f"<tbody>{''.join(rows)}</tbody></table>")
 
 
-_PIPELINE_CSS = """
+_REPORT_CSS = """
  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
        max-width:1040px;margin:2rem auto;color:#1a202c;padding:0 1rem;line-height:1.5;}
  h1{font-size:1.6rem;margin-bottom:.2rem}
@@ -265,7 +248,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         rows = fukui_by_name.get(name)
         if not rows:
             continue
-        tops = top_donor_sites(rows, "O", 3)
+        tops = top_donor_sites_of_element(rows, "O", 3)
         sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
         fukui_items.append(f"<li><b>{name}</b>: {sites}</li>")
     fukui_summary = (f"<ul>{''.join(fukui_items)}</ul>" if fukui_items
@@ -274,7 +257,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     parts = [
         '<!doctype html><html><head><meta charset="utf-8">',
         "<title>corrosim — multiscale inhibitor report</title>",
-        f"<style>{_PIPELINE_CSS}</style></head><body>",
+        f"<style>{_REPORT_CSS}</style></head><body>",
         "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
         f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
         f' &nbsp;|&nbsp; DFT level <b>{level}</b>'
