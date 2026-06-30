@@ -61,10 +61,14 @@ def _best_protonation_site(name: str, select_engine: str = "xtb"):
 
 def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                    basis="6-311++G(d,p)", xc="b3lyp",
-                   protonated=True, select_engine="xtb",
+                   forms="both", select_engine="xtb",
                    optimize=False, opt_basis="6-31G(d)", opt_xc="b3lyp",
                    opt_solvent=None, opt_maxsteps=100):
     """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts.
+
+    ``forms`` selects which species to run: 'neutral', 'protonated', or 'both'.
+    Running only one form lets you complete a matrix without recomputing the other
+    (e.g. add the protonated cations to an existing neutral-only optimised set).
 
     If ``optimize`` is set, each species' geometry is DFT-relaxed once (at
     ``opt_basis``/``opt_xc``, gas-phase by default) before the production single
@@ -74,15 +78,19 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
     geom_tag = (f"DFT-opt {opt_xc}/{opt_basis}"
                 + (f" ({opt_solvent})" if opt_solvent else " (gas)")) \
         if optimize else "FF (MMFF)"
+    want_neutral = forms in ("both", "neutral")
+    want_prot = forms in ("both", "protonated")
     rows = []
     for name in molecules:
         print(f"[{name}]", file=sys.stderr)
-        forms = [("neutral", build_molecule(name))]
-        if protonated:
+        form_list = []
+        if want_neutral:
+            form_list.append(("neutral", build_molecule(name)))
+        if want_prot:
             print("  selecting protonation site ...", file=sys.stderr)
             _, prot = _best_protonation_site(name, select_engine)
-            forms.append(("protonated", prot))
-        for form, mol in forms:
+            form_list.append(("protonated", prot))
+        for form, mol in form_list:
             if optimize:
                 print(f"  optimising {form} geometry ({opt_xc}/{opt_basis}) ...",
                       file=sys.stderr)
@@ -112,8 +120,12 @@ def main(argv=None) -> int:
     p.add_argument("--metal", default="Fe(110)")
     p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
     p.add_argument("--xc", default="b3lyp", help="PySCF XC functional.")
+    p.add_argument("--forms", default="both",
+                   choices=["both", "neutral", "protonated"],
+                   help="Which species to run (default both). 'protonated' alone "
+                        "lets you complete an existing neutral-only matrix.")
     p.add_argument("--no-protonated", action="store_true",
-                   help="Neutral forms only (skip the acid-relevant cations).")
+                   help="Shortcut for --forms neutral (skip the acid-relevant cations).")
     p.add_argument("--select-engine", default="xtb",
                    help="Fast engine for protonation-site selection.")
     p.add_argument("--optimize", action="store_true",
@@ -130,9 +142,10 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
 
     molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    forms = "neutral" if args.no_protonated else args.forms
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,
-                          protonated=not args.no_protonated,
+                          forms=forms,
                           select_engine=args.select_engine,
                           optimize=args.optimize, opt_basis=args.opt_basis,
                           opt_xc=args.opt_xc, opt_solvent=args.opt_solvent,
