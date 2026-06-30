@@ -41,21 +41,25 @@ class Molecule:
     symbols: list[str]
     coords: list[tuple[float, float, float]]   # Angstrom
     charge: int = 0                            # net charge (+1 = protonated cation)
-    rdkit_mol: Chem.Mol = field(repr=False, default=None)
+    rdkit_mol: Chem.Mol | None = field(repr=False, default=None)
 
     @property
     def n_atoms(self) -> int:
+        """Number of atoms in the prepared geometry (explicit Hs included)."""
         return len(self.symbols)
 
     @property
     def formula(self) -> str:
+        """Molecular formula (Hill notation), computed from ``rdkit_mol``."""
         from rdkit.Chem import rdMolDescriptors
         return rdMolDescriptors.CalcMolFormula(self.rdkit_mol)
 
-    def atoms_for_pyscf(self):
+    def atoms_for_pyscf(self) -> list:
+        """Geometry as ``[[symbol, (x, y, z)], ...]`` — the layout pyscf.gto.M expects."""
         return [[s, c] for s, c in zip(self.symbols, self.coords)]
 
     def to_xyz(self) -> str:
+        """Serialise to a standard XYZ block (coordinates in Å)."""
         lines = [str(self.n_atoms), self.name]
         for s, (x, y, z) in zip(self.symbols, self.coords):
             lines.append(f"{s:2s} {x:14.8f} {y:14.8f} {z:14.8f}")

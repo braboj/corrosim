@@ -30,6 +30,8 @@ import numpy as np
 
 @dataclass
 class FukuiResult:
+    """Per-atom condensed Fukui functions, dual descriptor, and local softness."""
+
     symbols: list
     f_plus: list      # nucleophilic (electron-accepting)
     f_minus: list     # electrophilic (electron-donating)
@@ -39,6 +41,7 @@ class FukuiResult:
     basis: str = ""
 
     def as_rows(self) -> list:
+        """Per-atom indices as a list of rounded dicts (idx, symbol, f±, dual, s±)."""
         return [dict(idx=i, symbol=s, f_plus=round(fp, 4), f_minus=round(fm, 4),
                      dual=round(d, 4), s_plus=round(sp, 4), s_minus=round(sm, 4))
                 for i, (s, fp, fm, d, sp, sm) in enumerate(zip(

@@ -57,6 +57,7 @@ def _fig_to_b64(fig) -> str:
 
 
 def plot_homo_lumo(df: pd.DataFrame):
+    """Grouped bar chart of per-molecule HOMO/LUMO energies (eV). Returns the figure."""
     fig, ax = plt.subplots(figsize=(7, 4))
     x = range(len(df))
     ax.bar([i - 0.2 for i in x], df["homo_ev"], width=0.4, label="HOMO", color="#2b6cb0")
@@ -69,6 +70,7 @@ def plot_homo_lumo(df: pd.DataFrame):
 
 
 def plot_descriptor_bars(df: pd.DataFrame):
+    """Per-molecule bar panels for the key reactivity descriptors. Returns the figure."""
     keys = ["gap_ev", "hardness_ev", "softness_inv_ev", "electrophilicity_ev"]
     fig, axes = plt.subplots(1, len(keys), figsize=(4 * len(keys), 3.4))
     for ax, k in zip(axes, keys):
@@ -101,6 +103,7 @@ and higher softness (each z-scored). Higher score = stronger predicted adsorptio
 
 def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                       out_path: str) -> str:
+    """Write a self-contained Stage-1 HTML report (ranking, table, plots). Returns its path."""
     ranked = rank_inhibitors(df)
     html = _HTML.format(
         style=_REPORT_CSS,

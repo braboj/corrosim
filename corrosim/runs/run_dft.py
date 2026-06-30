@@ -110,6 +110,7 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
 
 
 def main(argv=None) -> int:
+    """CLI entry point: compute the production DFT descriptor matrix (M1)."""
     p = argparse.ArgumentParser(
         prog="corrosim-run-dft",
         description="Production DFT descriptor matrix (M1).",

@@ -42,6 +42,7 @@ def _fukui_from_json(path):
 
 
 def main(argv=None) -> int:
+    """CLI entry point: regenerate the full manuscript figure set into figures/."""
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
     p.add_argument("--outdir", default="figures")
     p.add_argument("--datadir", default="results",

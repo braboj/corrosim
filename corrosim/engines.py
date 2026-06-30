@@ -12,9 +12,13 @@ Energies in the result are reported in eV.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
+
+# A molecular geometry: a sequence of (x, y, z) triples in Angstrom (or an ndarray).
+Coords = Sequence[Sequence[float]]
 
 HARTREE_TO_EV = 27.211386245988
 ANG_TO_BOHR = 1.8897259886
@@ -22,6 +26,7 @@ ANG_TO_BOHR = 1.8897259886
 
 @dataclass
 class EngineResult:
+    """Engine-agnostic single-point result (all energies in eV)."""
     engine: str
     level: str               # e.g. "GFN2-xTB" or "B3LYP/6-31G"
     e_total_ev: float
@@ -31,10 +36,11 @@ class EngineResult:
 
     @property
     def gap_ev(self) -> float:
+        """HOMO–LUMO gap (eV)."""
         return self.lumo_ev - self.homo_ev
 
 
-def run_xtb(symbols, coords, charge: int = 0) -> EngineResult:
+def run_xtb(symbols: Sequence[str], coords: Coords, charge: int = 0) -> EngineResult:
     """GFN2-xTB single point. coords in Angstrom. charge: net molecular charge."""
     from ase.data import atomic_numbers
     from tblite.interface import Calculator
@@ -64,7 +70,7 @@ def run_xtb(symbols, coords, charge: int = 0) -> EngineResult:
                         charges=charges)
 
 
-def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
+def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p)",
               xc: str = "b3lyp", solvent: str | None = "water",
               charge: int = 0) -> EngineResult:
     """
@@ -108,9 +114,9 @@ def run_pyscf(symbols, coords, basis: str = "6-311++G(d,p)",
                         charges=charges)
 
 
-def optimize_geometry(symbols, coords, basis: str = "6-31G(d)", xc: str = "b3lyp",
-                      charge: int = 0, solvent: str | None = None,
-                      maxsteps: int = 100):
+def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
+                      xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+                      maxsteps: int = 100) -> tuple[list[str], list[tuple[float, ...]]]:
     """
     DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
 
@@ -138,7 +144,7 @@ def optimize_geometry(symbols, coords, basis: str = "6-31G(d)", xc: str = "b3lyp
     return opt_symbols, opt_coords
 
 
-def run_engine(symbols, coords, engine: str = "xtb", charge: int = 0,
+def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,
                **kwargs) -> EngineResult:
     """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a
     protonated inhibitor in acid)."""
@@ -160,8 +166,9 @@ def run_engine(symbols, coords, engine: str = "xtb", charge: int = 0,
 # writers and output parsers below are the automated part; point them at your
 # executable via orca_cmd / gaussian_cmd or the ORCA_CMD / GAUSSIAN_CMD env vars.
 
-def write_orca_input(symbols, coords, keywords: str, charge=0, mult=1,
+def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str, charge=0, mult=1,
                      solvent: str | None = "water", nprocs: int = 4) -> str:
+    """Build an ORCA input deck (keywords + optional CPCM solvent + xyz block)."""
     lines = [f"! {keywords}"]
     if solvent:
         lines.append(f"! CPCM({solvent})")
@@ -174,7 +181,7 @@ def write_orca_input(symbols, coords, keywords: str, charge=0, mult=1,
     return "\n".join(lines) + "\n"
 
 
-def parse_orca_output(text: str):
+def parse_orca_output(text: str) -> tuple[float, float]:
     """Return (homo_ev, lumo_ev) from an ORCA output's ORBITAL ENERGIES block."""
     lines = text.splitlines()
     try:
@@ -197,9 +204,10 @@ def parse_orca_output(text: str):
     return ev[homo_i], ev[homo_i + 1]
 
 
-def run_orca(symbols, coords, keywords: str = "B3LYP def2-TZVP",
+def run_orca(symbols: Sequence[str], coords: Coords, keywords: str = "B3LYP def2-TZVP",
              solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
              orca_cmd: str | None = None, workdir: str | None = None) -> EngineResult:
+    """Run an ORCA single point via the local ``orca`` binary and parse HOMO/LUMO."""
     import os
     import subprocess
     import tempfile
@@ -216,9 +224,10 @@ def run_orca(symbols, coords, keywords: str = "B3LYP def2-TZVP",
     return EngineResult("orca", level, float("nan"), homo, lumo)
 
 
-def write_gaussian_input(symbols, coords, route: str, charge=0, mult=1,
+def write_gaussian_input(symbols: Sequence[str], coords: Coords, route: str, charge=0, mult=1,
                          solvent: str | None = "water",
                          nprocs: int = 4, mem: str = "2GB") -> str:
+    """Build a Gaussian input deck (route + optional PCM solvent + xyz block)."""
     r = route
     if solvent and "scrf" not in route.lower():
         r += f" SCRF=(PCM,solvent={solvent})"
@@ -228,7 +237,7 @@ def write_gaussian_input(symbols, coords, route: str, charge=0, mult=1,
     return "\n".join(head + body) + "\n\n"
 
 
-def parse_gaussian_output(text: str):
+def parse_gaussian_output(text: str) -> tuple[float, float]:
     """Return (homo_ev, lumo_ev) from a Gaussian log's eigenvalue lines (Hartree->eV)."""
     occ, virt = [], []
     for l in text.splitlines():
@@ -241,10 +250,11 @@ def parse_gaussian_output(text: str):
     return occ[-1] * HARTREE_TO_EV, virt[0] * HARTREE_TO_EV
 
 
-def run_gaussian(symbols, coords, route: str = "B3LYP/6-311++G(d,p)",
+def run_gaussian(symbols: Sequence[str], coords: Coords, route: str = "B3LYP/6-311++G(d,p)",
                  solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
                  mem: str = "2GB", gaussian_cmd: str | None = None,
                  workdir: str | None = None) -> EngineResult:
+    """Run a Gaussian single point via the local ``g16`` binary and parse HOMO/LUMO."""
     import os
     import subprocess
     import tempfile

@@ -28,6 +28,8 @@ from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat
 
 @dataclass
 class AdsorptionSystem:
+    """A prepared metal slab with the inhibitor placed above it, ready for MD/MC."""
+
     metal: str
     surface: str
     slab: Atoms
@@ -63,6 +65,7 @@ def place_molecule(slab: Atoms, symbols, coords, height: float = 2.5) -> Atoms:
 def build_adsorption_system(molecule, metal: str = "Fe",
                             size=(6, 6, 4), vacuum: float = 15.0,
                             height: float = 2.5) -> AdsorptionSystem:
+    """Build a metal slab and lay the molecule flat at `height` (Å) above it."""
     surface = SURFACE_FACET[metal]
     slab = build_slab(metal, size=size, vacuum=vacuum)
     combined = place_molecule(slab, molecule.symbols, molecule.coords, height)

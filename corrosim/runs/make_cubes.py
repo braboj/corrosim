@@ -25,6 +25,7 @@ ORDER = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
+    """CLI entry point: write HOMO/LUMO and density+ESP .cube files (needs PySCF)."""
     p = argparse.ArgumentParser(prog="corrosim-make-cubes")
     p.add_argument("--molecules", default="quercetin",
                    help="Comma-separated names/SMILES (default: quercetin).")

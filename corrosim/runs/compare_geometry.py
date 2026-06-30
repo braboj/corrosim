@@ -35,6 +35,7 @@ def _naq(df, order, phase):
 
 
 def main(argv=None) -> int:
+    """CLI entry point: compare FF vs DFT-optimised descriptors and check ranking robustness."""
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
     p.add_argument("--ff", default="results/dft_descriptors.csv",
                    help="Force-field-geometry descriptor matrix.")

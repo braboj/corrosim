@@ -24,6 +24,8 @@ from .surface import KCAL_TO_EV, SURFACE_FACET, UFF, build_slab, orient_flat, ro
 
 @dataclass
 class MCResult:
+    """Best adsorption pose and energetics from the Monte Carlo search
+    (e_ads in eV/kJ·mol⁻¹, height in Å)."""
     metal: str
     surface: str
     e_ads_ev: float

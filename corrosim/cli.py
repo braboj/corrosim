@@ -52,6 +52,7 @@ def read_input_csv(path: str) -> list[str]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser for the `corrosim` screening CLI."""
     p = argparse.ArgumentParser(
         prog="corrosim",
         description="Automated corrosion-inhibitor screening (free/open-source).")
@@ -82,6 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    """CLI entry point: screen the inhibitors, rank them, and write the report."""
     args = build_parser().parse_args(argv)
     import corrosim
 

@@ -28,6 +28,7 @@ DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
 
 def main(argv=None) -> int:
+    """CLI entry point: run Brownian MD to the metal-X RDF / adsorption distance (M4)."""
     p = argparse.ArgumentParser(prog="corrosim-run-md",
                                 description="Brownian MD -> RDF (M4).")
     p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES))
