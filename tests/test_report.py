@@ -1,5 +1,11 @@
 import os
 
+import matplotlib
+
+matplotlib.use("Agg")  # build_html_report renders figures; keep the suite headless
+
+import pandas as pd
+
 from corrosim import report
 
 
@@ -14,15 +20,35 @@ def _descr_row(name, gap, hardness):
     }
 
 
-def test_top_donor_sites_picks_highest_f_minus():
+def test_top_donor_sites_of_element_picks_highest_f_minus():
     rows = [
         {"idx": 0, "symbol": "O", "f_minus": 0.02},
         {"idx": 5, "symbol": "O", "f_minus": 0.09},
         {"idx": 9, "symbol": "C", "f_minus": 0.50},   # carbon: ignored by default
         {"idx": 3, "symbol": "O", "f_minus": 0.07},
     ]
-    tops = report.top_donor_sites(rows, "O", n=2)
+    tops = report.top_donor_sites_of_element(rows, "O", n=2)
     assert [t["idx"] for t in tops] == [5, 3]
+
+
+def test_build_html_report_is_self_contained_and_nan_safe(tmp_path):
+    # a missing adsorption estimate (NaN) must render as a blank cell, not "nan"
+    df = pd.DataFrame([
+        {**_descr_row("quercetin", 4.0, 2.0), "e_ads_kjmol": float("nan")},
+        {**_descr_row("kaempferol", 4.4, 2.2), "e_ads_kjmol": -16.5},
+    ])
+    out = tmp_path / "screen.html"
+    report.build_html_report(df, metal="Fe(110)", medium="1 M HCl",
+                             level="B3LYP/6-311++G(d,p)", out_path=str(out))
+
+    html = out.read_text(encoding="utf-8")
+    assert os.path.exists(out)
+    assert "quercetin" in html and "kaempferol" in html
+    assert ">nan<" not in html                       # NaN-safe table (was the style_table bug)
+    assert 'class="best"' in html                    # ranking highlight present
+    # self-contained: figures inlined as data URIs, no external references
+    assert 'src="http' not in html and 'src="figures' not in html
+    assert "data:image/png;base64," in html
 
 
 def test_pipeline_report_is_self_contained(tmp_path):
