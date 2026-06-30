@@ -1,7 +1,9 @@
 """Render an executed .ipynb to a clean, fully self-contained HTML page."""
-import html as _html, sys
-import nbformat
+import html as _html
+import sys
+
 import markdown as md
+import nbformat
 
 CSS = """
 body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
@@ -27,7 +29,7 @@ pre code{background:none;padding:0}
 
 def render(nb_path, out_path):
     nb = nbformat.read(nb_path, as_version=4)
-    parts = [f"<!doctype html><html><head><meta charset='utf-8'>",
+    parts = ["<!doctype html><html><head><meta charset='utf-8'>",
              "<meta name='viewport' content='width=device-width,initial-scale=1'>",
              f"<title>{_html.escape(nb_path)}</title><style>{CSS}</style></head><body>",
              "<div class='banner'>Static render of the executed notebook — "
