@@ -50,6 +50,17 @@ In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
 aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
 gas/aqueous matrix: `results/dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
+**Quantitative pH-speciation (ADR 0004).** The most basic site is the 4-oxo
+carbonyl, a very weak base (estimated conjugate-acid pKaH ≈ −1.5). By
+Henderson–Hasselbalch the inhibitor is **~97 % neutral / ~3 % protonated** at
+pH ≈ 0, so the neutral form is the right headline basis and the lead stays
+**quercetin**. But the gap/softness composite lead is fragile: it **crosses over to
+isorhamnetin at only ~5–7 % protonation** (pKaH ≈ −1.1 to −1.3), and the pKaH ± 1
+band (≈ 0–24 % protonated) straddles that crossover. So the quercetin lead is
+**contingent on the protonation pKa** — the dominant uncertainty for the acidic
+case (more than geometry or level of theory). A measured/computed site pKaH would
+pin which side of the crossover the system sits on.
+
 ### Geometry refinement (FF vs DFT-optimised)
 
 The matrix above uses force-field (MMFF) geometries with a DFT single point. Re-running
