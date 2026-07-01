@@ -46,8 +46,6 @@ corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
                  adsorption, surface, figures, report, cli, presets
 corrosim/runs/   stage drivers (run_dft/fukui/mc/md, make_cubes/figures/
                  report, compare_geometry)
-tools/           static-notebook build/render (build_notebook, render_notebook)
-notebooks/       exploratory notebook (corrosion_inhibitor_tool.ipynb)
 results/         tracked output data (descriptors, Fukui, MC/MD, comparison)
 figures/         curated figure set (PNG, tracked); fig0 = pipeline diagram
 cubes/           volumetric .cube files (regenerable, gitignored)

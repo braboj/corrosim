@@ -31,8 +31,6 @@ dependencies = [
 # Quantum engines (xTB is cheap; PySCF is the open DFT path).
 # geometric = geomeTRIC backend for PySCF DFT geometry optimisation.
 qm = ["tblite", "pyscf", "geometric"]
-# Notebook + HTML rendering tooling.
-notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel", "markdown"]
 # Figure/cube rendering: orbital + ESP isosurfaces (marching cubes + grid sampling).
 viz = ["scikit-image", "scipy", "Pillow"]
 # Tests / dev (viz deps listed explicitly so test_esp's renderer is importable).
@@ -80,9 +78,7 @@ follow_imports_for_stubs = true
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-# Notebooks carry exploratory, cell-scoped imports (re-imports per cell, imports
-# after setup code) that fight ruff's I001/E402; lint the .py tooling, not the .ipynb.
-extend-exclude = ["docs/solid-ai-templates", "notebooks/*.ipynb"]
+extend-exclude = ["docs/solid-ai-templates"]
 
 [tool.ruff.lint]
 # Lean starter set: pyflakes + pycodestyle + import sorting.
@@ -95,5 +91,3 @@ ignore = ["E741", "E702", "E731", "E401"]
 [tool.ruff.lint.per-file-ignores]
 # report.py embeds long single-line CSS rules inside HTML string literals.
 "corrosim/report.py" = ["E501"]
-# render_notebook.py embeds CSS + HTML string literals that exceed the limit.
-"tools/render_notebook.py" = ["E501"]
