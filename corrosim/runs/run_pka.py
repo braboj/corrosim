@@ -26,7 +26,7 @@ import argparse
 import json
 import sys
 
-from corrosim.engines import optimize_geometry, run_engine, thermo_correction
+from corrosim.engines import Coords, optimize_geometry, run_engine, thermo_correction
 from corrosim.molecules import build_molecule
 from corrosim.pka import G_AQ_PROTON_EV, estimate_pka
 from corrosim.presets import ARGHEL
@@ -51,11 +51,16 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
         neutral = build_molecule(name)
         print("  selecting protonation site ...", file=sys.stderr)
         _, cation = _best_protonation_site(name, select_engine)
+        nb_sym: list[str]
+        cb_sym: list[str]
+        nb_xyz: Coords
+        cb_xyz: Coords
         nb_sym, nb_xyz = list(neutral.symbols), neutral.coords
         cb_sym, cb_xyz = list(cation.symbols), cation.coords
 
         g_corr_b = g_corr_bh = 0.0
-        tb = tbh = None
+        tb: dict = {}
+        tbh: dict = {}
         if freq:
             print("  opt+freq neutral (gas) ...", file=sys.stderr)
             nb_sym, nb_xyz = optimize_geometry(neutral.symbols, neutral.coords,
