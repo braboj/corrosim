@@ -67,7 +67,15 @@ def main(argv=None) -> int:
         rows = naq.to_dict("records")
         figures.plot_mo_energy_diagram(rows, metal=ARGHEL.metal, out=out("fig2_mo_diagram.png"))
         figures.plot_descriptor_comparison(rows, out=out("fig3_descriptors.png"))
-        figures.plot_protonation_effect(df, ORDER, out=out("fig3b_protonation.png"))
+        # fig3b (protonation effect) prefers the DFT-optimised cations — the more
+        # accurate basis for the speciation/pKa story (#19); FF is the fallback.
+        opt_csv = f"{args.datadir}/dft_descriptors_opt.csv"
+        if os.path.exists(opt_csv):
+            figures.plot_protonation_effect(
+                pd.read_csv(opt_csv), ORDER, out=out("fig3b_protonation.png"),
+                geometry_label="DFT-optimised, B3LYP/6-311++G(d,p)")
+        else:
+            figures.plot_protonation_effect(df, ORDER, out=out("fig3b_protonation.png"))
 
     log("Fig 4: Fukui maps")
     for name in ORDER:

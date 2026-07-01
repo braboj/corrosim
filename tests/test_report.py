@@ -144,3 +144,41 @@ def test_pipeline_report_renders_computed_pka_block(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Computed pKaH" in html
     assert "-12.1" in html and "resolves the sensitivity" in html
+    assert "electronic-only" in html          # default caption
+
+
+def test_computed_pka_block_frequency_corrected_caption(tmp_path):
+    from corrosim.speciation import analyse_speciation, protonation_fraction
+    neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
+    protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
+                  {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]
+    summary = analyse_speciation(
+        neutral, protonated, ph=0.0,
+        rank_fn=lambda r: report.rank_inhibitors(pd.DataFrame(r)).to_dict("records"))
+    computed = [{"name": n, "pkah": pk, "f_protonated": protonation_fraction(0.0, pk)}
+                for n, pk in [("quercetin", -12.4), ("kaempferol", -11.5)]]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(neutral, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), medium="1 M HCl",
+                                 order=["quercetin", "kaempferol"],
+                                 speciation_summary=summary, computed_pkah=computed,
+                                 pka_freq_corrected=True)
+    html = out.read_text(encoding="utf-8")
+    assert "frequency-corrected" in html
+    assert "electronic-only" not in html
+
+
+def test_pipeline_report_renders_optimised_descriptor_section(tmp_path):
+    neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
+    opt_neutral = [_descr_row("quercetin", 3.6, 1.8), _descr_row("kaempferol", 4.0, 2.0)]
+    opt_acid = [{**_descr_row("quercetin+H+", 3.3, 1.6), "charge": 1},
+                {**_descr_row("kaempferol+H+", 3.6, 1.8), "charge": 1}]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(neutral, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), medium="1 M HCl",
+                                 order=["quercetin", "kaempferol"],
+                                 opt_neutral_rows=opt_neutral, opt_acid_rows=opt_acid)
+    html = out.read_text(encoding="utf-8")
+    assert "Optimised-geometry descriptors" in html
+    assert "Optimised protonated cations" in html
+    assert "geometry-robust" in html

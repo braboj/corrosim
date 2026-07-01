@@ -103,9 +103,12 @@ def plot_descriptor_comparison(rows, keys=None, out: str | None = None):
 
 
 # --- Neutral vs protonated descriptor effect --------------------------------
-def plot_protonation_effect(df, order, out: str | None = None):
+def plot_protonation_effect(df, order, out: str | None = None,
+                            geometry_label: str = "B3LYP/6-311++G(d,p)"):
     """Gap and ΔN, neutral vs protonated (aqueous), across molecules. `df` is the
-    run_dft results frame (columns name/form/phase/gap_ev/delta_n)."""
+    run_dft results frame (columns name/form/phase/gap_ev/delta_n).
+    ``geometry_label`` names the geometry source shown in the title (e.g.
+    'DFT-optimised, B3LYP/6-311++G(d,p)')."""
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
                            (axes[1], "delta_n", "ΔN (electrons transferred)")):
@@ -120,7 +123,7 @@ def plot_protonation_effect(df, order, out: str | None = None):
         ax.set_xticks(x); ax.set_xticklabels(order, rotation=15)
         ax.set_title(title, fontsize=10); ax.axhline(0, color="grey", lw=0.6)
         ax.legend(fontsize=8)
-    fig.suptitle("Neutral vs protonated (aqueous, B3LYP/6-311++G(d,p))")
+    fig.suptitle(f"Neutral vs protonated (aqueous, {geometry_label})")
     fig.tight_layout()
     return _save(fig, out) or fig
 

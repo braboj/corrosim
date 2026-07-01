@@ -144,6 +144,55 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     return opt_symbols, opt_coords
 
 
+def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
+                      xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+                      temperature: float = 298.15, pressure: float = 101325.0) -> dict:
+    """
+    Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV) at a *stationary*
+    geometry, from an analytic Hessian + ideal-gas rigid-rotor/harmonic-oscillator
+    thermochemistry (PySCF). This is the ZPE + thermal-enthalpy − T·S term that the
+    electronic-only pKaH (ADR 0005) omits.
+
+    coords in Angstrom and MUST already be optimised at the same (basis, xc, solvent)
+    level — harmonic frequencies (hence G_corr) are only meaningful at a minimum.
+    Add the returned ``g_corr_ev`` to the electronic energy to get G, or feed it to
+    ``corrosim.pka.estimate_pka(g_corr_*_ev=...)`` for a frequency-corrected pKaH. The
+    standard protocol is a modest gas-phase level (B3LYP/6-31G(d)) for the correction
+    on top of the production single point.
+
+    Returns ``{g_corr_ev, zpe_ev, temperature, n_imag, level}``. ``n_imag`` > 0 flags
+    a non-minimum (transition state / unconverged geometry) — the correction is then
+    unreliable and the caller should re-optimise.
+    """
+    from pyscf import dft, gto
+    from pyscf.hessian import thermo
+    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                basis=basis, charge=charge, verbose=0)
+    mf = dft.RKS(mol)
+    mf.xc = xc
+    if solvent:
+        from pyscf import solvent as pyscf_solvent  # noqa: F401
+        mf = mf.ddCOSMO()
+        mf.with_solvent.eps = 78.3553
+    e_elec = mf.kernel()
+    hess = mf.Hessian().kernel()
+    ha = thermo.harmonic_analysis(mol, hess)
+    fw = np.asarray(ha["freq_wavenumber"])
+    # imaginary modes surface as a negative real part or a non-zero imaginary part
+    n_imag = int(np.sum((fw.real < 0) | (np.abs(fw.imag) > 1e-6)))
+    info = thermo.thermo(mf, ha["freq_au"], temperature, pressure)
+    g_tot = float(info["G_tot"][0])                  # total Gibbs (Hartree), incl. E_elec
+    zpe = float(info["ZPE"][0])
+    level = f"{xc.upper()}/{basis}" + (f" (ddCOSMO:{solvent})" if solvent else " (gas)")
+    return {
+        "g_corr_ev": (g_tot - float(e_elec)) * HARTREE_TO_EV,
+        "zpe_ev": zpe * HARTREE_TO_EV,
+        "temperature": temperature,
+        "n_imag": n_imag,
+        "level": level,
+    }
+
+
 def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,
                **kwargs) -> EngineResult:
     """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a

@@ -35,6 +35,9 @@ def main(argv=None) -> int:
     """CLI entry point: build the self-contained multiscale HTML pipeline report."""
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     p.add_argument("--descriptors", default="results/dft_descriptors.csv")
+    p.add_argument("--opt-descriptors", default="results/dft_descriptors_opt.csv",
+                   help="DFT-optimised-geometry matrix; surfaced as a labelled "
+                        "section (neutral ranking + protonated cations) when present.")
     p.add_argument("--mc", default="results/mc_adsorption.json")
     p.add_argument("--md", default="results/md_rdf.json")
     p.add_argument("--datadir", default="results",
@@ -80,13 +83,36 @@ def main(argv=None) -> int:
     # Computed per-molecule pKaH (run_pka, DFT cycle) -> populations that resolve
     # the crossover (ADR 0005).
     computed_pkah = None
+    pka_freq_corrected = False
     if spec.ph is not None and os.path.exists(args.pka):
         order_ix = {n: i for i, n in enumerate(present)}
+        pka_rows = [r for r in _load_json(args.pka) if r["name"] in order_ix]
+        # prefer the frequency-corrected pKaH ("pkah") when run_pka --freq produced it,
+        # else the electronic-only value (issue #18 / ADR 0005).
+        pka_freq_corrected = bool(pka_rows) and all("pkah" in r for r in pka_rows)
         computed_pkah = sorted(
-            ({"name": r["name"], "pkah": r["pkah_electronic"],
-              "f_protonated": protonation_fraction(spec.ph, r["pkah_electronic"])}
-             for r in _load_json(args.pka) if r["name"] in order_ix),
+            ({"name": r["name"], "pkah": r.get("pkah", r["pkah_electronic"]),
+              "f_protonated": protonation_fraction(
+                  spec.ph, r.get("pkah", r["pkah_electronic"]))}
+             for r in pka_rows),
             key=lambda r: order_ix[r["name"]]) or None
+
+    # Optimised-geometry matrix (#19): surface the DFT-relaxed neutral ranking and
+    # the optimised protonated cations alongside the FF headline, when available.
+    opt_neutral_rows = opt_acid_rows = None
+    if os.path.exists(args.opt_descriptors):
+        odf = pd.read_csv(args.opt_descriptors)
+        on = odf[(odf.form == "neutral") & (odf.phase == "aqueous")]
+        on_present = [n for n in ORDER if n in set(on["name"])]
+        opt_neutral_rows = on.set_index("name").loc[on_present].reset_index() \
+            .to_dict("records") or None
+        if spec.acidic:
+            op = odf[(odf.form == "protonated") & (odf.phase == "aqueous")].copy()
+            op["_base"] = op["name"].str.replace(r"\+H\+$", "", regex=True)
+            op = op[op["_base"].isin(on_present)]
+            op["_ord"] = op["_base"].map({n: i for i, n in enumerate(on_present)})
+            opt_acid_rows = op.sort_values("_ord").drop(columns=["_base", "_ord"]) \
+                .to_dict("records") or None
 
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
@@ -95,14 +121,17 @@ def main(argv=None) -> int:
     log(f"DFT rows: {len(rows)} | MC: {len(mc_rows)} | MD: {len(md_rows)} | "
         f"Fukui: {sum(1 for v in fukui_by_name.values() if v)} | "
         f"medium: {args.medium!r} acidic={spec.acidic} "
-        f"acid-cation rows: {len(acid_rows) if acid_rows else 0}")
+        f"acid-cation rows: {len(acid_rows) if acid_rows else 0} | "
+        f"opt rows: {len(opt_neutral_rows) if opt_neutral_rows else 0} neutral / "
+        f"{len(opt_acid_rows) if opt_acid_rows else 0} protonated")
 
     out = report.build_pipeline_report(
         rows, mc_rows, md_rows, fukui_by_name,
         figdir=args.figdir, out_path=args.out,
         metal=args.metal, medium=args.medium, order=present,
         acid_cation_rows=acid_rows, speciation_summary=speciation_summary,
-        computed_pkah=computed_pkah,
+        computed_pkah=computed_pkah, pka_freq_corrected=pka_freq_corrected,
+        opt_neutral_rows=opt_neutral_rows, opt_acid_rows=opt_acid_rows,
     )
     size_kb = os.path.getsize(out) / 1024
     print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
