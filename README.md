@@ -40,17 +40,22 @@ it rebuilds the report from the committed result data.
 ```bash
 git clone https://github.com/braboj/corrosim
 cd corrosim
-pip install -e ".[viz]"                # core + figure rendering
+pip install -e ".[viz,report]"         # core + figure rendering + Word output
 python -m corrosim.runs.make_report    # rebuild the report/ bundle from results/
 ```
 
 Expected output:
 
 ```text
-report written to report/report.html (3931 kB, self-contained); tables in report/tables/
+report written to report/report.html (4248 kB, self-contained)
+word report written to report/report.docx (3101 kB)
+tables in report/tables/ (per-stage subfolders)
 ```
 
-Open `report/report.html` in any browser. To run the DFT/xTB stages yourself, see
+Open `report/report.html` in any browser, or `report/report.docx` in Word (both
+carry the same figures, standalone explanations, governing equations and the
+validation record). The `report` extra (python-docx) is only needed for the Word
+file; without it the HTML is still built. To run the DFT/xTB stages yourself, see
 [Development setup](#development-setup).
 
 ## Usage
@@ -108,11 +113,13 @@ Windows (see [Development setup](#development-setup)).
 ```text
 corrosim/        core package — molecules, engines, descriptors, fukui, mc,
                  md, adsorption, surface, medium, speciation, pka, figures,
-                 report, cli, presets
+                 equations, report, report_docx, report_content, report_layout,
+                 cli, presets
 corrosim/runs/   stage drivers — run_dft, run_fukui, run_mc, run_md, run_pka,
                  make_cubes, make_figures, make_report, compare_geometry
 results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa)
-report/          report bundle (make_report): report.html + figures/ + tables/
+report/          report bundle (make_report): report.html + report.docx +
+                 figures/<stage>/ + tables/<stage>/ (per-stage subfolders)
 examples/        sample batch CSV
 tests/           pytest suite (QM-light, no DFT — fast)
 docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,

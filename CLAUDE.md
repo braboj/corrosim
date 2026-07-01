@@ -37,14 +37,17 @@ truth for structure; the tree below is the agent-oriented view.
 ```text
 corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
                  adsorption, surface, medium, speciation, pka, figures,
-                 report, cli, presets
+                 equations, report, report_docx, report_content, report_layout,
+                 cli, presets
 corrosim/runs/   stage drivers (run_dft/fukui/mc/md/pka, make_cubes/figures/
                  report, compare_geometry)
 tests/           pytest suite (no DFT/Docker — fast)
 results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa, comparison)
 cubes/           volumetric .cube files (regenerable, gitignored)
-report/          tracked report bundle: report.html (self-contained) + figures/
-                 (PNG; fig0 = pipeline diagram) + tables/ (csv/json)
+report/          tracked report bundle (ADR 0006/0008): report.html + report.docx
+                 (self-contained) + figures/<stage>/ + tables/<stage>/ nested by
+                 pipeline stage via report_layout (dft/fukui/esp/mc/md/pipeline;
+                 fig0 = pipeline diagram)
 docs/
   ONBOARDING.md        onboarding guide for new contributors
   PLAYBOOK.md          operational reference for common tasks
@@ -67,7 +70,7 @@ mypy                                   # type-check (non-strict) — also a CI g
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
 python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors.csv
-python -m corrosim.runs.make_report    # -> report/ (report.html + figures + tables)
+python -m corrosim.runs.make_report    # -> report/ (report.html + report.docx + figures + tables)
 ```
 
 Long QM jobs (geometry-opt, frequency, MEP cubes) MUST run detached so a shell
@@ -118,7 +121,7 @@ duplicate.
   auto-closes the issue on merge.
 - `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
   never committed.
-- The `report/` bundle (report.html + figures/ + tables/) and
+- The `report/` bundle (report.html + report.docx + figures/ + tables/) and
   `results/*.{csv,json}` ARE tracked; `cubes/` and `*.log` are not.
 
 ### 2.2 Python
@@ -198,7 +201,8 @@ end-of-session audit.
 
 ### 6.1 Start of session
 
-- Read `MEMORY.md` (the auto-memory index) and `docs/local/SESSION-HANDOFF.local.md`.
+- Read `MEMORY.md` (the auto-memory index) and the latest `docs/dev-journal.md`
+  entry — its **Pending** line is the resume state.
 - Run `git status`.
 
 ### 6.2 During the session
@@ -219,9 +223,10 @@ audit) and execute each item sequentially; do not summarize or skip.** Then
 complete these corrosim-specific steps:
 
 1. Run `pytest -q` (plus `ruff check .` and `mypy`); report the results.
-2. Add a session entry to `docs/dev-journal.md`; record any decision as an ADR
-   in `docs/decisions/`.
-3. Update `docs/local/SESSION-HANDOFF.local.md` and `MEMORY.md`.
+2. Add a session entry to `docs/dev-journal.md`, ending it with a **Pending**
+   line for any open threads — that line is the resume state the next session
+   reads. Record any decision as an ADR in `docs/decisions/`.
+3. Update `MEMORY.md`.
 4. Commit (conventional, with the trailer) and push only when asked.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

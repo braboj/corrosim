@@ -100,11 +100,47 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (3) gitleaks CI job alongside the existing pre-commit hook. (4) Bandit CI job
   (`[tool.bandit]`; the two `engines.py` QM-binary `subprocess` launches
   reviewed and `# nosec`-ed) plus a CodeQL SAST workflow.
-- **PRs merged:** none yet — branch `feat/quality-gates-31`.
-- **Issues closed/created:** resolves #31 on merge.
+- **PRs merged:** #32 (squash-merged to `main` as `a151ea8`; all 8 CI checks
+  green — lint, test ×3.10/3.11/3.12, Bandit, gitleaks, CodeQL).
+- **Issues closed/created:** closed #31 (auto-closed on merge).
 - **Decisions:** reconcile the python-lib gates with QM-light by scoping
   coverage and relaxing `D205` (ADR 0007).
 - **Verification:** `ruff check .`, `mypy`, `bandit -r corrosim` clean;
   `pytest` 66 passed / 1 skipped; scoped coverage ~85% (gate 80%).
+- **Pending:** #18 (frequency-corrected pKaH) is the only open issue. The
+  detached QM job `corrosim_pka_freq` (gas opt+freq cycle) has 1 of 3 molecules
+  done — first corrected pKaH ≈ −12.90 (vs −7.29 electronic-only), so still ~0%
+  protonated in 1 M HCl and the quercetin lead is unaffected; `results/pka_freq.json`
+  is written only once all 3 finish. On completion: verify `n_imag = 0`, fold
+  into `results/pka.json`, regenerate the `report/` bundle, update ADR 0005 +
+  `docs/validation.md`, PR, and close #18.
+
+## 2026-07-01 — Report insight: per-stage subfolders, Word output, equations
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes (customer request):** Reorganised the `report/` bundle into
+  per-stage subfolders (`figures/{pipeline,dft,fukui,esp,mc,md}/`,
+  `tables/{dft,pka}/`), single-sourced by a new `report_layout.py` that both the
+  figure generator and the report builders resolve paths through. Added a Word
+  (`.docx`) report (`report_docx.py`, python-docx) written alongside the HTML by
+  `make_report`; both renderers share the derived data (`prepare_report_data`),
+  the governing equations (`equations.py`, rendered via matplotlib mathtext — no
+  LaTeX/MathJax) and the narrative (`report_content.py`). Every figure now carries
+  a standalone explanation, and a new "Scientific basis & validation" section
+  folds in `pipeline.md` (three-stage rationale, descriptor definitions) and
+  `validation.md` (descriptor results, computed-pKaH resolution, published Fe(110)
+  cross-checks, the Mohammed 2014 experimental anchor). Regenerated the bundle
+  (HTML 4.2 MB / DOCX 3.1 MB; 27 figures + 19 equations embedded in each).
+- **Housekeeping:** de-duplicated obsolete memory/handoff files earlier in the
+  session (retired `tech-debt-backlog`, `arghel-experimental-tbd`,
+  `tech-debt.local.md`; collapsed `SESSION-HANDOFF.local.md` into this journal's
+  Pending line).
+- **PRs merged:** none yet — branch `feat/report-word-subfolders`.
+- **Issues closed/created:** —.
+- **Decisions:** report-bundle subfolders + Word output + rendered equations
+  (ADR 0008); python-docx added as a `report` extra (in `dev`), reconciled with
+  the venv/CI free-software model (no system binary).
+- **Verification:** `ruff check .` and `mypy` clean; `pytest` 76 passed / 1
+  skipped; scoped coverage 87.72% (gate 80%); the four new modules at 100%.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

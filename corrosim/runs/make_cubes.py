@@ -9,7 +9,7 @@ the bind-mounted repo and are then rendered (anywhere) by make_figures.
         --molecules quercetin --what orbital,esp
 
 The ESP/MEP integral is the slow part; default grid nx=80 + 6-31G(d) keeps it to
-a few minutes per molecule. Long jobs: run in the background (see SESSION-HANDOFF).
+a few minutes per molecule. Long jobs: run in the background (see CLAUDE.md 1.3).
 """
 from __future__ import annotations
 
