@@ -2,7 +2,7 @@
 corrosim.runs.run_dft  (M1 driver)
 ==================================
 Production DFT descriptor matrix for the Arghel flavonoids — the foundation for
-the article (see docs/article-plan.local.md, milestone M1).
+the article (see docs/local/article-plan.local.md, milestone M1).
 
 Runs the adopted level (B3LYP/6-311++G(d,p) + ddCOSMO water; ADR 0002) over
 

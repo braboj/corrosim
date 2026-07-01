@@ -54,7 +54,7 @@ docs/
   validation.md        computational + experimental validation
   whitepapers/         source literature (tracked)
   pipeline.drawio      editable source for the pipeline diagram
-  *.local.md           private working notes (gitignored)
+  local/               private working notes (*.local.md, gitignored)
   solid-ai-templates/  quality-convention template submodule
 Dockerfile, docker-compose.yml   the corrosim-qm QM environment
 ```
@@ -117,7 +117,8 @@ duplicate.
 - PR titles use the commit format with the number: `... (#NN)`. Do NOT write
   "closes #N" in a PR body unless the PR actually resolves it — GitHub
   auto-closes the issue on merge.
-- `*.local.md` are private working notes: gitignored, never committed.
+- `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
+  never committed.
 - `report.html` and `results/*.{csv,json}` ARE tracked; `cubes/` and
   `*.log` are not.
 
@@ -193,7 +194,7 @@ end-of-session audit.
 
 ### 6.1 Start of session
 
-- Read `MEMORY.md` (the auto-memory index) and `docs/SESSION-HANDOFF.local.md`.
+- Read `MEMORY.md` (the auto-memory index) and `docs/local/SESSION-HANDOFF.local.md`.
 - Run `git status`.
 
 ### 6.2 During the session
@@ -216,7 +217,7 @@ complete these corrosim-specific steps:
 1. Run `pytest -q` (plus `ruff check .` and `mypy`); report the results.
 2. Add a session entry to `docs/dev-journal.md`; record any decision as an ADR
    in `docs/decisions/`.
-3. Update `docs/SESSION-HANDOFF.local.md` and `MEMORY.md`.
+3. Update `docs/local/SESSION-HANDOFF.local.md` and `MEMORY.md`.
 4. Commit (conventional, with the trailer) and push only when asked.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
