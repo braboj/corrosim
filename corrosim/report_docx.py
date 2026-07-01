@@ -64,9 +64,22 @@ class _Doc:
 
     def __init__(self) -> None:
         self.doc = Document()
+        self._c1 = 0            # section counter (level 1)
+        self._c2 = 0            # subsection counter (level 2)
 
     # --- text ---------------------------------------------------------------
     def heading(self, text: str, level: int) -> None:
+        """Add a heading. Sections (level 1) and subsections (level 2) are
+        numbered hierarchically (``1.``, ``1.1`` …) to match the HTML report; the
+        title (level 0) and deeper (level 3) headings are left unnumbered.
+        """
+        if level == 1:
+            self._c1 += 1
+            self._c2 = 0
+            text = f"{self._c1}. {text}"
+        elif level == 2:
+            self._c2 += 1
+            text = f"{self._c1}.{self._c2} {text}"
         self.doc.add_heading(text, level=level)
 
     def para(self, text: str, *, muted: bool = False, size: int | None = None) -> None:
@@ -194,7 +207,7 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
     if not summary:
         return
     spec = summary["speciation"]
-    d.heading(f"Speciation in {medium} (pH ≈ {spec.ph:.1f})", level=3)
+    d.heading(f"Speciation in {medium} (pH ≈ {spec.ph:.1f})", level=2)
     d.para(
         f"The most basic site (4-oxo carbonyl, pKaH ≈ {spec.pkah:.1f}) is a very "
         f"weak base, so by Henderson-Hasselbalch the inhibitor is "
@@ -317,8 +330,9 @@ def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     _speciation_section(d, speciation_summary, medium, computed_pkah,
                         pka_freq_corrected)
 
-    # Stage 1b — Fukui --------------------------------------------------------
-    d.heading("Stage 1b — Local reactivity (Fukui)", level=1)
+    # Stage 1 (cont.) — Fukui and ESP are facets of Stage 1 (isolated-molecule
+    # QM analysis), so they are subsections here, not separate pipeline stages.
+    d.heading("Local reactivity (Fukui)", level=2)
     d.para(_content.STAGE_INTROS["fukui"])
     if prep.fukui_items:
         for name, sites in prep.fukui_items:

@@ -124,7 +124,7 @@ _ADSORPTION = [
 # Ordered groups for the "Scientific basis" section: (heading, equations).
 EQUATION_GROUPS: list[tuple[str, list[Equation]]] = [
     ("Stage 1 — global reactivity descriptors (Koopmans' theorem)", _STAGE1),
-    ("Stage 1b — local reactivity (condensed Fukui)", _FUKUI),
+    ("Stage 1 — local reactivity (condensed Fukui)", _FUKUI),
     ("Acid-base speciation and conjugate-acid pKaH", _SPECIATION),
     ("Stage 2/3 — adsorption observables", _ADSORPTION),
 ]

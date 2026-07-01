@@ -132,8 +132,11 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   a standalone explanation, and a new "Scientific basis & validation" section
   folds in `pipeline.md` (three-stage rationale, descriptor definitions) and
   `validation.md` (descriptor results, computed-pKaH resolution, published Fe(110)
-  cross-checks, the Mohammed 2014 experimental anchor). Regenerated the bundle
-  (HTML 4.2 MB / DOCX 3.1 MB; 27 figures + 19 equations embedded in each).
+  cross-checks, the Mohammed 2014 experimental anchor). Section/subsection headings
+  (h2/h3) are numbered hierarchically (1, 1.1 …) identically in both formats, and
+  Fukui + ESP were folded into Stage 1 as subsections (3.7 / 3.8) — the pipeline is
+  three stages, so the old "Stage 1b/1c" badges were misleading. Regenerated the
+  bundle (HTML 4.2 MB / DOCX 3.0 MB; 27 figures + 19 equations embedded in each).
 - **Housekeeping:** de-duplicated obsolete memory/handoff files earlier in the
   session (retired `tech-debt-backlog`, `arghel-experimental-tbd`,
   `tech-debt.local.md`; collapsed `SESSION-HANDOFF.local.md` into this journal's

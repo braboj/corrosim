@@ -9,6 +9,7 @@ import base64
 import datetime
 import io
 import os
+import re
 from typing import NamedTuple
 
 import matplotlib.pyplot as plt  # backend auto-selected: inline in Jupyter, Agg headless
@@ -208,6 +209,28 @@ def _scientific_basis_section() -> list[str]:
                            + "".join(_equation_img(e.key) for e in group)
                            + "</div>")
     return out
+
+
+def _number_headings(html: str) -> str:
+    """Prefix section (h2) and subsection (h3) headings with hierarchical numbers
+    (``1.``, ``1.1`` …) in document order. The ``h1`` title and deeper (``h4``)
+    headings are left unnumbered. Mirrors report_docx's numbering so the HTML and
+    Word reports carry the same section numbers.
+    """
+    c = {"h2": 0, "h3": 0}
+
+    def repl(m: re.Match) -> str:
+        tag, inner = m.group(1), m.group(2)
+        if tag == "h2":
+            c["h2"] += 1
+            c["h3"] = 0
+            num = f"{c['h2']}. "
+        else:
+            c["h3"] += 1
+            num = f"{c['h2']}.{c['h3']} "
+        return f"<{tag}>{num}{inner}</{tag}>"
+
+    return re.sub(r"<(h2|h3)>(.*?)</\1>", repl, html, flags=re.DOTALL)
 
 
 def _grid(blocks: list[str]) -> str:
@@ -568,8 +591,10 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         *_speciation_block(speciation_summary, medium, computed_pkah,
                            pka_freq_corrected),
 
-        # Stage 1b — Fukui -------------------------------------------------
-        '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',
+        # Stage 1 (cont.) — local reactivity (Fukui). Fukui and the ESP map are
+        # facets of Stage 1 (the isolated-molecule QM analysis), so they are h3
+        # subsections here, not separate pipeline stages.
+        "<h3>Local reactivity (Fukui)</h3>",
         _p(_content.STAGE_INTROS["fukui"]),
         "<p>The strongest electron-donating oxygens (highest f⁻) per molecule:</p>",
         fukui_summary,
@@ -577,7 +602,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                for n in df["name"]]),
         _explain("fukui"),
 
-        # Stage 1c — ESP / MEP map ----------------------------------------
+        # Stage 1 (cont.) — electrostatic-potential (ESP) map --------------
         "<h3>Electrostatic-potential (ESP) map</h3>",
         _p(_content.STAGE_INTROS["esp"]),
         _grid([_img_block(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map")
@@ -609,7 +634,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         f'<p class="meta">DFT level: {level}. {_content.METHOD_CAVEAT}</p>',
         "</body></html>",
     ]
-    html = "".join(parts)
+    html = _number_headings("".join(parts))
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
     return out_path
