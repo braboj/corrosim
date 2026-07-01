@@ -52,9 +52,8 @@ docs/
   decisions/           architecture decision records (NNN-slug.md)
   pipeline.md          scientific basis for the multiscale pipeline
   validation.md        computational + experimental validation
-  whitepapers/         source literature (tracked)
   pipeline.drawio      editable source for the pipeline diagram
-  local/               private working notes (*.local.md, gitignored)
+  local/               private notes + source literature (gitignored)
   solid-ai-templates/  quality-convention template submodule
 Dockerfile, docker-compose.yml   the corrosim-qm QM environment
 ```

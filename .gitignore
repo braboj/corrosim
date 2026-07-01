@@ -40,7 +40,6 @@ g16_*/
 .DS_Store
 .idea/
 .vscode/
-docs/whitepapers
 
 # Local-only notes (kept with the project, never pushed)
 *.local.md
