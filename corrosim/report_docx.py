@@ -3,9 +3,15 @@
 Word (.docx) rendering of the multiscale report, built with python-docx (pure
 Python, no system binary). It draws on exactly the same derived data
 (:func:`report.prepare_report_data`), the same governing equations
-(:mod:`equations`, rendered to images so they appear in scientific form without a
-LaTeX/OMML toolchain) and the same narrative (:mod:`report_content`) as the HTML
+(:mod:`equations`) and the same narrative (:mod:`report_content`) as the HTML
 report, so the two outputs stay in lock-step; only the formatting differs.
+
+Equations are inserted as **native, editable Word equations** (OMML): the
+LaTeX source is converted LaTeX -> MathML -> OMML with the pure-Python
+``latex2mathml`` + ``mathml2omml`` packages (no LaTeX/pandoc/Office toolchain),
+so a reader can click and edit them in Word's equation editor. If that toolchain
+is unavailable or a conversion fails, the equation degrades to the rendered
+mathtext image (:mod:`equations`) so the report is never missing a formula.
 
 Entry point: :func:`build_docx_report`, whose signature mirrors
 ``report.build_pipeline_report`` so a driver can build both from one call site.
@@ -19,6 +25,7 @@ import os
 import pandas as pd
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import parse_xml
 from docx.shared import Inches, Pt, RGBColor
 
 from . import equations as _eq
@@ -29,6 +36,27 @@ from .report_layout import figure_path
 _MUTED = RGBColor(0x71, 0x80, 0x96)
 _FIG_WIDTH = Inches(5.7)
 _GRID_WIDTH = Inches(2.9)        # per-molecule figures shown a little smaller
+_OMML_MATH_NS = ('xmlns:m="http://schemas.openxmlformats.org/'
+                 'officeDocument/2006/math"')
+
+
+def _latex_to_omml(latex: str):
+    """Convert a LaTeX expression to an OMML ``<m:oMath>`` element (a native,
+    editable Word equation), or return ``None`` if the pure-Python toolchain is
+    absent or the conversion fails — the caller then falls back to an image.
+    """
+    try:
+        from latex2mathml.converter import convert as latex_to_mathml
+        from mathml2omml import convert as mathml_to_omml
+    except ImportError:
+        return None
+    try:
+        omml = mathml_to_omml(latex_to_mathml(latex))
+        if "xmlns:m=" not in omml:                    # declare m: so parse_xml resolves it
+            omml = omml.replace("<m:oMath>", f"<m:oMath {_OMML_MATH_NS}>", 1)
+        return parse_xml(omml)
+    except Exception:
+        return None
 
 
 class _Doc:
@@ -83,11 +111,18 @@ class _Doc:
     # --- equations ----------------------------------------------------------
     def equation(self, key: str) -> None:
         eq = _eq.EQUATIONS[key]
-        png = io.BytesIO(_eq.render_equation_png(eq.latex))
-        self.doc.add_picture(png)                     # native size (tight-cropped)
-        p = self.doc.add_paragraph()
-        p.add_run(f"{eq.quantity} — ").bold = True
-        run = p.add_run(eq.meaning)
+        omath = _latex_to_omml(eq.latex)
+        if omath is not None:                         # native, editable Word equation
+            p = self.doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p._p.append(omath)
+        else:                                         # fallback: rendered image
+            png = io.BytesIO(_eq.render_equation_png(eq.latex))
+            self.doc.add_picture(png)
+            self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cap = self.doc.add_paragraph()
+        cap.add_run(f"{eq.quantity} — ").bold = True
+        run = cap.add_run(eq.meaning)
         run.font.size = Pt(9)
         run.font.color.rgb = _MUTED
 

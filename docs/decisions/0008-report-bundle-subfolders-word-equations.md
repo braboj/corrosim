@@ -38,12 +38,18 @@ web/MathJax dependency.
    derived data (`report.prepare_report_data`) and the same narrative
    (`report_content.py`), so the two outputs stay in lock-step.
 
-3. **Equations rendered as images via matplotlib mathtext.** `corrosim/equations.py`
-   holds the governing equations (Koopmans descriptors, condensed Fukui,
-   Henderson-Hasselbalch, the DFT pKaH cycle, the Stage-2/3 adsorption
-   observables) and renders each to a PNG with matplotlib's built-in mathtext —
-   no LaTeX, no MathJax. The HTML inlines them base64 (still self-contained); the
-   Word doc adds them as pictures. Both therefore show real typeset formulas.
+3. **Equations in scientific form — images in HTML, native editable objects in
+   Word.** `corrosim/equations.py` holds the governing equations (Koopmans
+   descriptors, condensed Fukui, Henderson-Hasselbalch, the DFT pKaH cycle, the
+   Stage-2/3 adsorption observables) as LaTeX. The **HTML** renders each to a PNG
+   with matplotlib's built-in mathtext (no LaTeX/MathJax) and inlines it base64,
+   so the file stays self-contained. The **Word** report inserts each as a native,
+   editable equation (OMML): the LaTeX is converted LaTeX -> MathML -> OMML with
+   the pure-Python `latex2mathml` + `mathml2omml` packages (added to the `report`
+   extra) and appended to the paragraph via python-docx's XML API — so a reader
+   can click and edit formulas in Word's equation editor. If that toolchain is
+   absent or a conversion fails, the Word equation degrades to the mathtext image,
+   so a formula is never missing. No LaTeX, pandoc or Office toolchain is required.
 
 4. **Standalone explanations + woven scientific basis.** `report_content.py` is
    the single home for each figure's standalone explanation, the per-stage
@@ -54,10 +60,15 @@ web/MathJax dependency.
 
 ## Alternatives considered
 
-- **pandoc from a Markdown source** for the Word output — gives editable OMML
-  equations, but pandoc is a system binary outside the venv and absent in CI;
-  rejected to keep the free-software/venv model (the customer needs equations in
-  scientific form, not necessarily editable Word objects).
+- **pandoc from a Markdown source** for the Word output — also yields editable
+  OMML, but pandoc is a system binary outside the venv and absent in CI, and it
+  would mean rebuilding the whole document from Markdown (discarding the
+  python-docx structure). Rejected once the pure-Python `latex2mathml` +
+  `mathml2omml` chain was shown to produce the same editable OMML with no system
+  binary.
+- **Equations as images in Word too** (the initial choice) — simplest, but the
+  client wanted editable equation objects; superseded by the OMML path above, with
+  the image kept only as a fallback.
 - **MathJax / KaTeX in the HTML** — would break the self-contained guarantee (CDN)
   or bloat the file (inlined JS); matplotlib mathtext reuses a core dependency.
 - **Also nesting `results/`** by stage — deferred: it would rewire every stage
@@ -71,9 +82,11 @@ web/MathJax dependency.
 
 - `report/` is navigable by stage, and ships both a shareable HTML file and a
   Word document with identical data, equations and prose.
-- A new pure-Python dependency (`python-docx`) in the `report`/`dev` extras; the
-  base install and the HTML path are unaffected. If python-docx is absent,
-  `make_report` logs and skips the `.docx`, still writing the HTML.
+- New pure-Python dependencies in the `report`/`dev` extras (`python-docx`, plus
+  `latex2mathml` + `mathml2omml` for the editable equations); the base install
+  and the HTML path are unaffected. If python-docx is absent, `make_report` logs
+  and skips the `.docx`, still writing the HTML; if only the equation toolchain is
+  absent, the `.docx` is written with the equation images instead.
 - `report_layout` is the contract for figure/table placement: a new figure is
   slotted by its `figN_` prefix (or added to the map), and both renderers pick it
   up automatically.

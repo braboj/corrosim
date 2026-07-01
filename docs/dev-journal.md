@@ -124,8 +124,11 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   figure generator and the report builders resolve paths through. Added a Word
   (`.docx`) report (`report_docx.py`, python-docx) written alongside the HTML by
   `make_report`; both renderers share the derived data (`prepare_report_data`),
-  the governing equations (`equations.py`, rendered via matplotlib mathtext — no
-  LaTeX/MathJax) and the narrative (`report_content.py`). Every figure now carries
+  the governing equations (`equations.py`) and the narrative (`report_content.py`).
+  Equations appear in scientific form in both: matplotlib-mathtext images in the
+  HTML, and **native, editable Word equations (OMML)** in the `.docx` via the
+  pure-Python `latex2mathml` + `mathml2omml` chain (image fallback if absent) —
+  no LaTeX/pandoc/Office toolchain. Every figure now carries
   a standalone explanation, and a new "Scientific basis & validation" section
   folds in `pipeline.md` (three-stage rationale, descriptor definitions) and
   `validation.md` (descriptor results, computed-pKaH resolution, published Fe(110)
@@ -137,10 +140,12 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   Pending line).
 - **PRs merged:** none yet — branch `feat/report-word-subfolders`.
 - **Issues closed/created:** —.
-- **Decisions:** report-bundle subfolders + Word output + rendered equations
-  (ADR 0008); python-docx added as a `report` extra (in `dev`), reconciled with
-  the venv/CI free-software model (no system binary).
-- **Verification:** `ruff check .` and `mypy` clean; `pytest` 76 passed / 1
-  skipped; scoped coverage 87.72% (gate 80%); the four new modules at 100%.
+- **Decisions:** report-bundle subfolders + Word output + equations in scientific
+  form — HTML mathtext images, Word native editable OMML (ADR 0008); `report`
+  extra (python-docx + latex2mathml + mathml2omml, also in `dev`), all pure-Python
+  — reconciled with the venv/CI free-software model (no pandoc/Office/system binary).
+- **Verification:** `ruff check .` and `mypy` clean; `pytest` 78 passed / 1
+  skipped; scoped coverage 87.64% (gate 80%); regenerated `.docx` carries 19
+  native (editable) equations + 27 figures.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

@@ -11,9 +11,15 @@ import pytest
 
 pytest.importorskip("docx")            # python-docx is the `report`/`dev` extra
 from docx import Document
+from docx.oxml.ns import qn
 
-from corrosim import report, report_docx
+from corrosim import equations, report, report_docx
 from corrosim.speciation import analyse_speciation, protonation_fraction
+
+
+def _native_equation_count(doc) -> int:
+    """Number of native (editable) OMML equations in the document body."""
+    return sum(len(p._p.findall(qn("m:oMath"))) for p in doc.paragraphs)
 
 
 def _row(name, gap, hardness):
@@ -66,8 +72,8 @@ def test_build_docx_report_is_valid_and_mirrors_content(tmp_path):
     assert "Speciation in 1 M HCl" in text
     assert "99.62" in text               # experimental anchor (Mohammed 2014)
     assert "-16.0" in text               # Stage-2 adsorption merged in
-    # equations render as inline images
-    assert len(doc.inline_shapes) > 10
+    # equations are native, editable Word equations (OMML), not images
+    assert _native_equation_count(doc) > 10
 
 
 def test_build_docx_report_without_optional_sections(tmp_path):
@@ -78,3 +84,22 @@ def test_build_docx_report_without_optional_sections(tmp_path):
                                   out_path=str(out), order=["quercetin"])
     doc = Document(str(out))
     assert "quercetin" in _all_text(doc)
+
+
+def test_latex_to_omml_converts_every_equation():
+    pytest.importorskip("latex2mathml")
+    pytest.importorskip("mathml2omml")
+    for key, eq in equations.EQUATIONS.items():
+        el = report_docx._latex_to_omml(eq.latex)
+        assert el is not None, f"{key} failed to convert to OMML"
+        assert el.tag.endswith("}oMath")
+
+
+def test_equation_falls_back_to_image_without_toolchain(tmp_path, monkeypatch):
+    # if the LaTeX->OMML toolchain is unavailable, the equation degrades to the
+    # rendered image rather than vanishing.
+    monkeypatch.setattr(report_docx, "_latex_to_omml", lambda _latex: None)
+    d = report_docx._Doc()
+    d.equation("delta_n")
+    assert len(d.doc.inline_shapes) == 1                 # image fallback present
+    assert _native_equation_count(d.doc) == 0
