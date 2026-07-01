@@ -128,7 +128,8 @@ cubes/           volumetric .cube files — regenerable, gitignored
 report.html      self-contained pipeline report (make_report)
 examples/        sample batch CSV
 tests/           pytest suite (no DFT — fast)
-docs/            pipeline.md, validation.md, adr/ (decision records)
+docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,
+                 dev-journal.md, decisions/ (ADRs)
 Dockerfile,      the corrosim-qm QM environment (PySCF + tblite)
 docker-compose.yml
 ```
@@ -141,7 +142,7 @@ pytest
 ```
 
 Tests are deliberately QM-light (descriptor math, parsers, CSV reader, slab/UFF,
-one xTB smoke test) so CI stays fast. See `docs/adr/` for design decisions — e.g.
+one xTB smoke test) so CI stays fast. See `docs/decisions/` for design decisions — e.g.
 why cluster-xTB was rejected for the adsorption energy.
 
 ## Limitations & roadmap
