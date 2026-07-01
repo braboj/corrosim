@@ -99,6 +99,57 @@ cheap proxy, and the production numbers tighten with the relaxed geometry (figur
 (Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `results/mc_adsorption.json`,
 `results/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
+## Experimental validation (Mohammed 2014)
+
+The one direct experiment on *this exact system* — Arghel extract on mild steel in
+1 M HCl — is the MSc thesis of E. M. Mohammed (*Corrosion Inhibition of Steel in
+Acidic Medium by Herbs Extract*, Materials Science Dept., Institute of Graduate
+Studies & Research, Alexandria University, 2014); it is also the source of the
+substrate composition table above. A methanolic Arghel extract (25–150 ppm) was
+tested at 27 °C by potentiodynamic polarization (PDP) and electrochemical impedance
+spectroscopy (EIS) on a Gamry G750, with SEM/optical surface analysis.
+
+| C_inh (ppm) | I_corr (µA/cm2) | -E_corr (mV) | IE % (PDP) | R_ct (ohm cm2) | IE % (EIS) |
+|---|---|---|---|---|---|
+| blank | 447.0 | 496 | — | 11.78 | — |
+| 25 | 14.7 | 484 | 96.71 | 126.4 | 90.68 |
+| 50 | 10.67 | 480 | 97.6 | 135.6 | 91.31 |
+| 75 | 1.99 | 472 | 99.55 | 142.7 | 91.74 |
+| 125 | 1.90 | 470 | 99.57 | 198.1 | 94.05 |
+| 150 | 1.66 | 470 | **99.62** | 258.3 | 95.43 |
+
+Adsorption thermodynamics (from the EIS surface coverage θ): the data fit a
+**Langmuir** isotherm (also Flory–Huggins and a kinetic-thermodynamic model), with
+**ΔG°_ads ≈ −32.5 to −34.5 kJ/mol** (kinetic-thermo K = 456 L/g; Flory K = 398 L/g).
+The small anodic E_corr shift (+26 mV) marks a **mixed-type** inhibitor, and the
+thesis concludes **physical adsorption**.
+
+**What this confirms.** The model and the experiment agree on three points:
+
+- **Medium and substrate** — 1 M HCl on mild steel — match the corrosim model exactly.
+- **Mechanism** — physisorption with a Langmuir isotherm — is exactly what corrosim
+  predicts independently (Stage-2 MC E_ads ≈ −16 kJ/mol; Stage-3 Fe–O RDF at
+  ~3.5 Å, the physisorption range).
+- **Efficacy** — the extract is a genuinely strong inhibitor (up to 99.62 %),
+  supporting Arghel flavonoids as effective mild-steel inhibitors in acid.
+
+**What it does not settle.** The study uses a bulk methanolic extract with **no
+LC-MS/GC-MS**, so it validates the *extract*, not the individual flavonoids — it
+neither confirms nor refutes the quercetin > isorhamnetin > kaempferol ranking.
+That per-molecule claim still needs LC-MS plus isolated-compound electrochemistry.
+
+**On comparing ΔG°_ads with the MC E_ads.** The experimental ΔG°_ads
+(−32.5/−34.5 kJ/mol) and the corrosim MC E_ads (−16 kJ/mol) are **different
+observables and must not be equated**: the MC value is a single-molecule van der
+Waals interaction energy on Fe(110) in vacuum, whereas ΔG°_ads is a standard
+adsorption *free* energy fitted from an isotherm for the *whole extract*, carrying
+entropic, solvent-displacement and coverage terms. They agree on regime
+(physisorption/borderline) and order of magnitude, not on a number — the
+experimental value sits at the upper edge of the physisorption window (|ΔG| ≳
+32 kJ/mol borders the mixed physi-/chemisorption zone), consistent with the
+residual charge-transfer contribution that corrosim's classical vdW level omits
+(the Stage-3 EAM+GAFF/periodic-DFT hand-off would add it).
+
 ## Reading
 
 - **Ranking validated.** The black tea study independently ran DFT on Fe(110) and
@@ -124,5 +175,13 @@ cheap proxy, and the production numbers tighten with the relaxed geometry (figur
 > agreement with an independent published DFT study of black-tea polyphenols on
 > Fe(110).
 
-Simulations rank and explain; they do not prove efficiency — that requires the
-electrochemical experiments (EIS, potentiodynamic polarization, weight loss).
+Simulations rank and explain; they do not by themselves prove efficiency. For the
+Arghel *extract* that proof now exists — the Mohammed (2014) PDP/EIS study above
+confirms strong physisorptive inhibition of mild steel in 1 M HCl (IE up to
+99.62 %). The per-*molecule* attribution — which flavonoid actually leads — is a
+computational **prediction**, not an experimental result. Testing it directly would
+need sample-specific LC-MS plus isolated-compound electrochemistry; both are
+**out of scope for this study (no laboratory access)**. The constituents are
+therefore treated as documented-representative (El-Shiekh et al. 2024, and the
+Fe(110) black-tea / lady's-mantle DFT precedents above), and the ranking is offered
+as a screening hypothesis rather than a measured result.

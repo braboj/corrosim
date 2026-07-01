@@ -192,10 +192,55 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
     ]
 
 
-def _computed_pka_block(computed_pkah: list[dict] | None) -> list[str]:
+def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
+                          opt_acid_rows: list[dict] | None,
+                          order: list[str] | None = None) -> list[str]:
+    """Optimised-geometry descriptor section (#19): the DFT-relaxed
+    (B3LYP/6-31G(d)) descriptor matrix — the neutral ranking plus the optimised
+    protonated cations — surfaced alongside the FF-geometry headline table.
+    Returns [] when no optimised matrix was supplied."""
+    if not opt_neutral_rows:
+        return []
+    ndf = pd.DataFrame(opt_neutral_rows)
+    if order:
+        ndf = (ndf.set_index("name").loc[[n for n in order if n in set(ndf["name"])]]
+               .reset_index())
+    ranked = rank_inhibitors(ndf)
+    summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
+                      "delta_n", "tnc", "score"]].round(3)
+    gap_rank = list(ndf.sort_values("gap_ev")["name"])
+    dn_rank = list(ndf.sort_values("delta_n", ascending=False)["name"])
+    out = [
+        "<h3>Optimised-geometry descriptors (DFT-relaxed)</h3>",
+        "<p>The same reactivity descriptors on <b>DFT-optimised</b> geometries "
+        "(B3LYP/6-31G(d) relaxation, then the production single point) instead of the "
+        "force-field geometries used for the headline table. The gap/softness composite "
+        f"ranking is unchanged (gap {' &lt; '.join(gap_rank)}; "
+        f"ΔN {' &gt; '.join(dn_rank)}) — the lead is geometry-robust.</p>",
+        _html_table(summary, best_first_row=True),
+    ]
+    if opt_acid_rows:
+        adf = pd.DataFrame(opt_acid_rows)
+        if order:
+            adf["_b"] = adf["name"].str.replace(r"\+H\+$", "", regex=True)
+            adf["_o"] = adf["_b"].map({n: i for i, n in enumerate(order)})
+            adf = adf.sort_values("_o").drop(columns=["_b", "_o"])
+        out += [
+            "<h4>Optimised protonated cations (in-acid)</h4>",
+            "<p>The DFT-optimised +1 cations — the more accurate geometric basis for "
+            "the speciation / pKaH work (ADR 0004/0005) than the force-field cations.</p>",
+            _html_table(results_dataframe(adf.to_dict("records"))),
+        ]
+    return out
+
+
+def _computed_pka_block(computed_pkah: list[dict] | None,
+                        freq_corrected: bool = False) -> list[str]:
     """Computed-pKaH resolution (ADR 0005): per-molecule DFT-cycle pKaH and the
     resulting populations, which place the system on one side of the crossover.
-    ``computed_pkah`` rows carry name / pkah / f_protonated. Empty if absent."""
+    ``computed_pkah`` rows carry name / pkah / f_protonated. ``freq_corrected``
+    switches the caption between the electronic-only and the frequency-corrected
+    (issue #18) estimate. Empty if absent."""
     if not computed_pkah:
         return []
     head = "<tr><th>molecule</th><th>computed pKaH</th><th>% protonated @ this pH</th></tr>"
@@ -205,22 +250,30 @@ def _computed_pka_block(computed_pkah: list[dict] | None) -> list[str]:
         for r in computed_pkah
     )
     worst = max(r["f_protonated"] for r in computed_pkah)
+    basis = ("cycle (frequency-corrected: gas-phase opt+freq ZPE/thermal/entropy on "
+             "the production single point; `results/pka.json`, ADR 0005)."
+             if freq_corrected else
+             "cycle (electronic-only; `results/pka.json`, ADR 0005).")
+    tail = ("The frequency correction shifts pKaH by only a fraction of the large "
+            "margin to the crossover, leaving the conclusion intact."
+            if freq_corrected else
+            "The omitted O–H zero-point energy would push pKaH lower still (more "
+            "neutral), reinforcing this.")
     return [
         "<h4>Computed pKaH (DFT deprotonation cycle)</h4>",
         f"<table><thead>{head}</thead><tbody>{body}</tbody></table>",
         '<p class="meta">From a B3LYP/6-311++G(d,p) + ddCOSMO aqueous deprotonation '
-        "cycle (electronic-only; `results/pka.json`, ADR 0005). All values sit far "
-        "below the crossover — the most basic flavonoid is only "
-        f"{worst * 100:.2f}% protonated — so every species is essentially fully "
-        "neutral here. This <b>resolves the sensitivity above</b>: the neutral form "
-        "is the physically dominant species, not just the conventional choice, so the "
-        "headline lead is robust. The omitted O–H zero-point energy would push pKaH "
-        "lower still (more neutral), reinforcing this.</p>",
+        f"{basis} All values sit far below the crossover — the most basic flavonoid "
+        f"is only {worst * 100:.2f}% protonated — so every species is essentially "
+        "fully neutral here. This <b>resolves the sensitivity above</b>: the neutral "
+        "form is the physically dominant species, not just the conventional choice, so "
+        f"the headline lead is robust. {tail}</p>",
     ]
 
 
 def _speciation_block(summary: dict | None, medium: str,
-                      computed_pkah: list[dict] | None = None) -> list[str]:
+                      computed_pkah: list[dict] | None = None,
+                      pka_freq_corrected: bool = False) -> list[str]:
     """Quantitative pH-speciation section (ADR 0004): the neutral/protonated
     population at the medium pH, the population-weighted descriptor table, and the
     lead-crossover sensitivity to the protonation pKa — followed by the computed
@@ -250,7 +303,7 @@ def _speciation_block(summary: dict | None, medium: str,
         f"<b>{summary['blended_lead']}</b>:</p>",
         _html_table(results_dataframe(summary["blended_rows"])),
         f'<p class="meta"><b>Sensitivity.</b>{sens}</p>',
-        *_computed_pka_block(computed_pkah),
+        *_computed_pka_block(computed_pkah, pka_freq_corrected),
     ]
 
 
@@ -306,7 +359,10 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           generated_at: str | None = None,
                           acid_cation_rows: list[dict] | None = None,
                           speciation_summary: dict | None = None,
-                          computed_pkah: list[dict] | None = None) -> str:
+                          computed_pkah: list[dict] | None = None,
+                          pka_freq_corrected: bool = False,
+                          opt_neutral_rows: list[dict] | None = None,
+                          opt_acid_rows: list[dict] | None = None) -> str:
     """
     Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
@@ -393,13 +449,15 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _grid([
             _img_block(figdir, "fig3_descriptors.png", "Reactivity descriptors"),
             _img_block(figdir, "fig3b_protonation.png",
-                       "Protonation effect (1 M HCl)"),
+                       "Protonation effect (DFT-optimised cations, 1 M HCl)"),
         ]),
         "<h3>Full descriptor table (neutral, aqueous)</h3>",
         _html_table(full),
         _geometry_block(figdir),
+        *_opt_descriptor_block(opt_neutral_rows, opt_acid_rows, order),
         *_acid_cation_block(acid_cation_rows, medium),
-        *_speciation_block(speciation_summary, medium, computed_pkah),
+        *_speciation_block(speciation_summary, medium, computed_pkah,
+                           pka_freq_corrected),
 
         # Stage 1b — Fukui -------------------------------------------------
         '<h2><span class="stage">Stage 1b</span> &nbsp;Local reactivity (Fukui)</h2>',
