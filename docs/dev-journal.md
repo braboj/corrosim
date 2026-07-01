@@ -66,4 +66,25 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   deliberately for this repo (it vendors the templates, and reference-reads
   proved unreliable in practice).
 
+## 2026-07-01 — Template conformance, docs de-clutter, report/ bundle
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes:** Rewrote `CLAUDE.md` strictly to the solid-ai-templates hybrid
+  model and migrated `docs/adr/` → `docs/decisions/`; added the mandated
+  companion docs (ONBOARDING, PLAYBOOK, dev-journal). Restructured `README.md`
+  to the readme.md eight-section layout (capability/Features list, Quick start,
+  Usage-with-output, Configuration reference, Links) and consolidated the
+  redundant README Pipeline section into `docs/pipeline.md`. De-cluttered
+  `docs/`: the seven `*.local.md` notes and the `whitepapers/` PDFs moved under
+  a gitignored `docs/local/`. Consolidated pipeline outputs into a tracked
+  `report/` bundle (`report.html` + `figures/` + `tables/`); stage drivers no
+  longer write preview PNGs, so `results/` is now data-only.
+- **PRs merged:** none yet — all on branch `docs/claude-md-hybrid` (PR #29, open).
+- **Issues closed/created:** filed #23–#31; PR #29 closes #23–#28 and #30 on
+  merge. #18 (freq-corrected pKaH) and #31 (python-lib stack deviations) remain
+  open.
+- **Decisions:** report/ output bundle + results/ data-only (ADR 0006).
+- **Pending:** #18 QM job (`corrosim_pka_freq`) still running (~4 h) — no
+  `results/pka_freq.json` yet; finalisation blocked on it. PR #29 awaiting merge.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
