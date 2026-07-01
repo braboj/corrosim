@@ -35,8 +35,10 @@ HTML report: every number, chart, and 3D picture bundled into one shareable file
 
 ![corrosim pipeline](../figures/fig0_pipeline.png)
 
-*Source: [`pipeline.drawio`](pipeline.drawio). The bottom of this page maps each
-stage to the code.*
+*Source: [`pipeline.drawio`](pipeline.drawio) — edit in
+[diagrams.net](https://app.diagrams.net), re-export with
+`drawio -x -f png -s 2 -o figures/fig0_pipeline.png docs/pipeline.drawio`. The
+bottom of this page maps each stage to the code.*
 
 ## The big idea: three stages, zooming in
 

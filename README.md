@@ -3,18 +3,21 @@
 *Density-functional-theory reactivity, adsorption dynamics, and a shareable
 report for green corrosion inhibitors — on free software, end to end.*
 
-Screening a candidate corrosion inhibitor means predicting how a molecule binds
-to a metal surface — a job usually split across separate quantum-chemistry,
-adsorption, and plotting tools, most of them commercial. corrosim runs the whole
-screen as one pipeline: give it a molecule (by name or SMILES, the Simplified
-Molecular-Input Line-Entry System) and a metal, and it returns reactivity
-descriptors, an adsorption estimate, a ranking, and a self-contained report. It
-is built around the **Arghel (*Solenostemma argel*) flavonoids** (kaempferol,
-quercetin, isorhamnetin) on mild steel in 1 M HCl, but accepts any molecule and
-any supported substrate.
+corrosim screens green corrosion inhibitors end to end: from a molecule and a
+metal, it computes reactivity descriptors, estimates adsorption, ranks
+candidates, and emits a self-contained report — all on free, open-source
+software. It is built around the **Arghel (*Solenostemma argel*) flavonoids** on
+mild steel in 1 M HCl, but accepts any molecule and supported substrate.
 
-- Screen any molecule (name or SMILES) against a metal surface and rank a
-  candidate set best-first with a transparent score
+![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+
+## Features
+
+- Screen any molecule — by name or SMILES (Simplified Molecular-Input Line-Entry
+  System) — against a metal surface, and rank a candidate set best-first with a
+  transparent score
 - Compute global reactivity descriptors — HOMO–LUMO gap, chemical
   hardness/softness, and the Lukovits electron-transfer ΔN — with xTB (extended
   tight-binding) or DFT (density-functional theory)
@@ -26,33 +29,8 @@ any supported substrate.
 - Emit one self-contained HTML report with every figure embedded
 - Run end to end on free, open-source engines (xTB, PySCF)
 
-![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
-
-## Pipeline
-
-A full open-source multiscale screen: electronic structure → adsorption pose →
-dynamics → report.
-
-![corrosim pipeline](figures/fig0_pipeline.png)
-
-*Diagram source: [`docs/pipeline.drawio`](docs/pipeline.drawio) — edit in
-[diagrams.net](https://app.diagrams.net), re-export with
-`drawio -x -f png -s 2 -o figures/fig0_pipeline.png docs/pipeline.drawio`.*
-
-| Stage | What | Tool | Status |
-| --- | --- | --- | --- |
-| 1 | Global reactivity descriptors | tblite (xTB), PySCF, ORCA/Gaussian | ✅ |
-| 1 | DFT geometry optimisation | PySCF + geomeTRIC | ✅ (`run_dft --optimize`) |
-| 1b | Local reactivity — Fukui / dual descriptor | PySCF | ✅ |
-| 1c | ESP / MEP map | PySCF cubegen + skimage | ✅ |
-| 2 | Monte Carlo adsorption pose search | UFF van der Waals (built-in) | ✅ |
-| 3 | Brownian MD → Fe–O RDF / adsorption distance | built-in | ✅ (physisorption proxy) |
-| 3+ | Quantitative chemisorption E_ads | LAMMPS (EAM+GAFF) or periodic DFT | 🔌 hand-off (runs outside) |
-
-The scientific basis — methodology, descriptor equations, engine choices, and
-how each stage maps to the code — is in the linked docs (see [Links](#links)).
+The multiscale pipeline — how each stage works, the diagram, and the science
+behind it — is documented in [`docs/pipeline.md`](docs/pipeline.md).
 
 ## Quick start
 
