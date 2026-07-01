@@ -1,6 +1,5 @@
-"""
-corrosim.runs.run_dft  (M1 driver)
-==================================
+"""corrosim.runs.run_dft  (M1 driver).
+
 Production DFT descriptor matrix for the Arghel flavonoids — the foundation for
 the article (see docs/local/article-plan.local.md, milestone M1).
 

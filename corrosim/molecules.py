@@ -1,6 +1,5 @@
-"""
-corrosim.molecules
--------------------
+"""corrosim.molecules.
+
 Turn an inhibitor (a built-in name or any SMILES string) into a 3D geometry
 ready for a quantum-chemistry engine. No network required: structures are
 generated from SMILES by RDKit.
@@ -109,8 +108,7 @@ def _embed_and_relax(mol, name: str, charge: int, seed: int, ff: str) -> Molecul
 
 def build_molecule(name_or_smiles: str, seed: int = 42,
                    ff: str = "MMFF") -> Molecule:
-    """
-    Build a 3D-embedded, force-field-relaxed molecule from a name or SMILES.
+    """Build a 3D-embedded, force-field-relaxed molecule from a name or SMILES.
 
     ff: 'MMFF' or 'UFF' (geometry pre-optimisation before any QM step).
     """
@@ -124,7 +122,8 @@ def build_molecule(name_or_smiles: str, seed: int = 42,
 def enumerate_protonation_sites(name_or_smiles: str) -> list[int]:
     """Heavy-atom indices of candidate protonation sites (neutral O / N lone-pair
     bearers) in the canonical (no-H) structure. Indices are stable under AddHs,
-    so they can be passed straight to ``build_protonated``."""
+    so they can be passed straight to ``build_protonated``.
+    """
     _, smiles = resolve_smiles(name_or_smiles)
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
@@ -135,8 +134,7 @@ def enumerate_protonation_sites(name_or_smiles: str) -> list[int]:
 
 def build_protonated(name_or_smiles: str, site_idx: int, seed: int = 42,
                      ff: str = "MMFF") -> Molecule:
-    """
-    Protonate a neutral O/N site (add H+), returning a +1 cation Molecule — the
+    """Protonate a neutral O/N site (add H+), returning a +1 cation Molecule — the
     species relevant in acidic media (1 M HCl). Pick ``site_idx`` from
     ``enumerate_protonation_sites``; the DFT driver selects the lowest-energy site.
     """

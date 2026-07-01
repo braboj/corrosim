@@ -1,6 +1,5 @@
-"""
-corrosim.speciation
---------------------
+"""corrosim.speciation.
+
 Quantitative acid–base speciation (issue #8 follow-up; ADR 0004): turn the medium
 pH into the *population* of the neutral vs protonated inhibitor and blend their
 descriptors by that population, so a ranking can reflect the actual species mix
@@ -39,13 +38,15 @@ _BLEND_FIELDS = (
 
 def protonation_fraction(ph: float, pkah: float = FLAVONOID_CARBONYL_PKAH) -> float:
     """Protonated (cationic) fraction at this pH, from Henderson–Hasselbalch:
-    ``f_prot = 1 / (1 + 10**(pH − pKaH))``."""
+    ``f_prot = 1 / (1 + 10**(pH − pKaH))``.
+    """
     return 1.0 / (1.0 + 10.0 ** (ph - pkah))
 
 
 def pkah_for_fraction(ph: float, f_prot: float) -> float:
     """Inverse of :func:`protonation_fraction`: the pKaH that gives ``f_prot`` at
-    ``ph``. Useful for expressing a population crossover as a pKaH."""
+    ``ph``. Useful for expressing a population crossover as a pKaH.
+    """
     f_prot = min(max(f_prot, 1e-9), 1 - 1e-9)
     return ph + math.log10(f_prot / (1.0 - f_prot))
 

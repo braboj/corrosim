@@ -87,4 +87,24 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
 - **Pending:** #18 QM job (`corrosim_pka_freq`) still running (~4 h) — no
   `results/pka_freq.json` yet; finalisation blocked on it. PR #29 awaiting merge.
 
+## 2026-07-01 — Reconcile the four silent python-lib gate deviations (#31)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes:** Adopted all four previously-silent quality gates. (1) ruff
+  `D` with `convention = "google"` — cleaned the 26 reST-heading module
+  docstrings to Google style and relaxed `D205` for the long scientific summary
+  lines. (2) Scoped coverage gate: `[tool.coverage.run] omit` drops the
+  QM-engine/Docker-only modules and `fail_under = 80` enforces the threshold on
+  the QM-light-testable surface; added `tests/test_pipeline_drivers.py` (five
+  venv-only driver smoke tests) which lifts scoped coverage 48% → ~85%.
+  (3) gitleaks CI job alongside the existing pre-commit hook. (4) Bandit CI job
+  (`[tool.bandit]`; the two `engines.py` QM-binary `subprocess` launches
+  reviewed and `# nosec`-ed) plus a CodeQL SAST workflow.
+- **PRs merged:** none yet — branch `feat/quality-gates-31`.
+- **Issues closed/created:** resolves #31 on merge.
+- **Decisions:** reconcile the python-lib gates with QM-light by scoping
+  coverage and relaxing `D205` (ADR 0007).
+- **Verification:** `ruff check .`, `mypy`, `bandit -r corrosim` clean;
+  `pytest` 66 passed / 1 skipped; scoped coverage ~85% (gate 80%).
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

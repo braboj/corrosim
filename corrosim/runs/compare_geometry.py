@@ -1,6 +1,5 @@
-"""
-corrosim.runs.compare_geometry  (M1 refinement — validation)
-============================================================
+"""corrosim.runs.compare_geometry  (M1 refinement — validation).
+
 Quantify how the DFT geometry optimisation (run_dft --optimize) changes the
 descriptors relative to the force-field geometry, and check that the inhibitor
 ranking is preserved. Reads the two descriptor matrices, writes a tidy comparison
@@ -32,7 +31,8 @@ KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]
 def _select(df, order, form, phase):
     """Rows for ``form``/``phase`` indexed by the BASE molecule name (strips the
     ``+H+`` protonation suffix), in ``order``. Works for both neutral and
-    protonated rows."""
+    protonated rows.
+    """
     sub = df[(df.form == form) & (df.phase == phase)].copy()
     sub["_base"] = sub["name"].str.replace(r"\+H\+$", "", regex=True)
     present = [n for n in order if n in set(sub["_base"])]
@@ -42,7 +42,8 @@ def _select(df, order, form, phase):
 def _compare_form(ff_full, opt_full, form, phase):
     """Build the FF-vs-opt delta table and gap/ΔN ranking check for one ``form``.
     Returns (comp_rows, order, ranking_summary_str) or (None, [], msg) if the form
-    is absent from either matrix."""
+    is absent from either matrix.
+    """
     f = _select(ff_full, ORDER, form, phase)
     o = _select(opt_full, ORDER, form, phase)
     order = [n for n in ORDER if n in f.index and n in o.index]

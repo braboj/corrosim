@@ -1,6 +1,5 @@
-"""
-corrosim.md
------------
+"""corrosim.md.
+
 Stage-3 (light) molecular dynamics: rigid-body Brownian / overdamped-Langevin
 dynamics of the inhibitor over the metal slab under the UFF van-der-Waals field, at
 298 K. Yields the template's MD outputs on an open-source classical-vdW level:
@@ -40,7 +39,8 @@ RDF_PEAK_WINDOW_A = (1.5, 4.0)
 class MDResult:
     """Brownian-MD outputs: the metal–O/N RDFs and their first-peak adsorption
     distances (Å), the thermal-mean interaction energy (eV/kJ·mol⁻¹), and the
-    final pose."""
+    final pose.
+    """
     metal: str
     surface: str
     temperature: float
@@ -58,7 +58,7 @@ class MDResult:
 
     @property
     def combined(self):
-        """slab + molecule (final pose) as an ASE Atoms — for plot_adsorption_pose."""
+        """Slab + molecule (final pose) as an ASE Atoms — for plot_adsorption_pose."""
         from ase import Atoms
         mol = Atoms(symbols=self.mol_symbols, positions=self.final_positions)
         c = self.slab + mol
@@ -107,7 +107,8 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     diffusion (A^2 / rad^2 per step). The molecule's nearest atom is confined to
     [min_height, max_height] above the surface so the run samples the *adsorbed
     state* (vdW physisorption is weak vs kT at 298 K, so an unconfined molecule
-    thermally desorbs). Records the metal-X RDF after `equil` steps."""
+    thermally desorbs). Records the metal-X RDF after `equil` steps.
+    """
     missing = set(molecule.symbols) - set(UFF)
     if missing:
         raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")

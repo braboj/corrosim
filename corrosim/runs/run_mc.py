@@ -1,6 +1,5 @@
-"""
-corrosim.runs.run_mc  (M3 driver)
-=================================
+"""corrosim.runs.run_mc  (M3 driver).
+
 Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on the
 metal slab — Stage-2. Writes a summary JSON to results/; figures are rendered
 separately by make_figures. Pure classical (numpy + ASE); runs anywhere, no QM.

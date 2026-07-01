@@ -1,6 +1,5 @@
-"""
-corrosim.report
-----------------
+"""corrosim.report.
+
 Turn the per-molecule results into outputs: a tidy table, comparison plots, a
 ranking, and a self-contained HTML report.
 """
@@ -30,8 +29,7 @@ def results_dataframe(rows: list[dict]) -> pd.DataFrame:
 
 
 def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Simple composite ranking: stronger inhibition is associated with a smaller
+    """Simple composite ranking: stronger inhibition is associated with a smaller
     gap, lower hardness, and higher softness. We z-score those and combine.
     Returns df sorted best-first with a 'score' column (higher = better).
     """
@@ -105,7 +103,8 @@ def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                       out_path: str, generated_at: str | None = None) -> str:
     """Write a self-contained Stage-1 HTML report (ranking, table, plots). Returns its
     path. ``generated_at`` overrides the timestamp (pass a fixed string for a
-    reproducible, churn-free build)."""
+    reproducible, churn-free build).
+    """
     ranked = rank_inhibitors(df)
     html = _HTML.format(
         style=_REPORT_CSS,
@@ -158,7 +157,8 @@ def _grid(blocks: list[str]) -> str:
 def _geometry_block(figdir: str) -> str:
     """Geometry-refinement subsection — only emitted when the FF-vs-DFT-opt
     comparison figure (fig8) is present, so a report built without the optimised
-    matrix simply omits it."""
+    matrix simply omits it.
+    """
     if not os.path.exists(os.path.join(figdir, "fig8_geometry_comparison.png")):
         return ""
     return ("<h3>Geometry refinement (FF vs DFT-optimised)</h3>"
@@ -173,7 +173,8 @@ def _geometry_block(figdir: str) -> str:
 def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list[str]:
     """In-acid comparison section (ADR 0003): the protonated-cation descriptors,
     shown alongside the neutral headline ranking rather than replacing it. Returns
-    an empty list when there are no cation rows (non-acidic medium)."""
+    an empty list when there are no cation rows (non-acidic medium).
+    """
     if not acid_cation_rows:
         return []
     return [
@@ -198,7 +199,8 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
     """Optimised-geometry descriptor section (#19): the DFT-relaxed
     (B3LYP/6-31G(d)) descriptor matrix — the neutral ranking plus the optimised
     protonated cations — surfaced alongside the FF-geometry headline table.
-    Returns [] when no optimised matrix was supplied."""
+    Returns [] when no optimised matrix was supplied.
+    """
     if not opt_neutral_rows:
         return []
     ndf = pd.DataFrame(opt_neutral_rows)
@@ -240,7 +242,8 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
     resulting populations, which place the system on one side of the crossover.
     ``computed_pkah`` rows carry name / pkah / f_protonated. ``freq_corrected``
     switches the caption between the electronic-only and the frequency-corrected
-    (issue #18) estimate. Empty if absent."""
+    (issue #18) estimate. Empty if absent.
+    """
     if not computed_pkah:
         return []
     head = "<tr><th>molecule</th><th>computed pKaH</th><th>% protonated @ this pH</th></tr>"
@@ -278,7 +281,8 @@ def _speciation_block(summary: dict | None, medium: str,
     population at the medium pH, the population-weighted descriptor table, and the
     lead-crossover sensitivity to the protonation pKa — followed by the computed
     pKaH that resolves it (ADR 0005). Empty when no summary is supplied (non-acidic
-    medium or unknown pH)."""
+    medium or unknown pH).
+    """
     if not summary:
         return []
     spec = summary["speciation"]
@@ -309,10 +313,12 @@ def _speciation_block(summary: dict | None, medium: str,
 
 def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
                                n: int = 3) -> list[dict]:
-    """Atoms of a given element most susceptible to electrophilic attack (highest
-    f⁻) — the electron-donating sites that coordinate the metal. Defaults to
-    oxygens. (Distinct from FukuiResult.top_donor_sites, which ranks all non-H
-    atoms; this one filters by element.)"""
+    """Atoms of a given element most susceptible to electrophilic attack (highest f⁻).
+
+    The electron-donating sites that coordinate the metal; defaults to oxygens.
+    (Distinct from FukuiResult.top_donor_sites, which ranks all non-H atoms;
+    this one filters by element.)
+    """
     sel = [r for r in fukui_rows if r.get("symbol") == element]
     sel.sort(key=lambda r: r.get("f_minus", 0.0), reverse=True)
     return sel[:n]
@@ -363,8 +369,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           pka_freq_corrected: bool = False,
                           opt_neutral_rows: list[dict] | None = None,
                           opt_acid_rows: list[dict] | None = None) -> str:
-    """
-    Assemble one self-contained HTML report spanning the whole multiscale
+    """Assemble one self-contained HTML report spanning the whole multiscale
     pipeline. Tables are built from the committed result data; figures are
     embedded inline (base64) from ``figdir`` so the file stands alone.
 

@@ -1,6 +1,5 @@
-"""
-corrosim.runs.run_pka
-=====================
+"""corrosim.runs.run_pka.
+
 Estimate each inhibitor's conjugate-acid pKa (pKaH) from a DFT thermodynamic cycle
 on the aqueous neutral and protonated total energies — the quantity the speciation
 layer (ADR 0004) leaves as a free parameter. Runs in the QM container (PySCF).
@@ -44,7 +43,8 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
     Gibbs correction G_corr = ZPE + H_thermal − T·S, and the production aqueous
     single point runs on the relaxed geometry — so the row carries a
     frequency-corrected pKaH alongside the electronic-only one. Returns a row per
-    molecule."""
+    molecule.
+    """
     rows = []
     for name in molecules:
         print(f"[{name}]", file=sys.stderr)

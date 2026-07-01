@@ -53,6 +53,28 @@ include = ["corrosim*"]
 testpaths = ["tests"]
 addopts = "-q"
 
+[tool.coverage.run]
+source = ["corrosim"]
+# Coverage is scoped to the QM-light-testable surface (issue #31 / ADR 0007).
+# These modules need a QM engine (PySCF/tblite) or Docker to execute, so they
+# cannot run in the venv/CI suite; they are validated by the QM suite
+# (`docker compose run --rm qm pytest`) and the tracked pipeline artifacts, and
+# are excluded from the coverage denominator rather than left as dead weight.
+omit = [
+    "corrosim/engines.py",
+    "corrosim/fukui.py",
+    "corrosim/runs/run_dft.py",
+    "corrosim/runs/run_fukui.py",
+    "corrosim/runs/run_pka.py",
+    "corrosim/runs/make_cubes.py",
+]
+
+[tool.coverage.report]
+# Gate the scoped (non-omitted) surface at 80% — the python-lib stack target,
+# now meaningful because the untestable QM layer is out of the denominator.
+fail_under = 80
+show_missing = true
+
 [tool.mypy]
 # Non-strict introduction (issue #6): catch real type errors without forcing
 # annotations everywhere yet. Trigger to tighten — once the public API is fully
@@ -81,13 +103,32 @@ target-version = "py310"
 extend-exclude = ["docs/solid-ai-templates"]
 
 [tool.ruff.lint]
-# Lean starter set: pyflakes + pycodestyle + import sorting.
-select = ["E", "F", "I", "W"]
+# pyflakes + pycodestyle + import sorting + Google-style docstrings (D).
+select = ["E", "F", "I", "W", "D"]
 # corrosim keeps a deliberately compact scientific style; accept it:
 #   E741 single-letter math names (l, O, N); E702 `a; b` step chains;
 #   E731 `log = lambda ...` driver shorthands; E401 grouped stdlib imports.
-ignore = ["E741", "E702", "E731", "E401"]
+#   D205 blank-line-after-summary: corrosim docstrings lead with a long,
+#     formula-bearing sentence that spans lines, so the one-line-summary rule
+#     doesn't fit; the rest of the Google convention is enforced (deferred like
+#     ruff-format — see CLAUDE.md §3).
+ignore = ["E741", "E702", "E731", "E401", "D205"]
+
+[tool.ruff.lint.pydocstyle]
+# Public-symbol docstrings follow the Google convention (python-lib stack, #31).
+# The "docstrings exist" acceptance criterion is additionally pinned by
+# tests/test_docstrings.py (issue #6); the D rules add format enforcement.
+convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # report.py embeds long single-line CSS rules inside HTML string literals.
 "corrosim/report.py" = ["E501"]
+# Tests are not public API — docstrings there are optional (D off).
+"tests/**" = ["D"]
+
+[tool.bandit]
+# Security SAST (issue #31 / ADR 0007). The runtime security surface is the two
+# local QM-binary subprocess launches in engines.py, reviewed and marked
+# `# nosec` at the call site (fixed argv, no shell, no untrusted input). Tests
+# and vendored docs carry no runtime surface.
+exclude_dirs = ["tests", "docs", "cubes", "results", "report"]

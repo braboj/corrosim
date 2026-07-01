@@ -1,6 +1,5 @@
-"""
-corrosim.runs.run_md  (M4 driver)
-=================================
+"""corrosim.runs.run_md  (M4 driver).
+
 Brownian (overdamped-Langevin) rigid-body MD of the inhibitor over the metal slab
 at 298 K -> metal-X radial distribution (adsorption distance) + thermal-averaged
 interaction energy. Pure classical (numpy + ASE); runs anywhere.

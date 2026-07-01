@@ -1,6 +1,5 @@
-"""
-corrosim.runs.run_fukui  (M2 driver)
-====================================
+"""corrosim.runs.run_fukui  (M2 driver).
+
 Condensed Fukui functions / dual descriptor for the flavonoids — Stage-1 local
 reactivity (which atoms bind the metal). Writes per-molecule JSON to results/;
 figures are rendered separately by make_figures.

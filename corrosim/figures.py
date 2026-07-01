@@ -1,6 +1,5 @@
-"""
-corrosim.figures
-----------------
+"""corrosim.figures.
+
 Publication-grade, template-style figures (cf. the pyrazolo-pyrimidine study
 adopted in ADR 0002): 2D structures, frontier-orbital energy diagrams, global
 reactivity-descriptor charts, and adsorption poses.
@@ -108,7 +107,8 @@ def plot_protonation_effect(df, order, out: str | None = None,
     """Gap and ΔN, neutral vs protonated (aqueous), across molecules. `df` is the
     run_dft results frame (columns name/form/phase/gap_ev/delta_n).
     ``geometry_label`` names the geometry source shown in the title (e.g.
-    'DFT-optimised, B3LYP/6-311++G(d,p)')."""
+    'DFT-optimised, B3LYP/6-311++G(d,p)').
+    """
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
                            (axes[1], "delta_n", "ΔN (electrons transferred)")):
@@ -195,7 +195,8 @@ def plot_mc_energy(result, out: str | None = None):
 # --- MD radial distribution function (adsorption distance) -------------------
 def plot_rdf(result, out: str | None = None):
     """metal-X radial distribution from MD (an MDResult); first peak = adsorption
-    distance, <3.5 A indicates chemisorption-range contact."""
+    distance, <3.5 A indicates chemisorption-range contact.
+    """
     m = result.metal
     r = np.asarray(result.rdf_r)
     fig, ax = plt.subplots(figsize=(7.2, 4))
@@ -222,7 +223,8 @@ def plot_rdf(result, out: str | None = None):
 def plot_fukui(fukui, molecule=None, out: str | None = None, title: str | None = None):
     """Condensed Fukui f-/f+ per heavy atom (which atoms donate/accept electrons),
     optionally beside the 2D structure with atom indices. `fukui` is a FukuiResult
-    or a dict with symbols/f_plus/f_minus."""
+    or a dict with symbols/f_plus/f_minus.
+    """
     def g(k):
         return getattr(fukui, k) if hasattr(fukui, k) else fukui[k]
     syms, fmin, fpl = g("symbols"), g("f_minus"), g("f_plus")
@@ -276,7 +278,8 @@ def write_orbital_cube(symbols, coords, which: str = "homo",
                        basis: str = "6-311++G(d,p)", xc: str = "b3lyp",
                        charge: int = 0, out: str = "orbital.cube"):
     """Write a HOMO or LUMO .cube for a molecule (PySCF cubegen). Render the cube
-    with py3Dmol (notebook) or skimage marching-cubes (static) — see M5."""
+    with py3Dmol (notebook) or skimage marching-cubes (static) — see M5.
+    """
     from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
@@ -307,7 +310,8 @@ def write_orbital_cubes(symbols, coords, prefix: str = "mol",
     """One SCF, then write {prefix}_homo.cube and {prefix}_lumo.cube. A modest
     basis is enough — orbital *shapes* are basis-insensitive, so this stays fast
     and looks the same as the descriptor-level basis. Returns {'homo','lumo'} paths.
-    Run in the QM container; render with render_orbital()."""
+    Run in the QM container; render with render_orbital().
+    """
     from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
@@ -331,7 +335,8 @@ def write_density_esp_cubes(symbols, coords, prefix: str = "mol",
     two on the same grid lets render_esp() colour the density isosurface by the
     MEP (the classic ESP map). The MEP integral is the slow part — a modest grid
     (nx≈80) and valence basis are plenty for a qualitative map. Run in the QM
-    container; render with render_esp(). Returns {'density','esp'} paths."""
+    container; render with render_esp(). Returns {'density','esp'} paths.
+    """
     from pyscf import dft, gto
     from pyscf.tools import cubegen
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],

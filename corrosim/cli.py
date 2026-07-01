@@ -1,9 +1,8 @@
-"""
-corrosim.cli
-------------
+"""corrosim.cli.
+
 Run the screening pipeline from the command line.
 
-Examples
+Examples:
 --------
   # built-in molecules, fast engine, HTML + CSV out
   python -m corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
@@ -27,7 +26,8 @@ import sys
 
 def read_input_csv(path: str) -> list[str]:
     """Read molecules from a CSV. Uses 'smiles' if present, else 'name'.
-    Falls back to the first column for a headerless file."""
+    Falls back to the first column for a headerless file.
+    """
     with open(path, newline="") as f:
         rows = [r for r in csv.reader(f) if any(c.strip() for c in r)]
     if not rows:

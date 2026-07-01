@@ -1,6 +1,5 @@
-"""
-corrosim.fukui
---------------
+"""corrosim.fukui.
+
 Stage-1 local reactivity: condensed Fukui functions, the dual descriptor and local
 softness — they pinpoint *which atoms* donate/accept electrons, i.e. the adsorption
 centres, completing the Stage-1 picture the methodology template reports (ADR 0002).
