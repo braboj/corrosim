@@ -1,7 +1,7 @@
 """
 corrosim.cli
 ------------
-Run the screening pipeline without Jupyter.
+Run the screening pipeline from the command line.
 
 Examples
 --------

@@ -4,7 +4,7 @@ corrosim.adsorption
 Stage-2 structure preparation: build the metal slab the inhibitor adsorbs onto
 and place the molecule above it. This produces ready-to-run input geometries for
 a molecular-dynamics / Monte-Carlo adsorption study (e.g. LAMMPS), which is the
-heavy step you run outside the notebook.
+heavy step you run as a separate stage.
 
 The full adsorption-energy MD is intentionally NOT run here (it needs a metal-
 compatible force field and real compute). What this gives you, automatically, is:
@@ -135,7 +135,7 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
 
 
 LAMMPS_HANDOFF_NOTE = """\
-Next step (outside the notebook), on the exported structure:
+Next step (a separate stage), on the exported structure:
   1. Assign a force field: organic = GAFF/OPLS (e.g. via LigParGen/antechamber),
      metal = EAM potential for Fe/Cu/Al (from the NIST Interatomic Potentials Repo).
   2. Solvate: add ~500 H2O + a few H3O+ / Cl- to mimic 1 M HCl (packmol).

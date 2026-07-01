@@ -60,7 +60,7 @@ python -m corrosim.runs.make_report                                             
 ```bash
 git clone https://github.com/braboj/corrosim
 cd corrosim
-pip install -e ".[qm,notebook,viz]"  # core + QM engines + notebook + figure rendering
+pip install -e ".[qm,viz]"  # core + QM engines + figure rendering
 ```
 
 `rdkit`, `ase`, `tblite`, `pyscf` ship pip wheels on Linux/macOS; if a wheel is
@@ -104,11 +104,6 @@ df, html = corrosim.screen(
 print(corrosim.rank_inhibitors(df))
 ```
 
-**Notebook** — edit the Inputs cell and run:
-```bash
-jupyter notebook notebooks/corrosion_inhibitor_tool.ipynb
-```
-
 ### Engines
 - `xtb` — GFN2-xTB, sub-second, for ranking (open-source).
 - `pyscf` — real DFT (B3LYP etc.), minutes/molecule, for final numbers (open-source).
@@ -131,13 +126,11 @@ results/         tracked output data (descriptors, Fukui, MC/MD json, comparison
 figures/         curated manuscript figure set (PNG)
 cubes/           volumetric .cube files — regenerable, gitignored
 report.html      self-contained pipeline report (make_report)
-notebooks/       the interactive front end
 examples/        sample batch CSV
 tests/           pytest suite (no DFT — fast)
 docs/            pipeline.md, validation.md, adr/ (decision records)
 Dockerfile,      the corrosim-qm QM environment (PySCF + tblite)
 docker-compose.yml
-tools/           notebook builder + HTML renderer
 ```
 
 ## Development
