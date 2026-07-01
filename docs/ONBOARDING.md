@@ -51,7 +51,8 @@ mypy               # type-check (non-strict): clean
 ```
 
 For an end-to-end check that does not need QM, rebuild the report from the
-tracked result data — it writes a self-contained `report.html`:
+tracked result data — it writes the `report/` bundle (self-contained
+`report/report.html` + figures + tables):
 
 ```bash
 python -m corrosim.runs.make_report

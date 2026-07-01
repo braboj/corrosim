@@ -16,7 +16,7 @@ Operational reference for common corrosim tasks. New contributors should read
   example `feat(pka): ... (#NN)`. Do not write "closes #N" in a PR body unless
   the PR actually resolves the issue — GitHub auto-closes it on merge.
 - Private working notes match `*.local.md` and are gitignored — never commit
-  them. `report.html` and `results/*.{csv,json}` are tracked; `cubes/` and
+  them. The `report/` bundle and `results/*.{csv,json}` are tracked; `cubes/` and
   `*.log` are not.
 
 ## 2. Domain operations
@@ -31,8 +31,8 @@ the venv — they need no QM engines.
 ```bash
 python -m corrosim.runs.run_mc          # Stage 2 adsorption pose
 python -m corrosim.runs.run_md          # Stage 3 metal-O RDF
-python -m corrosim.runs.make_figures    # figures/ set
-python -m corrosim.runs.make_report     # -> report.html (self-contained)
+python -m corrosim.runs.make_figures    # -> report/figures/ set
+python -m corrosim.runs.make_report     # -> report/ bundle (self-contained report.html)
 ```
 
 Run the quantum stages (DFT descriptors, Fukui, pKa, cubes) in the
@@ -89,7 +89,7 @@ Anything exercising the real engines runs in the container:
   `NNN-slug.md` numbering; each ADR addresses one concern.
 - When a change alters an input, regenerate the dependent artifact in the same
   change: descriptors or `md_rdf.json` feed `make_figures` and `make_report`,
-  which produce `report.html`.
+  which produce the `report/` bundle.
 - Cross-check ranking and descriptor claims against `docs/validation.md` before
   reporting them. After a geometry or level-of-theory change, confirm the lead
   ranking is robust with `python -m corrosim.runs.compare_geometry`.
@@ -98,7 +98,7 @@ Anything exercising the real engines runs in the container:
 
 corrosim is an MIT-licensed library and CLI. There is currently no automated
 release or PyPI publish; the version lives in `pyproject.toml` and the tracked
-`report.html` plus `results/` are the shipped artifacts. When a release process
+`report/` bundle plus `results/` are the shipped artifacts. When a release process
 is added, it should publish to PyPI from CI on a version tag, built with the
 standard `build` backend.
 

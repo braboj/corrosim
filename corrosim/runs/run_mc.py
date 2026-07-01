@@ -2,8 +2,8 @@
 corrosim.runs.run_mc  (M3 driver)
 =================================
 Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on the
-metal slab — Stage-2. Writes a best-pose figure, an annealing energy-trace figure,
-and a summary JSON. Pure classical (numpy + ASE); runs anywhere, no QM container.
+metal slab — Stage-2. Writes a summary JSON to results/; figures are rendered
+separately by make_figures. Pure classical (numpy + ASE); runs anywhere, no QM.
 
     python -m corrosim.runs.run_mc --molecules kaempferol,quercetin,isorhamnetin \
         --metal Fe --steps 4000
@@ -15,11 +15,7 @@ import json
 import os
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
-
-from corrosim import build_molecule, figures
+from corrosim import build_molecule
 from corrosim.mc import run_mc
 from corrosim.presets import ARGHEL
 
@@ -43,8 +39,6 @@ def main(argv=None) -> int:
         print(f"[{name}] MC pose search ({args.steps} steps) ...", file=sys.stderr)
         m = build_molecule(name)
         r = run_mc(m, metal=args.metal, n_steps=args.steps, seed=args.seed)
-        figures.plot_adsorption_pose(r, out=f"{args.outdir}/{name}_mc_pose.png")
-        figures.plot_mc_energy(r, out=f"{args.outdir}/{name}_mc_energy.png")
         summary.append(dict(name=name, surface=f"{r.metal}{r.surface}",
                             e_ads_ev=r.e_ads_ev, e_ads_kjmol=r.e_ads_kjmol,
                             best_height_A=r.best_height_A,

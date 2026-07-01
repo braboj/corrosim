@@ -41,16 +41,16 @@ it rebuilds the report from the committed result data.
 git clone https://github.com/braboj/corrosim
 cd corrosim
 pip install -e ".[viz]"                # core + figure rendering
-python -m corrosim.runs.make_report    # rebuild report.html from results/
+python -m corrosim.runs.make_report    # rebuild the report/ bundle from results/
 ```
 
 Expected output:
 
 ```text
-report written to report.html (3931 kB, self-contained)
+report written to report/report.html (3931 kB, self-contained); tables in report/tables/
 ```
 
-Open `report.html` in any browser. To run the DFT/xTB stages yourself, see
+Open `report/report.html` in any browser. To run the DFT/xTB stages yourself, see
 [Development setup](#development-setup).
 
 ## Usage
@@ -111,9 +111,8 @@ corrosim/        core package — molecules, engines, descriptors, fukui, mc,
                  report, cli, presets
 corrosim/runs/   stage drivers — run_dft, run_fukui, run_mc, run_md, run_pka,
                  make_cubes, make_figures, make_report, compare_geometry
-results/         tracked output data (descriptors, Fukui, MC/MD, pKa)
-figures/         curated figure set (PNG); fig0 is the pipeline diagram
-report.html      self-contained pipeline report (from make_report)
+results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa)
+report/          report bundle (make_report): report.html + figures/ + tables/
 examples/        sample batch CSV
 tests/           pytest suite (QM-light, no DFT — fast)
 docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,
@@ -152,7 +151,7 @@ docker compose run --rm qm \
 ```
 
 The repo is bind-mounted at `/work`, so outputs land back in `results/` /
-`figures/` and code edits need no rebuild. Long jobs (geometry-opt, MEP cubes)
+`report/` and code edits need no rebuild. Long jobs (geometry-opt, MEP cubes)
 should run detached (`docker compose run -d --name <job> qm …`) so they survive
 a shell exit. On Linux/macOS you may instead install the engines natively with
 the `qm` extra (`pip install -e ".[qm]"`).

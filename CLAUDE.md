@@ -41,10 +41,10 @@ corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
 corrosim/runs/   stage drivers (run_dft/fukui/mc/md/pka, make_cubes/figures/
                  report, compare_geometry)
 tests/           pytest suite (no DFT/Docker — fast)
-results/         tracked output data (descriptors, Fukui, MC/MD, pKa, comparison)
-figures/         curated figure set (PNG, tracked); fig0 = pipeline diagram
+results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa, comparison)
 cubes/           volumetric .cube files (regenerable, gitignored)
-report.html      self-contained pipeline report (tracked)
+report/          tracked report bundle: report.html (self-contained) + figures/
+                 (PNG; fig0 = pipeline diagram) + tables/ (csv/json)
 docs/
   ONBOARDING.md        onboarding guide for new contributors
   PLAYBOOK.md          operational reference for common tasks
@@ -67,7 +67,7 @@ mypy                                   # type-check (non-strict) — also a CI g
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
 python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors.csv
-python -m corrosim.runs.make_report    # -> report.html
+python -m corrosim.runs.make_report    # -> report/ (report.html + figures + tables)
 ```
 
 Long QM jobs (geometry-opt, frequency, MEP cubes) MUST run detached so a shell
@@ -118,8 +118,8 @@ duplicate.
   auto-closes the issue on merge.
 - `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
   never committed.
-- `report.html` and `results/*.{csv,json}` ARE tracked; `cubes/` and
-  `*.log` are not.
+- The `report/` bundle (report.html + figures/ + tables/) and
+  `results/*.{csv,json}` ARE tracked; `cubes/` and `*.log` are not.
 
 ### 2.2 Python
 
@@ -142,10 +142,11 @@ duplicate.
 - Single source of truth: the case study (molecule set + substrate + medium)
   lives in `corrosim/presets.py` (`ARGHEL`). Drivers import
   `ARGHEL.molecule_list()` / `ARGHEL.metal`; never re-declare the list.
-- Generated data -> `results/`; figures -> `figures/`; cubes -> `cubes/`.
+- Generated data -> `results/`; figures -> `report/figures/`; report bundle ->
+  `report/`; cubes -> `cubes/`.
 - When a change alters an input, regenerate the dependent artifact in the SAME
   change: descriptors / `md_rdf.json` -> `make_figures` + `make_report` ->
-  `report.html`. Verify the diff (spot-check values, not just file size).
+  `report/`. Verify the diff (spot-check values, not just file size).
 
 ## 3. Quality
 
@@ -178,7 +179,7 @@ and `python-lib.md` as the standard.
 - Units stated (eV / Å / kJ/mol); no bare numbers.
 - Outputs metal-agnostic — no stray hardcoded "Fe".
 - Case study read from `presets.ARGHEL`, not re-declared.
-- Dependent artifacts (report.html / figures) regenerated in the same change.
+- Dependent artifacts (the `report/` bundle) regenerated in the same change.
 
 ### 5.2 Structure audit
 
@@ -201,7 +202,7 @@ end-of-session audit.
 - Run long QM jobs DETACHED (see 1.3); they survive a session teardown. Docker
   Desktop may be down after a host restart — start it and wait for
   `docker info` to answer before launching containers.
-- Keep `results/`, `figures/`, and `report.html` regenerated as you go.
+- Keep `results/` and the `report/` bundle regenerated as you go.
 - When a path-based shell query (`test -f`, `ls`, `git -C`) returns an
   unexpected empty/negative, verify `pwd` first — the shell cwd persists
   across commands and an earlier `cd` can make it false-negative.

@@ -15,11 +15,7 @@ import json
 import os
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
-
-from corrosim import build_molecule, figures
+from corrosim import build_molecule
 from corrosim.mc import run_mc
 from corrosim.md import run_md
 from corrosim.presets import ARGHEL
@@ -49,8 +45,6 @@ def main(argv=None) -> int:
         r = run_md(m, metal=args.metal, n_steps=args.steps, equil=args.equil,
                    temperature=args.temperature, seed=args.seed,
                    start_positions=mc.best_positions)
-        figures.plot_rdf(r, out=f"{args.outdir}/{name}_rdf.png")
-        figures.plot_adsorption_pose(r, out=f"{args.outdir}/{name}_md_pose.png")
         summary.append(dict(name=name, metal=r.metal, surface=f"{r.metal}{r.surface}",
                             e_mean_kjmol=r.e_mean_kjmol,
                             metal_O_peak_A=r.first_peak_metal_O,
