@@ -1,6 +1,5 @@
-"""
-corrosim — automated corrosion-inhibitor screening
-===================================================
+"""corrosim — automated corrosion-inhibitor screening.
+
 Pipeline: SMILES/name -> 3D geometry -> QM (xTB or DFT) -> reactivity
 descriptors -> report, plus Stage-2 adsorption-structure prep.
 
@@ -77,8 +76,7 @@ def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
 def screen(inhibitors, metal: str = "Fe(110)", medium: str = "1 M HCl",
            engine: str = "xtb", ff: str = "MMFF", adsorption: bool = False,
            out_html: str | None = None, progress=print, **engine_kwargs):
-    """
-    Screen a list of inhibitors. Returns (DataFrame, html_path_or_None).
+    """Screen a list of inhibitors. Returns (DataFrame, html_path_or_None).
     Set adsorption=True to add the Stage-2 UFF vdW physisorption estimate.
     """
     rows = []

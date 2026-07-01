@@ -157,8 +157,12 @@ Testing, quality gates, and packaging follow the referenced templates
   stays fast. Run `pytest -q`. CI matrix is py3.10-3.12 with
   `pip install -e .[dev]`. Every new feature/module ships a test; name
   `test_<unit>_<state>_<expected>`.
-- Quality gates in CI: `ruff check` + `mypy` (non-strict) + `pytest`. The
-  `ruff format` gate is deferred (see `docs/dev-journal.md`).
+- Quality gates in CI: `ruff check` (incl. Google docstrings, `D`) + `mypy`
+  (non-strict) + `pytest` with scoped coverage ≥ 80% + Bandit (SAST) + gitleaks
+  (secrets) + CodeQL. Explicit, deferrable deviations from the python-lib stack
+  (ADR 0007): `ruff format` deferred; `mypy --strict` deferred; docstring rule
+  `D205` relaxed for the scientific long-summary style; coverage gated on the
+  QM-light-testable surface (QM-engine/Docker modules `omit`-ted, not global).
 - Scientific validity: cross-check ranking / descriptor claims against
   `docs/validation.md` before stating them as results. After a geometry or
   level-of-theory change, confirm the lead ranking is robust:

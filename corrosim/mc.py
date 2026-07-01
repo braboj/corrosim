@@ -1,6 +1,5 @@
-"""
-corrosim.mc
------------
+"""corrosim.mc.
+
 Stage-2 Monte Carlo adsorption: a Metropolis / simulated-annealing pose search of
 a rigid inhibitor over a metal slab, scored with the UFF van-der-Waals interaction
 (adsorption.py). An open-source analog of the Adsorption-Locator step the
@@ -33,7 +32,8 @@ from .surface import (
 @dataclass
 class MCResult:
     """Best adsorption pose and energetics from the Monte Carlo search
-    (e_ads in eV/kJ·mol⁻¹, height in Å)."""
+    (e_ads in eV/kJ·mol⁻¹, height in Å).
+    """
     metal: str
     surface: str
     e_ads_ev: float
@@ -48,7 +48,7 @@ class MCResult:
 
     @property
     def combined(self):
-        """slab + molecule (best pose) as an ASE Atoms — for plot_adsorption_pose."""
+        """Slab + molecule (best pose) as an ASE Atoms — for plot_adsorption_pose."""
         from ase import Atoms
         mol = Atoms(symbols=self.mol_symbols, positions=self.best_positions)
         c = self.slab + mol

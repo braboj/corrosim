@@ -1,6 +1,5 @@
-"""
-corrosim.pka
-------------
+"""corrosim.pka.
+
 Conjugate-acid pKa (pKaH) of the inhibitor's basic site from a DFT thermodynamic
 cycle, to pin the protonation state the speciation layer (ADR 0004) leaves as a
 free parameter.

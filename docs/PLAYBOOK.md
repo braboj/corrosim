@@ -66,7 +66,9 @@ Run `pytest -q` in the venv. Every new feature or module ships a test named
 ### 3.2 Linting (ruff)
 
 Run `ruff check .`. The line length is 100. Keep new and edited code clean; do
-not bulk-reformat untouched files.
+not bulk-reformat untouched files. Ruff also enforces Google-convention
+docstrings (`D` rules, `D205` relaxed — ADR 0007); every public symbol needs a
+docstring (also pinned by `tests/test_docstrings.py`).
 
 ### 3.3 Type checking (mypy)
 
@@ -77,6 +79,27 @@ Run `mypy`. It is non-strict but is a CI gate — run it before pushing, since
 
 Anything exercising the real engines runs in the container:
 `docker compose run --rm qm pytest -q`. This is manual — CI does not run QM.
+
+### 3.5 Coverage (pytest-cov)
+
+Run `pytest --cov=corrosim --cov-report=term-missing`. Gated at 80% over a
+*scoped* surface: the QM-engine modules and Docker-only drivers are `omit`-ted in
+`[tool.coverage.run]` (they can't run in the venv), so the threshold measures the
+QM-light-testable code (ADR 0007). A new pure-Python module is in scope by
+default — add a test. The scoped surface currently sits at ~85%.
+
+### 3.6 Security & secrets (Bandit, gitleaks, CodeQL)
+
+Three CI gates guard the supply/security surface:
+
+- **Bandit** (SAST): `bandit -c pyproject.toml -r corrosim`. The only findings
+  are the local QM-binary `subprocess` launches in `engines.py`, reviewed and
+  marked `# nosec` at the call site (fixed argv, no shell).
+- **gitleaks** (secrets): runs both as a `pre-commit` hook and a CI job. Install
+  hooks once with `pre-commit install`; scan the tree with `pre-commit run
+  --all-files`.
+- **CodeQL** (platform SAST): `.github/workflows/codeql.yml`; findings surface in
+  the repo Security tab.
 
 ## 4. Maintenance
 

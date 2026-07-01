@@ -1,6 +1,5 @@
-"""
-corrosim.presets
-----------------
+"""corrosim.presets.
+
 Named **case studies** — the molecule set + substrate + medium for a screening
 run, defined in *one* place instead of duplicated across the drivers.
 

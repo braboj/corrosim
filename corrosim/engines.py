@@ -1,6 +1,5 @@
-"""
-corrosim.engines
-----------------
+"""corrosim.engines.
+
 Uniform wrappers around the two quantum engines used by the tool.
 
   * 'xtb'   -> GFN2-xTB via tblite. Sub-second, great for screening/ranking.
@@ -73,8 +72,7 @@ def run_xtb(symbols: Sequence[str], coords: Coords, charge: int = 0) -> EngineRe
 def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p)",
               xc: str = "b3lyp", solvent: str | None = "water",
               charge: int = 0) -> EngineResult:
-    """
-    DFT single point with PySCF. coords in Angstrom.
+    """DFT single point with PySCF. coords in Angstrom.
 
     Default level B3LYP/6-311++G(d,p) + ddCOSMO(water): corrosim's adopted
     production DFT standard, matching the methodology template (see ADR 0002).
@@ -117,8 +115,7 @@ def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p
 def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
                       xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
                       maxsteps: int = 100) -> tuple[list[str], list[tuple[float, ...]]]:
-    """
-    DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
+    """DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
 
     Returns (symbols, coords_angstrom) for the relaxed structure — atom order is
     preserved. The intended protocol is *optimise at a modest level, then run the
@@ -147,8 +144,7 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
 def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
                       xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
                       temperature: float = 298.15, pressure: float = 101325.0) -> dict:
-    """
-    Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV) at a *stationary*
+    """Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV) at a *stationary*
     geometry, from an analytic Hessian + ideal-gas rigid-rotor/harmonic-oscillator
     thermochemistry (PySCF). This is the ZPE + thermal-enthalpy − T·S term that the
     electronic-only pKaH (ADR 0005) omits.
@@ -196,7 +192,8 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
 def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,
                **kwargs) -> EngineResult:
     """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a
-    protonated inhibitor in acid)."""
+    protonated inhibitor in acid).
+    """
     engine = engine.lower()
     if engine == "xtb":
         return run_xtb(symbols, coords, charge=charge)
@@ -258,7 +255,7 @@ def run_orca(symbols: Sequence[str], coords: Coords, keywords: str = "B3LYP def2
              orca_cmd: str | None = None, workdir: str | None = None) -> EngineResult:
     """Run an ORCA single point via the local ``orca`` binary and parse HOMO/LUMO."""
     import os
-    import subprocess
+    import subprocess  # nosec B404
     import tempfile
     orca_cmd = orca_cmd or os.environ.get("ORCA_CMD", "orca")
     workdir = workdir or tempfile.mkdtemp(prefix="orca_")
@@ -267,7 +264,8 @@ def run_orca(symbols: Sequence[str], coords: Coords, keywords: str = "B3LYP def2
     with open(inp, "w") as f:
         f.write(write_orca_input(symbols, coords, keywords, charge, mult, solvent, nprocs))
     with open(out, "w") as f:
-        subprocess.run([orca_cmd, inp], stdout=f, stderr=subprocess.STDOUT, check=True)
+        # fixed argv (QM binary + generated input file); no shell, no untrusted input
+        subprocess.run([orca_cmd, inp], stdout=f, stderr=subprocess.STDOUT, check=True)  # nosec B603
     homo, lumo = parse_orca_output(open(out).read())
     level = f"{keywords}" + (f" CPCM({solvent})" if solvent else "")
     return EngineResult("orca", level, float("nan"), homo, lumo)
@@ -305,7 +303,7 @@ def run_gaussian(symbols: Sequence[str], coords: Coords, route: str = "B3LYP/6-3
                  workdir: str | None = None) -> EngineResult:
     """Run a Gaussian single point via the local ``g16`` binary and parse HOMO/LUMO."""
     import os
-    import subprocess
+    import subprocess  # nosec B404
     import tempfile
     gaussian_cmd = gaussian_cmd or os.environ.get("GAUSSIAN_CMD", "g16")
     workdir = workdir or tempfile.mkdtemp(prefix="g16_")
@@ -314,7 +312,8 @@ def run_gaussian(symbols: Sequence[str], coords: Coords, route: str = "B3LYP/6-3
     with open(gjf, "w") as f:
         f.write(write_gaussian_input(symbols, coords, route, charge, mult, solvent, nprocs, mem))
     with open(log, "w") as f:
-        subprocess.run([gaussian_cmd, gjf], stdout=f, stderr=subprocess.STDOUT, check=True)
+        # fixed argv (QM binary + generated input file); no shell, no untrusted input
+        subprocess.run([gaussian_cmd, gjf], stdout=f, stderr=subprocess.STDOUT, check=True)  # nosec B603
     homo, lumo = parse_gaussian_output(open(log).read())
     level = route + (f" PCM({solvent})" if solvent else "")
     return EngineResult("gaussian", level, float("nan"), homo, lumo)

@@ -1,6 +1,5 @@
-"""
-corrosim.descriptors
----------------------
+"""corrosim.descriptors.
+
 Global reactivity descriptors used to rank corrosion inhibitors, computed from
 the frontier-orbital energies (HOMO, LUMO) the way the literature does.
 
@@ -41,7 +40,8 @@ METAL_HARDNESS = 0.0   # eta_metal ~ 0, standard assumption
 @dataclass
 class Descriptors:
     """Global reactivity descriptors for one molecule (all energies in eV). See the
-    module docstring for the Koopmans definitions of each field."""
+    module docstring for the Koopmans definitions of each field.
+    """
     homo_ev: float
     lumo_ev: float
     gap_ev: float
@@ -66,7 +66,8 @@ def total_negative_charge(charges) -> float | None:
     """TNC = sum of the negative atomic partial charges (Mulliken). A proxy for the
     molecule's electron-rich / nucleophilic character; reported by the methodology
     template (ADR 0002) alongside the global descriptors. Returns None if no
-    charges are available."""
+    charges are available.
+    """
     if charges is None:
         return None
     return round(float(sum(q for q in charges if q < 0)), 4)
@@ -79,7 +80,8 @@ def compute_descriptors(homo_ev: float, lumo_ev: float,
 
     ``homo_ev`` / ``lumo_ev`` in eV. ``metal`` selects the work function Φ used for
     ΔN; pass ``phi_metal_ev`` to override it for an unknown substrate. Returns a
-    :class:`Descriptors`. See the module docstring for the Koopmans definitions."""
+    :class:`Descriptors`. See the module docstring for the Koopmans definitions.
+    """
     if phi_metal_ev is None:
         if metal not in METAL_WORK_FUNCTION:
             raise ValueError(

@@ -1,6 +1,5 @@
-"""
-corrosim.runs.make_figures  (M5)
-================================
+"""corrosim.runs.make_figures  (M5).
+
 Regenerate the full manuscript figure set into report/figures/. Reads the committed data
 (dft_descriptors.csv, *_fukui.json), re-runs the fast classical MC/MD, and renders
 orbital isosurfaces from any *_homo.cube / *_lumo.cube present.

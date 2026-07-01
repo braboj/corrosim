@@ -1,6 +1,5 @@
-"""
-corrosim.surface
-----------------
+"""corrosim.surface.
+
 Shared Stage-2/3 substrate + van-der-Waals primitives, single-sourced so that
 adsorption / mc / md all agree on the metal surface and the UFF field:
 

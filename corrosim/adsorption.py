@@ -1,6 +1,5 @@
-"""
-corrosim.adsorption
--------------------
+"""corrosim.adsorption.
+
 Stage-2 structure preparation: build the metal slab the inhibitor adsorbs onto
 and place the molecule above it. This produces ready-to-run input geometries for
 a molecular-dynamics / Monte-Carlo adsorption study (e.g. LAMMPS), which is the
@@ -85,8 +84,7 @@ def build_adsorption_system(molecule, metal: str = "Fe",
 def estimate_adsorption_energy(molecule, metal: str = "Fe",
                                size=(5, 5, 3), vacuum: float = 10.0,
                                heights=None) -> dict:
-    """
-    Fast, bounded physisorption estimate: rigid-body UFF van-der-Waals
+    """Fast, bounded physisorption estimate: rigid-body UFF van-der-Waals
     interaction energy of the (flat-oriented) molecule scanned over heights
     above the slab. Returns the minimum.
 

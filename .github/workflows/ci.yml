@@ -51,6 +51,40 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests with coverage
-        # Coverage is warn-only for now (legacy code); ratchet a --cov-fail-under
-        # threshold once the suite covers the QM-light surface.
+        # Gated at 80% over the scoped surface: [tool.coverage.run] omit excludes
+        # the QM-engine/Docker-only modules, and [tool.coverage.report] fail_under
+        # enforces the threshold (issue #31 / ADR 0007).
         run: pytest -q --cov=corrosim --cov-report=term-missing
+
+  security:
+    name: SAST (bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install "bandit==1.8.*"
+
+      - name: Bandit (SAST)
+        run: bandit -c pyproject.toml -r corrosim
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # full history so gitleaks scans all commits
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

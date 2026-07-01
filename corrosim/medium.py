@@ -1,6 +1,5 @@
-"""
-corrosim.medium
----------------
+"""corrosim.medium.
+
 Parse a free-text electrochemical medium label (e.g. "1 M HCl", "pH 7 buffer")
 into structured chemistry: the acid/electrolyte species, its concentration, and
 an approximate pH. The pH then says which protonation state of the inhibitor is
@@ -84,5 +83,6 @@ def _looks_acidic(low: str) -> bool:
 
 def relevant_forms(spec: MediumSpec) -> set[str]:
     """Protonation forms chemically present in this medium: the neutral always,
-    plus the 'protonated' cation in acid (the basic sites take up H+)."""
+    plus the 'protonated' cation in acid (the basic sites take up H+).
+    """
     return {"neutral", "protonated"} if spec.acidic else {"neutral"}
