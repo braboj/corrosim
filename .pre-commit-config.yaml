@@ -7,9 +7,8 @@ exclude: |
   (?x)^(
     docs/solid-ai-templates/.*|
     results/.*|
-    figures/.*|
+    report/.*|
     cubes/.*|
-    report\.html|
     .*\.(csv|json|cube)
   )$
 

@@ -4,17 +4,19 @@ corrosim.runs.make_report  (M5)
 Build one self-contained HTML report consolidating the full multiscale pipeline
 (DFT descriptors + Fukui + Monte Carlo + MD) and the committed figure set into a
 single shareable file. Reads the committed result data and embeds the figures
-from figures/ inline (base64), so report.html stands alone.
+from report/figures/ inline (base64), so the report stands alone. Also copies the
+source CSV/JSON tables into report/tables/ so the report/ bundle is complete.
 
 Runs in the venv (no QM container needed):
     python -m corrosim.runs.make_report
-    python -m corrosim.runs.make_report --out report.html --figdir figures
+    python -m corrosim.runs.make_report --out report/report.html --figdir report/figures
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import shutil
 import sys
 
 import pandas as pd
@@ -44,8 +46,10 @@ def main(argv=None) -> int:
                    help="Where per-molecule Fukui JSON live.")
     p.add_argument("--pka", default="results/pka.json",
                    help="Computed-pKaH JSON (run_pka); shown in the speciation section.")
-    p.add_argument("--figdir", default="figures")
-    p.add_argument("--out", default="report.html")
+    p.add_argument("--figdir", default="report/figures")
+    p.add_argument("--out", default="report/report.html")
+    p.add_argument("--tablesdir", default="report/tables",
+                   help="Copy the report's source CSV/JSON tables here for the bundle.")
     p.add_argument("--metal", default=ARGHEL.metal)
     p.add_argument("--medium", default=ARGHEL.medium)
     args = p.parse_args(argv)
@@ -133,8 +137,18 @@ def main(argv=None) -> int:
         computed_pkah=computed_pkah, pka_freq_corrected=pka_freq_corrected,
         opt_neutral_rows=opt_neutral_rows, opt_acid_rows=opt_acid_rows,
     )
+    # Bundle the source tables next to the report so report/ is self-describing.
+    os.makedirs(args.tablesdir, exist_ok=True)
+    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(
+        os.path.join(args.tablesdir, "ranking.csv"), index=False)
+    for src in (args.descriptors, args.opt_descriptors,
+                "results/geometry_comparison.csv", args.pka):
+        if os.path.exists(src):
+            shutil.copy(src, os.path.join(args.tablesdir, os.path.basename(src)))
+
     size_kb = os.path.getsize(out) / 1024
-    print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
+    print(f"report written to {out} ({size_kb:.0f} kB, self-contained); "
+          f"tables in {args.tablesdir}/")
     return 0
 
 

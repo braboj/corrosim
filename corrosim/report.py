@@ -143,7 +143,7 @@ def _img_b64_file(path: str | None) -> str | None:
 
 
 def _img_block(figdir: str, fname: str, caption: str = "") -> str:
-    """A <figure> embedding figures/<fname> inline, or a placeholder if absent."""
+    """A <figure> embedding <figdir>/<fname> inline, or a placeholder if absent."""
     b64 = _img_b64_file(os.path.join(figdir, fname))
     if not b64:
         return f'<p class="meta">[figure not found: {fname}]</p>'

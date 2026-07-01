@@ -21,8 +21,8 @@ env/
 
 # Tool / run outputs
 *.html
-# curated multiscale report is tracked (see runs/make_report.py)
-!report.html
+# the curated multiscale report bundle is tracked (see runs/make_report.py)
+!report/report.html
 *.cif
 *.cube
 *_slab.xyz
@@ -40,16 +40,13 @@ g16_*/
 .DS_Store
 .idea/
 .vscode/
-docs/whitepapers
 
 # Local-only notes (kept with the project, never pushed)
 *.local.md
+docs/local/
 
-# loose run-output figures in repo root (figures/ holds the curated set)
+# loose run-output figures in repo root (report/figures/ holds the curated set)
 /*.png
 
 # Volumetric cubes: large, regenerable (make_cubes) — never tracked
 cubes/
-
-# results/ holds tracked data (csv/json); keep transient preview PNGs out of it
-results/*.png

@@ -3,7 +3,7 @@
 .venv
 venv
 env
-docs/whitepapers/      # ~150 MB of private PDFs — never send to the daemon
+docs/local/            # private notes + ~150 MB of PDFs — never send to the daemon
 **/__pycache__/
 *.py[cod]
 *.egg-info/

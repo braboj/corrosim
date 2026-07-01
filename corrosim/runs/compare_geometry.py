@@ -9,7 +9,8 @@ CSV and a grouped-bar figure, and prints a summary.
 Runs in the venv (no QM container):
     python -m corrosim.runs.compare_geometry \
         --ff results/dft_descriptors.csv --opt results/dft_descriptors_opt.csv \
-        --out-csv results/geometry_comparison.csv --out-fig figures/fig8_geometry_comparison.png
+        --out-csv results/geometry_comparison.csv \
+        --out-fig report/figures/fig8_geometry_comparison.png
 """
 from __future__ import annotations
 
@@ -82,7 +83,7 @@ def main(argv=None) -> int:
                    help="DFT-optimised-geometry descriptor matrix.")
     p.add_argument("--phase", default="aqueous", choices=["gas", "aqueous"])
     p.add_argument("--out-csv", default="results/geometry_comparison.csv")
-    p.add_argument("--out-fig", default="figures/fig8_geometry_comparison.png")
+    p.add_argument("--out-fig", default="report/figures/fig8_geometry_comparison.png")
     args = p.parse_args(argv)
     log = lambda m: print(m, file=sys.stderr)
 

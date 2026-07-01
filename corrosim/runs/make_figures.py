@@ -1,7 +1,7 @@
 """
 corrosim.runs.make_figures  (M5)
 ================================
-Regenerate the full manuscript figure set into figures/. Reads the committed data
+Regenerate the full manuscript figure set into report/figures/. Reads the committed data
 (dft_descriptors.csv, *_fukui.json), re-runs the fast classical MC/MD, and renders
 orbital isosurfaces from any *_homo.cube / *_lumo.cube present.
 
@@ -42,9 +42,9 @@ def _fukui_from_json(path):
 
 
 def main(argv=None) -> int:
-    """CLI entry point: regenerate the full manuscript figure set into figures/."""
+    """CLI entry point: regenerate the full manuscript figure set into report/figures/."""
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
-    p.add_argument("--outdir", default="figures")
+    p.add_argument("--outdir", default="report/figures")
     p.add_argument("--datadir", default="results",
                    help="Where the descriptor/Fukui data live.")
     p.add_argument("--cubedir", default="cubes",

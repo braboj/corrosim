@@ -2,7 +2,8 @@
 corrosim.runs.run_fukui  (M2 driver)
 ====================================
 Condensed Fukui functions / dual descriptor for the flavonoids — Stage-1 local
-reactivity (which atoms bind the metal). Writes per-molecule JSON + a figure.
+reactivity (which atoms bind the metal). Writes per-molecule JSON to results/;
+figures are rendered separately by make_figures.
 
 Three single points per molecule (N, N-1, N+1) at fixed geometry; needs PySCF.
 
@@ -17,11 +18,7 @@ import json
 import os
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
-
-from corrosim import build_molecule, figures
+from corrosim import build_molecule
 from corrosim.fukui import compute_fukui
 from corrosim.presets import ARGHEL
 
@@ -48,8 +45,6 @@ def main(argv=None) -> int:
         m = build_molecule(name)
         fk = compute_fukui(m, basis=args.basis, xc=args.xc, method=args.method)
         json.dump(fk.as_rows(), open(f"{args.outdir}/{name}_fukui.json", "w"), indent=2)
-        figures.plot_fukui(fk, molecule=m, out=f"{args.outdir}/{name}_fukui.png",
-                           title=f"{name} — condensed Fukui ({args.xc.upper()}/{args.basis})")
         print("  top donor (f-) sites — the metal-binding atoms:", file=sys.stderr)
         for r in fk.top_donor_sites(6):
             print("    %2s%-2d  f-=%+.3f  dual=%+.3f"
