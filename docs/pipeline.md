@@ -194,6 +194,26 @@ hand-off for a quantitative E_ads), never into software licences.
 | Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
 | Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
 
+## Glossary
+
+| Term | What it is |
+| --- | --- |
+| **SMILES** | A compact text encoding of a molecule's structure (`CCO` = ethanol). |
+| **RDKit** | Open-source cheminformatics library — parses SMILES, builds 3D structures. |
+| **ETKDG** | RDKit's distance-geometry method for a sensible initial 3D conformer. |
+| **Force field (MMFF / UFF)** | Fast *classical* (non-quantum) energy model. MMFF = Merck Molecular Force Field (better for organics); UFF = Universal Force Field (general-purpose fallback). |
+| **DFT** | Density functional theory — the quantum method for the electrons; accurate but costly. |
+| **PySCF · xTB (tblite) · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines (PySCF, xTB free; ORCA / Gaussian optional). |
+| **geomeTRIC** | The optimiser that drives the DFT geometry optimisation. |
+| **HOMO / LUMO** | Highest-occupied / lowest-unoccupied molecular orbitals; drive the descriptors. |
+| **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites). |
+| **ESP / MEP** | (Molecular) electrostatic-potential map — a 3D charge "heat map". |
+| **Monte Carlo / simulated annealing** | Randomised search for the best adsorption pose. |
+| **ASE** | Atomic Simulation Environment — builds the metal slab. |
+| **RDF** | Radial distribution function — distance histogram; first peak = typical binding distance. |
+| **Physisorption / chemisorption** | Weak physical sticking vs strong chemical bonding. |
+| **LAMMPS** | External MD engine for the optional quantitative E_ads hand-off. |
+
 ## Scope and limitations
 
 - Simulations **screen and explain**; they do not *prove* that a molecule works.
