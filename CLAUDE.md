@@ -4,6 +4,10 @@ Automated screening of green corrosion inhibitors: a molecule (name or SMILES)
 and a metal in — DFT/QM reactivity descriptors + an adsorption estimate + a
 ranking + a self-contained HTML report out. Free software only.
 
+Pipeline: Stage 1 DFT/xTB descriptors + Fukui + ESP -> Stage 2 Monte Carlo
+adsorption pose -> Stage 3 Brownian MD (metal-O RDF) -> a self-contained HTML
+report. Scientific basis: `docs/pipeline.md`.
+
 Quality conventions are defined in `docs/solid-ai-templates/` (submodule). Key
 references — the resolved `python-lib` chain and the extras used here:
 
@@ -21,14 +25,10 @@ Project-specific overrides and additions follow below.
 - Model: hybrid
 - Owner: Branimir Georgiev
 - Repo: github.com/braboj/corrosim
-- Stack: Python >= 3.10 scientific library + CLI (`corrosim`), MIT.
-- Multiscale pipeline: Stage 1 DFT/xTB descriptors + Fukui + ESP -> Stage 2
-  Monte Carlo adsorption pose -> Stage 3 Brownian MD (metal-O RDF) -> a
-  self-contained HTML report. Scientific basis: `docs/pipeline.md`.
-- Core deps (orientation): numpy, rdkit, ase, pandas, matplotlib. Authoritative
-  list: `pyproject.toml` `[project.dependencies]`.
-- The QM engines (pyscf, tblite, geometric) have no Windows wheels and run
-  ONLY in the `corrosim-qm` Docker image. Everything else runs in a venv.
+- Stack: Python >= 3.10 scientific library + CLI (`corrosim`), MIT. Core deps
+  (orientation): numpy, rdkit, ase, pandas, matplotlib — authoritative list in
+  `pyproject.toml` `[project.dependencies]`.
+- Hosting: none — an installed library / CLI, no deploy target.
 
 ### 1.2 Project structure
 
@@ -47,6 +47,10 @@ Agent-relevant facts that tree does not carry:
   diagram) — ADR 0006/0008.
 
 ### 1.3 Commands
+
+Execution split (technical constraint): the QM engines (pyscf, tblite,
+geometric) have no Windows wheels and run ONLY in the `corrosim-qm` Docker
+image; everything else runs in a venv.
 
 ```bash
 pytest -q                              # test suite (venv; no QM)
@@ -145,8 +149,7 @@ Testing, quality gates, and packaging follow the referenced templates
   stays fast. Run `pytest -q`. CI matrix is py3.10-3.12 with
   `pip install -e .[dev]`. Every new feature/module ships a test; name
   `test_<unit>_<state>_<expected>`.
-- Quality gates in CI (authoritative config: `.github/workflows/ci.yml` +
-  `codeql.yml`): `ruff check` (incl. Google docstrings, `D`) + `mypy`
+- Quality gates in CI: `ruff check` (incl. Google docstrings, `D`) + `mypy`
   (non-strict) + `pytest` with scoped coverage ≥ 80% + Bandit (SAST) + gitleaks
   (secrets) + CodeQL. Explicit, deferrable deviations from the python-lib stack
   (ADR 0007): `ruff format` deferred; `mypy --strict` deferred; docstring rule
