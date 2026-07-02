@@ -198,21 +198,21 @@ hand-off for a quantitative E_ads), never into software licences.
 
 | Term | What it is |
 | --- | --- |
-| **SMILES** | A compact text encoding of a molecule's structure (`CCO` = ethanol). |
-| **RDKit** | Open-source cheminformatics library — parses SMILES, builds 3D structures. |
-| **ETKDG** | RDKit's distance-geometry method for a sensible initial 3D conformer. |
-| **Force field (MMFF / UFF)** | Fast *classical* (non-quantum) energy model. MMFF = Merck Molecular Force Field (better for organics); UFF = Universal Force Field (general-purpose fallback). |
-| **DFT** | Density functional theory — the quantum method for the electrons; accurate but costly. |
-| **PySCF · xTB (tblite) · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines (PySCF, xTB free; ORCA / Gaussian optional). |
-| **geomeTRIC** | The optimiser that drives the DFT geometry optimisation. |
-| **HOMO / LUMO** | Highest-occupied / lowest-unoccupied molecular orbitals; drive the descriptors. |
-| **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites). |
-| **ESP / MEP** | (Molecular) electrostatic-potential map — a 3D charge "heat map". |
+| **SMILES** (Simplified Molecular-Input Line-Entry System) | A compact text encoding of a molecule's structure (`CCO` = ethanol). |
+| **RDKit** (Rational Discovery toolkit) | Open-source cheminformatics library — parses SMILES, builds 3D structures. |
+| **ETKDG** (Experimental-Torsion Knowledge Distance Geometry) | RDKit's method for a sensible initial 3D conformer. |
+| **Force field** | Fast *classical* (non-quantum) energy model. **MMFF** = Merck Molecular Force Field (better for organics); **UFF** = Universal Force Field (general-purpose fallback). |
+| **DFT** (Density Functional Theory) | The quantum method for the molecule's electrons; accurate but costly. |
+| **PySCF · xTB · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines. **PySCF** (Python-based Simulations of Chemistry Framework) and **xTB** (extended Tight-Binding, via **tblite**) are free; ORCA / Gaussian optional. |
+| **geomeTRIC** | The geometry optimiser that drives the DFT geometry optimisation. |
+| **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors. |
+| **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites); named after Kenichi Fukui. |
+| **ESP / MEP** (Molecular Electrostatic Potential) | A 3D charge "heat map" of the molecule. |
 | **Monte Carlo / simulated annealing** | Randomised search for the best adsorption pose. |
-| **ASE** | Atomic Simulation Environment — builds the metal slab. |
-| **RDF** | Radial distribution function — distance histogram; first peak = typical binding distance. |
+| **ASE** (Atomic Simulation Environment) | Builds the metal slab. |
+| **RDF** (Radial Distribution Function) | Distance histogram; its first peak = typical binding distance. |
 | **Physisorption / chemisorption** | Weak physical sticking vs strong chemical bonding. |
-| **LAMMPS** | External MD engine for the optional quantitative E_ads hand-off. |
+| **LAMMPS** (Large-scale Atomic/Molecular Massively Parallel Simulator) | External molecular-dynamics engine for the optional quantitative E_ads hand-off. |
 
 ## Scope and limitations
 
