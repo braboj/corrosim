@@ -66,7 +66,7 @@ surface, the better it fights corrosion.
 | --- | --- |
 | **Why** | Everything downstream needs a concrete 3D shape to act on; a name or a SMILES string carries no coordinates. |
 | **What it does** | Turns the input into a sensible *starting* geometry — cheap, classical, and approximate, not the final word — and builds the acid-protonated form (the extra-H⁺ cation) the same way. Runs once per molecule; independent of the metal and the medium. |
-| **How** | Adds the hydrogen atoms, generates 3D coordinates (RDKit's ETKDG distance-geometry method), and tidies them with a quick force-field optimisation (MMFF, falling back to UFF). `corrosim/molecules.py` — `build_molecule`, `build_protonated`. |
+| **How** | Makes the SMILES's *implicit* hydrogens explicit (`AddHs` — SMILES leaves H's implied by valence, not as atoms), generates 3D coordinates for every atom (RDKit's ETKDG distance-geometry method), then tidies them with a quick force-field optimisation (MMFF, falling back to UFF). `corrosim/molecules.py` — `build_molecule`, `build_protonated`. |
 | **Output** | An in-memory structure passed to the next step; not persisted as a standalone file. |
 
 ## DFT geometry optimisation
