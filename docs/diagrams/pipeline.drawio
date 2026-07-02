@@ -18,7 +18,7 @@
         </mxCell>
 
         <mxCell id="geoout" value="Initial 3D structure&#10;H-added conformer · MMFF/UFF minimum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#94a3b8;fontSize=11;fontColor=#475569;align=left;spacingLeft=10;" vertex="1" parent="1">
-          <mxGeometry x="-160" y="120" width="270" height="54" as="geometry" />
+          <mxGeometry x="440" y="120" width="300" height="54" as="geometry" />
         </mxCell>
 
         <mxCell id="geo" value="3D geometry&#10;RDKit — ETKDG + MMFF/UFF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontColor=#1a202c;" vertex="1" parent="1">
@@ -26,7 +26,7 @@
         </mxCell>
 
         <mxCell id="optout" value="DFT-optimised geometry&#10;B3LYP/6-31G(d) minimum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#94a3b8;fontSize=11;fontColor=#475569;align=left;spacingLeft=10;" vertex="1" parent="1">
-          <mxGeometry x="-160" y="212" width="270" height="54" as="geometry" />
+          <mxGeometry x="440" y="212" width="300" height="54" as="geometry" />
         </mxCell>
 
         <mxCell id="opt" value="DFT geometry optimisation&#10;geomeTRIC (PySCF)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f8;strokeColor=#94a3b8;fontSize=12;fontStyle=1;fontColor=#1a202c;" vertex="1" parent="1">
@@ -75,8 +75,8 @@
         <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748b;endArrow=block;endFill=1;" edge="1" parent="1" source="s3" target="rep"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#94a3b8;dashed=1;endArrow=open;endFill=0;" edge="1" parent="1" source="rep" target="exp"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="og1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#94a3b8;endArrow=open;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="geo" target="geoout"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="og2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#94a3b8;endArrow=open;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="opt" target="optout"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="og1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#94a3b8;endArrow=open;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="geo" target="geoout"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="og2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#94a3b8;endArrow=open;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="opt" target="optout"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#90b4e0;endArrow=open;endFill=0;" edge="1" parent="1" source="s1" target="s1out"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#7fc8c0;endArrow=open;endFill=0;" edge="1" parent="1" source="s2" target="s2out"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#eaa472;endArrow=open;endFill=0;" edge="1" parent="1" source="s3" target="s3out"><mxGeometry relative="1" as="geometry" /></mxCell>
