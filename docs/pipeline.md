@@ -47,10 +47,10 @@ zooming from the lone molecule to the molecule sitting on metal:
 
 - **3D geometry** — turn the input (a name or SMILES string) into a rough 3D
   structure. Runs once per molecule; independent of the metal and the medium.
-- **DFT relaxation** — refine that rough structure into a trustworthy
+- **DFT geometry optimisation** — refine that rough structure into a trustworthy
   quantum-mechanical minimum before anything is measured on it.
 - **DFT — reactivity descriptors** — read the molecule's *global* and *local*
-  reactivity from the relaxed structure: *what kind of molecule is this?*
+  reactivity from the optimised structure: *what kind of molecule is this?*
 - **Monte Carlo** — *how does it like to sit on the metal?* Try many poses, keep
   the best.
 - **Molecular dynamics** — *how tightly does it hold on?* Let it jiggle at room
@@ -67,7 +67,7 @@ surface, the better it fights corrosion.
 **In plain terms.** Everything downstream needs a concrete 3D shape to act on, so
 corrosim first builds one: it adds the hydrogen atoms, generates 3D coordinates
 (RDKit's ETKDG distance-geometry method), and tidies them with a quick
-**force-field** relaxation (MMFF, falling back to UFF). The result is a sensible
+**force-field** optimisation (MMFF, falling back to UFF). The result is a sensible
 *starting* geometry — cheap, classical, and approximate, not the final word. It
 runs once per molecule and depends on neither the metal nor the medium. The
 acid-protonated form (the extra-H⁺ cation) is built the same way.
@@ -75,11 +75,11 @@ acid-protonated form (the extra-H⁺ cation) is built the same way.
 Implemented in `corrosim/molecules.py` (`build_molecule`, `build_protonated`).
 The trustworthy, publication-grade geometry comes from the next step.
 
-## DFT relaxation
+## DFT geometry optimisation
 
 **In plain terms.** The force-field shape is only a rough draft, so before we
-trust any number we **DFT-relax the geometry** — re-optimise it to a real
-quantum-mechanical minimum. Every descriptor below is read off this relaxed
+trust any number we **DFT-optimise the geometry** — re-optimise it to a real
+quantum-mechanical minimum. Every descriptor below is read off this optimised
 structure, which is why the geometry choice is checked for robustness
 (`run_dft --optimize`; the FF-vs-DFT comparison in `docs/validation.md`).
 Implemented via `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC).
@@ -220,8 +220,8 @@ on software licences.
 
 | Step | Module | Entry points |
 |---|---|---|
-| 3D geometry | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF relax) |
-| DFT relaxation | `corrosim/engines.py` | `optimize_geometry` (PySCF + geomeTRIC) |
+| 3D geometry | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF optimise) |
+| DFT geometry optimisation | `corrosim/engines.py` | `optimize_geometry` (PySCF + geomeTRIC) |
 | DFT engines | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian` |
 | DFT — global descriptors | `corrosim/descriptors.py` | `compute_descriptors` |
 | DFT — local descriptors | `corrosim/fukui.py`, `corrosim/figures.py` | `compute_fukui`; `write_density_esp_cubes`, `render_esp`, `render_orbital` |
