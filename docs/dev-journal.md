@@ -176,4 +176,39 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
 - **Verification:** `ruff check .` and `mypy` clean; `pytest` 78 passed / 1 skipped.
 - **Pending:** none — no open issues; PR #33 (report overhaul + #18) awaiting review.
 
+## 2026-07-02 — Docs DRY sweep; `docs/diagrams/`; §1.1 refiled to identity
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes (docs-only, no code touched):**
+  - Filed **#34** — optional cleanup of the isorhamnetin-cation imaginary
+    frequency (tighter-convergence re-opt); scoped as presentation polish, ~1–3 h
+    detached QM job, ranking unaffected.
+  - Moved `docs/pipeline.drawio` → **`docs/diagrams/`** (git rename, history kept)
+    and updated every reference (README, `pipeline.md`, `CLAUDE.md`, memory).
+  - **CLAUDE.md DRY pass:** replaced the duplicate project-structure tree in § 1.2
+    with a pointer to README (the SSOT per § 1.4) + the few agent-only facts a
+    listing can't give; deduped the tracked-vs-gitignored fact to § 2.1; pointed
+    the core-deps list at `pyproject.toml`.
+  - **Refiled § 1.1 Identity** to the template's definition (owner/repo/stack/
+    hosting): moved the pipeline overview to the top-of-file description and the
+    QM-engines Docker-only **execution constraint** to § 1.3 Commands.
+  - **Fixed a broken image in `pipeline.md`** (surfaced by the wrap-up audit):
+    its `fig0_pipeline.png` link pointed at the pre-ADR-0008 flat path, which no
+    longer exists. Committed the rendered diagram co-located as
+    `docs/diagrams/pipeline.png` (identical to the report render) and repointed
+    the image + re-export command at it.
+- **PRs merged:** none — **PR #35** opened (branch
+  `docs/diagrams-folder-dedupe-structure`, 2 commits); not merged.
+- **Issues closed/created:** created **#34**; PR #35 resolves no issue (no
+  auto-close trailer).
+- **Decisions:** no new ADR — organizational, not architectural. Principle
+  applied and reinforced: CLAUDE.md carries decisions/invariants a directory
+  listing can't recover, never a mirror of discoverable facts (README is the SSOT
+  for structure, § 1.4).
+- **Verification:** docs/config only — no runtime surface, so the `pytest`/`ruff`/
+  `mypy` gates were not required to re-run; `report/` bundle unchanged (the
+  `.drawio` move is byte-identical, so `fig0_pipeline.png` is unaffected).
+- **Pending:** PR #35 awaiting review; **#34** open (isorhamnetin imaginary-freq
+  cleanup, optional).
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

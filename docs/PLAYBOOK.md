@@ -113,6 +113,18 @@ Three CI gates guard the supply/security surface:
 - When a change alters an input, regenerate the dependent artifact in the same
   change: descriptors or `md_rdf.json` feed `make_figures` and `make_report`,
   which produce the `report/` bundle.
+- After editing `docs/diagrams/pipeline.drawio`, re-export the pipeline diagram
+  to **both** destinations (they must stay identical — the doc copy shown by
+  `docs/pipeline.md` and the `report/` bundle's `fig0`); commit the `.drawio`
+  source and both PNGs together:
+
+  ```bash
+  drawio -x -f png -s 2 -o docs/diagrams/pipeline.png              docs/diagrams/pipeline.drawio
+  drawio -x -f png -s 2 -o report/figures/pipeline/fig0_pipeline.png docs/diagrams/pipeline.drawio
+  ```
+
+  If `drawio` is not on PATH, invoke the installed draw.io desktop app's CLI
+  (`draw.io.exe --export --format png ...`) instead.
 - Cross-check ranking and descriptor claims against `docs/validation.md` before
   reporting them. After a geometry or level-of-theory change, confirm the lead
   ranking is robust with `python -m corrosim.runs.compare_geometry`.
