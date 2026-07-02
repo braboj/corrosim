@@ -78,7 +78,7 @@ surface, the better it fights corrosion.
 | **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. |
 | **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. |
 | **Input** | The starting 3D geometry from the previous step. |
-| **Output** | Descriptors on the optimised geometry in `results/dft_descriptors_opt.{csv,json}`; the robustness table in `results/geometry_comparison.csv`. |
+| **Output** | The DFT-optimised geometry (in-memory; not yet persisted — issue #36) and the FF-vs-DFT robustness table `results/geometry_comparison.csv`. (The descriptors *on* this geometry are written by the next step.) |
 
 ## DFT — global and local reactivity descriptors
 
@@ -122,8 +122,12 @@ Back-donation energy  ΔE_back = − η / 4
 
 The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
-hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`; **output** in
-`results/dft_descriptors.{csv,json}` (and `…_opt.{csv,json}` on the DFT geometry).
+hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`. **Output** — the
+same descriptor table on **two geometries**: `results/dft_descriptors.{csv,json}`
+(the cheap FF geometry, the default screen) and
+`results/dft_descriptors_opt.{csv,json}` (recomputed on the DFT-optimised
+geometry). Same descriptors, different geometry — the `_opt` suffix marks the
+*geometry*, not a different quantity.
 
 ### Local reactivity descriptors
 
@@ -150,7 +154,6 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
 | **What it does** | Finds the lowest-energy pose (position + orientation) on the metal surface and reports its **adsorption energy** E_ads (more negative = stronger grip). For the flavonoids on steel they lie **flat** at E_ads ≈ −16 kJ/mol — weak "physical" sticking (*physisorption*), consistent with published plant-inhibitor results. |
 | **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role. |
-| **Input** | The molecule and the metal substrate (a periodic slab). |
 | **Output** | `results/mc_adsorption.json`. |
 
 > A tempting shortcut — a tiny metal *cluster* scored with the fast `xtb` engine —
@@ -164,7 +167,6 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | A single best pose is just a snapshot; real molecules wiggle at temperature, so we check how the molecule actually settles and how far it sits from the metal. |
 | **What it does** | Lets the molecule move over the surface at room temperature (298 K) and reports the **adsorption distance** from the **metal–O radial distribution function (RDF)** — its first peak marks the typical binding distance (closer than ~3.5 Å → *chemisorption*; farther → *physisorption*). For the flavonoids the Fe–O first peak sits at ≈ 3.5 Å, the physisorption range, agreeing with the Monte Carlo step. |
 | **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (recipe in `LAMMPS_HANDOFF_NOTE`; GAFF/OPLS + EAM, explicit water) — the heavy job deliberately left outside the package. |
-| **Input** | The molecule on the metal slab, seeded from the Monte Carlo best pose. |
 | **Output** | `results/md_rdf.json`. |
 
 ## Open-source tooling
@@ -210,16 +212,7 @@ hand-off for a quantitative E_ads), never into software licences.
 | **DFT** (Density Functional Theory) | The quantum method for the molecule's electrons; accurate but costly. |
 | **PySCF · xTB · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines. **PySCF** (Python-based Simulations of Chemistry Framework) and **xTB** (extended Tight-Binding, via **tblite**) are free; ORCA / Gaussian optional. |
 | **geomeTRIC** | The geometry optimiser that drives the DFT geometry optimisation. |
-| **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors below. |
-| **HOMO–LUMO gap (ΔE)** | Energy separation between HOMO and LUMO; a smaller gap = more reactive, bonds to metal more readily. |
-| **Ionization potential (IP) / electron affinity (EA)** | Energy to remove an electron (IP = −E_HOMO) or released on gaining one (EA = −E_LUMO). |
-| **Electronegativity (χ)** | How strongly the molecule pulls on electrons overall (χ = (IP + EA)/2). |
-| **Chemical hardness (η) / softness (σ)** | Resistance to (η) vs ease of (σ = 1/η) distorting the electron cloud; softer molecules adsorb better. |
-| **Chemical potential (µ)** | The electrons' escaping tendency (µ = −χ); higher = readier to donate. |
-| **Electrophilicity (ω)** | Overall tendency to *accept* electrons (ω = µ²/2η). |
-| **ΔN** | Predicted electrons transferred from the molecule to the metal — a key inhibition indicator (Lukovits). |
-| **Back-donation (ΔE_back)** | Energy of electrons flowing back from the metal into the molecule (ΔE_back = −η/4). |
-| **Work function (Φ)** | How tightly the *metal* holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV). |
+| **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors. |
 | **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites); named after Kenichi Fukui. |
 | **ESP / MEP** (Molecular Electrostatic Potential) | A 3D charge "heat map" of the molecule. |
 | **Monte Carlo / simulated annealing** | Randomised search for the best adsorption pose. |
