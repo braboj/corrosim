@@ -44,7 +44,7 @@ def test_make_report_builds_self_contained_html(tmp_path):
     out = tmp_path / "report.html"
     docx = tmp_path / "report.docx"
     rc = make_report.main([
-        "--descriptors", str(RESULTS / "dft_descriptors.csv"),
+        "--descriptors", str(RESULTS / "dft_descriptors_ff.csv"),
         "--opt-descriptors", str(RESULTS / "dft_descriptors_opt.csv"),
         "--mc", str(RESULTS / "mc_adsorption.json"),
         "--md", str(RESULTS / "md_rdf.json"),
@@ -69,7 +69,7 @@ def test_compare_geometry_writes_csv_and_figure(tmp_path):
     csv = tmp_path / "geometry_comparison.csv"
     fig = tmp_path / "fig8.png"
     rc = compare_geometry.main([
-        "--ff", str(RESULTS / "dft_descriptors.csv"),
+        "--ff", str(RESULTS / "dft_descriptors_ff.csv"),
         "--opt", str(RESULTS / "dft_descriptors_opt.csv"),
         "--out-csv", str(csv), "--out-fig", str(fig),
     ])

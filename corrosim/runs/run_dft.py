@@ -14,8 +14,8 @@ are cached to JSON and printed as a table.
 Local use (needs rdkit + pyscf — long jobs are expected):
 
     python -m corrosim.runs.run_dft \
-        --molecules kaempferol,quercetin,isorhamnetin \
-        --engine pyscf --out-json results/dft_descriptors.json --out-csv results/dft_descriptors.csv
+        --molecules kaempferol,quercetin,isorhamnetin --engine pyscf \
+        --out-json results/dft_descriptors_ff.json --out-csv results/dft_descriptors_ff.csv
 
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 

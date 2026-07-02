@@ -58,7 +58,7 @@ ruff check .                           # lint
 mypy                                   # type-check (non-strict) — also a CI gate
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
-python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors.csv
+python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors_ff.csv
 python -m corrosim.runs.make_report    # -> report/ (report.html + report.docx + figures + tables)
 ```
 

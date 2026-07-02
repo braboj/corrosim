@@ -35,7 +35,7 @@ _FIG_PREFIX_STAGE = (
 
 # Table-filename -> stage subfolder.
 TABLE_STAGE = {
-    "dft_descriptors.csv": "dft",
+    "dft_descriptors_ff.csv": "dft",
     "dft_descriptors_opt.csv": "dft",
     "ranking.csv": "dft",
     "geometry_comparison.csv": "dft",

@@ -156,7 +156,7 @@ the bundled `corrosim-qm` image; everything else runs in the venv.
 docker compose build qm                           # build once
 docker compose run --rm qm pytest -q              # smoke test in the container
 docker compose run --rm qm \
-    python -m corrosim.runs.run_dft --out-csv results/dft_descriptors.csv
+    python -m corrosim.runs.run_dft --out-csv results/dft_descriptors_ff.csv
 ```
 
 The repo is bind-mounted at `/work`, so outputs land back in `results/` /
