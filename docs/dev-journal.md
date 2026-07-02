@@ -192,6 +192,11 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   - **Refiled § 1.1 Identity** to the template's definition (owner/repo/stack/
     hosting): moved the pipeline overview to the top-of-file description and the
     QM-engines Docker-only **execution constraint** to § 1.3 Commands.
+  - **Fixed a broken image in `pipeline.md`** (surfaced by the wrap-up audit):
+    its `fig0_pipeline.png` link pointed at the pre-ADR-0008 flat path, which no
+    longer exists. Committed the rendered diagram co-located as
+    `docs/diagrams/pipeline.png` (identical to the report render) and repointed
+    the image + re-export command at it.
 - **PRs merged:** none — **PR #35** opened (branch
   `docs/diagrams-folder-dedupe-structure`, 2 commits); not merged.
 - **Issues closed/created:** created **#34**; PR #35 resolves no issue (no
