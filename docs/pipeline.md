@@ -215,8 +215,8 @@ open-source tools, so it costs **$0 in licences**:
 | Forcite (MD) | Brownian rigid-body MD → metal–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
 | Multiwfn (Fukui / ESP) | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
 
-The takeaway: spend any compute budget on the molecular-dynamics simulation, not
-on software licences.
+The takeaway: your compute goes into the **DFT stage** (and the optional LAMMPS
+hand-off for a quantitative E_ads), never into software licences.
 
 ## Implementation map
 
@@ -229,7 +229,7 @@ on software licences.
 | DFT — local descriptors | `corrosim/fukui.py`, `corrosim/figures.py` | `compute_fukui`; `write_density_esp_cubes`, `render_esp`, `render_orbital` |
 | Monte Carlo | `corrosim/adsorption.py`, `corrosim/mc.py` | `build_adsorption_system`, `run_mc` |
 | Molecular dynamics | `corrosim/md.py` | `run_md` |
-| Reporting | `corrosim/report.py` | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
+| Reporting | `corrosim/report.py` (+ `report_layout`, `report_content`, `report_docx`) | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
 | Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
 | Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
 
