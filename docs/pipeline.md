@@ -4,8 +4,6 @@
 it. No computational-chemistry background needed — the technical detail is
 layered in for those who want it, but you can follow the story without it.*
 
----
-
 ## The problem, in one paragraph
 
 Metals corrode. Iron rusts, and in an acid — like the hydrochloric acid (HCl)
@@ -38,62 +36,59 @@ HTML report: every number, chart, and 3D picture bundled into one shareable file
 *Source: [`diagrams/pipeline.drawio`](diagrams/pipeline.drawio) — edit in
 [diagrams.net](https://app.diagrams.net); re-export steps are in
 [`PLAYBOOK.md`](PLAYBOOK.md) (§ 4 Maintenance). The bottom of this page maps
-each stage to the code.*
+each step to the code.*
 
-## The big idea: prepare once, then three screening stages
+## The big idea: five steps, top to bottom
 
-corrosim runs a one-off **preparation** step and then the **three-step screening
-recipe** that recurs across the green-inhibitor literature. Keep the two apart —
-this is the distinction that trips people up:
+corrosim follows the diagram top to bottom — the same recipe that recurs across
+the green-inhibitor literature. The first two steps build and refine a geometry to
+work on; the rest are the screening proper, each asking a different question and
+zooming from the lone molecule to the molecule sitting on metal:
 
-**Preparation** (a named step, *not* a numbered screening stage). Turn the input
-(a name or SMILES string) into a rough 3D structure to work on. Runs once per
-molecule; independent of the metal and the medium. Cheap and classical — no
-physics is being measured yet. Detailed in the next section.
+- **3D geometry** — turn the input (a name or SMILES string) into a rough 3D
+  structure. Runs once per molecule; independent of the metal and the medium.
+- **DFT relaxation** — refine that rough structure into a trustworthy
+  quantum-mechanical minimum before anything is measured on it.
+- **DFT — reactivity descriptors** — read the molecule's *global* and *local*
+  reactivity from the relaxed structure: *what kind of molecule is this?*
+- **Monte Carlo** — *how does it like to sit on the metal?* Try many poses, keep
+  the best.
+- **Molecular dynamics** — *how tightly does it hold on?* Let it jiggle at room
+  temperature and measure.
 
-**The screening proper** — each stage asks a different question, zooming from the
-lone molecule to the molecule sitting on metal:
+The screening steps are really chasing one thing: **how strongly the molecule
+sticks to the metal** (its *adsorption*). The better it sticks and shields the
+surface, the better it fights corrosion.
 
-1. **Stage 1 — what kind of molecule is this?** Study it on its own (quantum
-   chemistry). It *starts* by DFT-relaxing the prepared geometry, then reads off
-   the reactivity descriptors from that relaxed structure.
-2. **Stage 2 — how does it like to sit on the metal?** Try many poses, keep the best.
-3. **Stage 3 — how tightly does it hold on?** Let it jiggle at room temperature and measure.
+## 3D geometry
 
-All three screening stages are really chasing one thing: **how strongly the
-molecule sticks to the metal** (its *adsorption*). The better it sticks and
-shields the surface, the better it fights corrosion.
-
----
-
-## Preparation — from SMILES to a 3D structure
-
-*Named, not numbered — this happens once, before any screening stage, and no
-physics is measured here.*
+*This happens once, up front; no physics is measured here.*
 
 **In plain terms.** Everything downstream needs a concrete 3D shape to act on, so
 corrosim first builds one: it adds the hydrogen atoms, generates 3D coordinates
 (RDKit's ETKDG distance-geometry method), and tidies them with a quick
 **force-field** relaxation (MMFF, falling back to UFF). The result is a sensible
 *starting* geometry — cheap, classical, and approximate, not the final word. It
-runs once per molecule and depends on neither the metal nor the medium, which is
-why it sits outside the screening stages. The acid-protonated form (the extra-H⁺
-cation) is built the same way.
+runs once per molecule and depends on neither the metal nor the medium. The
+acid-protonated form (the extra-H⁺ cation) is built the same way.
 
 Implemented in `corrosim/molecules.py` (`build_molecule`, `build_protonated`).
-The trustworthy, publication-grade geometry comes next: Stage 1 re-optimises this
-structure with DFT before any descriptor is believed.
+The trustworthy, publication-grade geometry comes from the next step.
 
----
+## DFT relaxation
 
-## Stage 1 — Get to know the molecule (quantum chemistry)
+**In plain terms.** The force-field shape is only a rough draft, so before we
+trust any number we **DFT-relax the geometry** — re-optimise it to a real
+quantum-mechanical minimum. Every descriptor below is read off this relaxed
+structure, which is why the geometry choice is checked for robustness
+(`run_dft --optimize`; the FF-vs-DFT comparison in `docs/validation.md`).
+Implemented via `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC).
 
-**In plain terms.** Screening begins by upgrading that rough shape into a
-trustworthy one: we **DFT-relax the prepared geometry** to a real
-quantum-mechanical minimum before computing anything on it. Then, still before
-worrying about the metal, we examine the inhibitor by itself and ask: *how willing
-is it to share its electrons?* Gripping a metal
-surface is largely about donating electrons into the metal, so an
+## DFT — global and local reactivity descriptors
+
+**In plain terms.** Still before worrying about the metal, we examine the
+inhibitor by itself and ask: *how willing is it to share its electrons?* Gripping
+a metal surface is largely about donating electrons into the metal, so an
 "electron-generous" molecule tends to be a better inhibitor. To find out, we solve
 the quantum-mechanical equations for the molecule's electrons — a method called
 **DFT** (density functional theory). Think of it as an X-ray of the molecule's
@@ -115,7 +110,7 @@ numbers), and optional `orca` / `gaussian` wrappers if you have them. The
 literature typically uses commercial Gaussian (B3LYP, 6-311++G(d,p), implicit
 water) or DMol³; corrosim matches that level of theory with free tools.
 
-### The descriptors — the molecule's "scorecard"
+### Global descriptors — the molecule's "scorecard"
 
 From E_HOMO and E_LUMO a standard set of reactivity numbers (the *global
 descriptors*) is derived. **You don't need the algebra** — the two to watch are
@@ -140,7 +135,7 @@ The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
 hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`.
 
-### Which atoms actually do the gripping?
+### Local descriptors — which atoms actually do the gripping?
 
 The descriptors above describe the *whole* molecule; we also want to know *which
 individual atoms* latch onto the metal. Two tools answer that:
@@ -156,9 +151,7 @@ the 3-OH group are the metal-binding sites. Implemented in `corrosim/fukui.py`
 `figures.render_esp` (PySCF `cubegen` density + electrostatic potential, painted
 onto the molecule's surface).
 
----
-
-## Stage 2 — Find the comfiest fit on the metal (Monte Carlo)
+## Monte Carlo — find the comfiest fit on the metal
 
 **In plain terms.** Now we place the molecule on the metal surface and look for
 the *best way it can lie down* — the position and orientation where it sits most
@@ -183,9 +176,7 @@ same role.
 > was tried and **rejected**: bare clusters give wildly unphysical energies. See
 > [ADR 0001](adr/0001-reject-cluster-xtb-adsorption-energy.md).
 
----
-
-## Stage 3 — Let it settle and measure the grip (molecular dynamics)
+## Molecular dynamics — let it settle and measure the grip
 
 **In plain terms.** A single best pose is just a snapshot; real molecules wiggle.
 In **molecular dynamics (MD)** we let the molecule move around over the surface at
@@ -199,7 +190,7 @@ bond (*chemisorption*); farther means weaker physical sticking (*physisorption*)
 **What corrosim does.** It runs a light **Brownian molecular dynamics**
 (`corrosim/md.py`) under the same van-der-Waals field and reads the **metal–O
 RDF** (Fe–O for our steel case study). For the flavonoids the first peak sits at
-≈ 3.5 Å — the physisorption range, agreeing with Stage 2.
+≈ 3.5 Å — the physisorption range, agreeing with the Monte Carlo step.
 
 For a *quantitative, bond-capable* adsorption energy, corrosim hands off to
 **LAMMPS** (the step-by-step recipe is in `LAMMPS_HANDOFF_NOTE`): assign force
@@ -207,8 +198,6 @@ fields (GAFF/OPLS for the organic molecule, EAM for the metal), add explicit
 water, run the simulation, and compute E_ads and the RDF. That's the heavy,
 compute-hungry job deliberately left *outside* the package — stay on this
 classical path; full first-principles MD is far more expensive.
-
----
 
 ## Everything here is free software
 
@@ -224,27 +213,23 @@ open-source tools, so it costs **$0 in licences**:
 | Forcite (MD) | Brownian rigid-body MD → metal–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
 | Multiwfn (Fukui / ESP) | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
 
-The takeaway: spend any compute budget on the Stage-3 simulation, not on software
-licences.
+The takeaway: spend any compute budget on the molecular-dynamics simulation, not
+on software licences.
 
----
+## Where each step lives in the code
 
-## Where each stage lives in the code
-
-| Stage | Module | Entry points |
+| Step | Module | Entry points |
 |---|---|---|
-| Preparation (not a stage) | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF relax) |
-| Stage 1 (engines) | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian`, `optimize_geometry` |
-| Stage 1 (descriptors) | `corrosim/descriptors.py` | `compute_descriptors` |
-| Stage 1b (Fukui) | `corrosim/fukui.py` | `compute_fukui` |
-| Stage 1c (ESP/orbitals) | `corrosim/figures.py` | `write_density_esp_cubes`, `render_esp`, `render_orbital` |
-| Stage 2 (MC) | `corrosim/adsorption.py`, `corrosim/mc.py` | `build_adsorption_system`, `run_mc` |
-| Stage 3 (MD) | `corrosim/md.py` | `run_md` |
+| 3D geometry | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF relax) |
+| DFT relaxation | `corrosim/engines.py` | `optimize_geometry` (PySCF + geomeTRIC) |
+| DFT engines | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian` |
+| DFT — global descriptors | `corrosim/descriptors.py` | `compute_descriptors` |
+| DFT — local descriptors | `corrosim/fukui.py`, `corrosim/figures.py` | `compute_fukui`; `write_density_esp_cubes`, `render_esp`, `render_orbital` |
+| Monte Carlo | `corrosim/adsorption.py`, `corrosim/mc.py` | `build_adsorption_system`, `run_mc` |
+| Molecular dynamics | `corrosim/md.py` | `run_md` |
 | Reporting | `corrosim/report.py` | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
 | Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
 | Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
-
----
 
 ## What this does — and doesn't — tell you
 

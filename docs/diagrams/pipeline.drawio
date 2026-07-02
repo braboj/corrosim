@@ -21,7 +21,7 @@
           <mxGeometry x="150" y="120" width="240" height="54" as="geometry" />
         </mxCell>
 
-        <mxCell id="s1" value="Stage 1 — DFT / xTB&#10;PySCF · tblite · (ORCA / Gaussian)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#2b6cb0;fontSize=12;fontStyle=1;fontColor=#1a365d;" vertex="1" parent="1">
+        <mxCell id="s1" value="DFT / xTB&#10;PySCF · tblite · (ORCA / Gaussian)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#2b6cb0;fontSize=12;fontStyle=1;fontColor=#1a365d;" vertex="1" parent="1">
           <mxGeometry x="150" y="202" width="240" height="62" as="geometry" />
         </mxCell>
 
@@ -29,7 +29,7 @@
           <mxGeometry x="440" y="200" width="300" height="66" as="geometry" />
         </mxCell>
 
-        <mxCell id="s2" value="Stage 2 — Monte Carlo&#10;pose search on metal slab (ASE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4efeb;strokeColor=#319795;fontSize=12;fontStyle=1;fontColor=#1d4e4a;" vertex="1" parent="1">
+        <mxCell id="s2" value="Monte Carlo&#10;pose search on metal slab (ASE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4efeb;strokeColor=#319795;fontSize=12;fontStyle=1;fontColor=#1d4e4a;" vertex="1" parent="1">
           <mxGeometry x="150" y="302" width="240" height="62" as="geometry" />
         </mxCell>
 
@@ -37,7 +37,7 @@
           <mxGeometry x="440" y="310" width="300" height="46" as="geometry" />
         </mxCell>
 
-        <mxCell id="s3" value="Stage 3 — Brownian molecular dynamics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6d5;strokeColor=#dd6b20;fontSize=12;fontStyle=1;fontColor=#7c3a10;" vertex="1" parent="1">
+        <mxCell id="s3" value="Molecular dynamics&#10;Brownian rigid-body (metal–O RDF)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6d5;strokeColor=#dd6b20;fontSize=12;fontStyle=1;fontColor=#7c3a10;" vertex="1" parent="1">
           <mxGeometry x="150" y="402" width="240" height="54" as="geometry" />
         </mxCell>
 
