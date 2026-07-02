@@ -40,26 +40,59 @@ HTML report: every number, chart, and 3D picture bundled into one shareable file
 [`PLAYBOOK.md`](PLAYBOOK.md) (§ 4 Maintenance). The bottom of this page maps
 each stage to the code.*
 
-## The big idea: three stages, zooming in
+## The big idea: prepare once, then three screening stages
 
-Across the scientific literature on green inhibitors, the same three-step recipe
-keeps appearing — and corrosim follows it. Each step asks a different question,
-zooming from the lone molecule to the molecule sitting on metal:
+corrosim runs a one-off **preparation** step and then the **three-step screening
+recipe** that recurs across the green-inhibitor literature. Keep the two apart —
+this is the distinction that trips people up:
 
-1. **Stage 1 — what kind of molecule is this?** Study it on its own.
+**Preparation** (a named step, *not* a numbered screening stage). Turn the input
+(a name or SMILES string) into a rough 3D structure to work on. Runs once per
+molecule; independent of the metal and the medium. Cheap and classical — no
+physics is being measured yet. Detailed in the next section.
+
+**The screening proper** — each stage asks a different question, zooming from the
+lone molecule to the molecule sitting on metal:
+
+1. **Stage 1 — what kind of molecule is this?** Study it on its own (quantum
+   chemistry). It *starts* by DFT-relaxing the prepared geometry, then reads off
+   the reactivity descriptors from that relaxed structure.
 2. **Stage 2 — how does it like to sit on the metal?** Try many poses, keep the best.
 3. **Stage 3 — how tightly does it hold on?** Let it jiggle at room temperature and measure.
 
-All three are really chasing one thing: **how strongly the molecule sticks to the
-metal** (its *adsorption*). The better it sticks and shields the surface, the
-better it fights corrosion.
+All three screening stages are really chasing one thing: **how strongly the
+molecule sticks to the metal** (its *adsorption*). The better it sticks and
+shields the surface, the better it fights corrosion.
+
+---
+
+## Preparation — from SMILES to a 3D structure
+
+*Named, not numbered — this happens once, before any screening stage, and no
+physics is measured here.*
+
+**In plain terms.** Everything downstream needs a concrete 3D shape to act on, so
+corrosim first builds one: it adds the hydrogen atoms, generates 3D coordinates
+(RDKit's ETKDG distance-geometry method), and tidies them with a quick
+**force-field** relaxation (MMFF, falling back to UFF). The result is a sensible
+*starting* geometry — cheap, classical, and approximate, not the final word. It
+runs once per molecule and depends on neither the metal nor the medium, which is
+why it sits outside the screening stages. The acid-protonated form (the extra-H⁺
+cation) is built the same way.
+
+Implemented in `corrosim/molecules.py` (`build_molecule`, `build_protonated`).
+The trustworthy, publication-grade geometry comes next: Stage 1 re-optimises this
+structure with DFT before any descriptor is believed.
 
 ---
 
 ## Stage 1 — Get to know the molecule (quantum chemistry)
 
-**In plain terms.** Before worrying about the metal, we examine the inhibitor by
-itself and ask: *how willing is it to share its electrons?* Gripping a metal
+**In plain terms.** Screening begins by upgrading that rough shape into a
+trustworthy one: we **DFT-relax the prepared geometry** to a real
+quantum-mechanical minimum before computing anything on it. Then, still before
+worrying about the metal, we examine the inhibitor by itself and ask: *how willing
+is it to share its electrons?* Gripping a metal
 surface is largely about donating electrons into the metal, so an
 "electron-generous" molecule tends to be a better inhibitor. To find out, we solve
 the quantum-mechanical equations for the molecule's electrons — a method called
@@ -200,7 +233,7 @@ licences.
 
 | Stage | Module | Entry points |
 |---|---|---|
-| Build molecule | `corrosim/molecules.py` | `build_molecule`, `build_protonated` |
+| Preparation (not a stage) | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF relax) |
 | Stage 1 (engines) | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian`, `optimize_geometry` |
 | Stage 1 (descriptors) | `corrosim/descriptors.py` | `compute_descriptors` |
 | Stage 1b (Fukui) | `corrosim/fukui.py` | `compute_fukui` |
