@@ -23,6 +23,7 @@ import pandas as pd
 from corrosim import report
 from corrosim.medium import parse_medium
 from corrosim.presets import ARGHEL
+from corrosim.report_layout import table_path
 from corrosim.speciation import analyse_speciation, protonation_fraction
 
 ORDER = ARGHEL.molecule_list()
@@ -47,8 +48,11 @@ def main(argv=None) -> int:
                    help="Computed-pKaH JSON (run_pka); shown in the speciation section.")
     p.add_argument("--figdir", default="report/figures")
     p.add_argument("--out", default="report/report.html")
+    p.add_argument("--out-docx", default="report/report.docx",
+                   help="Word (.docx) report path; pass '' to skip the Word build.")
     p.add_argument("--tablesdir", default="report/tables",
-                   help="Copy the report's source CSV/JSON tables here for the bundle.")
+                   help="Copy the report's source CSV/JSON tables here for the "
+                        "bundle (nested into per-stage subfolders).")
     p.add_argument("--metal", default=ARGHEL.metal)
     p.add_argument("--medium", default=ARGHEL.medium)
     args = p.parse_args(argv)
@@ -128,26 +132,46 @@ def main(argv=None) -> int:
         f"opt rows: {len(opt_neutral_rows) if opt_neutral_rows else 0} neutral / "
         f"{len(opt_acid_rows) if opt_acid_rows else 0} protonated")
 
-    out = report.build_pipeline_report(
-        rows, mc_rows, md_rows, fukui_by_name,
-        figdir=args.figdir, out_path=args.out,
-        metal=args.metal, medium=args.medium, order=present,
+    # Both renderers take the same inputs (report_docx mirrors build_pipeline_report).
+    common = dict(
+        figdir=args.figdir, metal=args.metal, medium=args.medium, order=present,
         acid_cation_rows=acid_rows, speciation_summary=speciation_summary,
         computed_pkah=computed_pkah, pka_freq_corrected=pka_freq_corrected,
         opt_neutral_rows=opt_neutral_rows, opt_acid_rows=opt_acid_rows,
     )
-    # Bundle the source tables next to the report so report/ is self-describing.
-    os.makedirs(args.tablesdir, exist_ok=True)
-    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(
-        os.path.join(args.tablesdir, "ranking.csv"), index=False)
+    out = report.build_pipeline_report(rows, mc_rows, md_rows, fukui_by_name,
+                                       out_path=args.out, **common)
+    size_kb = os.path.getsize(out) / 1024
+    print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
+
+    # Word (.docx) report — same content, needs python-docx (the `report` extra).
+    if args.out_docx:
+        try:
+            from corrosim import report_docx
+            docx_out = report_docx.build_docx_report(
+                rows, mc_rows, md_rows, fukui_by_name, out_path=args.out_docx,
+                **common)
+            print(f"word report written to {docx_out} "
+                  f"({os.path.getsize(docx_out) / 1024:.0f} kB)")
+        except ImportError:
+            log("python-docx not installed; skipped .docx "
+                "(install it with: pip install -e .[report])")
+
+    # Bundle the source tables next to the report (per-stage subfolders) so the
+    # report/ bundle is self-describing.
+    def _bundle(src: str, name: str | None = None) -> None:
+        dst = table_path(args.tablesdir, name or os.path.basename(src))
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy(src, dst)
+
+    ranking_dst = table_path(args.tablesdir, "ranking.csv")
+    os.makedirs(os.path.dirname(ranking_dst), exist_ok=True)
+    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(ranking_dst, index=False)
     for src in (args.descriptors, args.opt_descriptors,
                 "results/geometry_comparison.csv", args.pka):
         if os.path.exists(src):
-            shutil.copy(src, os.path.join(args.tablesdir, os.path.basename(src)))
-
-    size_kb = os.path.getsize(out) / 1024
-    print(f"report written to {out} ({size_kb:.0f} kB, self-contained); "
-          f"tables in {args.tablesdir}/")
+            _bundle(src)
+    print(f"tables in {args.tablesdir}/ (per-stage subfolders)")
     return 0
 
 

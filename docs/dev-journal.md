@@ -100,11 +100,80 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (3) gitleaks CI job alongside the existing pre-commit hook. (4) Bandit CI job
   (`[tool.bandit]`; the two `engines.py` QM-binary `subprocess` launches
   reviewed and `# nosec`-ed) plus a CodeQL SAST workflow.
-- **PRs merged:** none yet — branch `feat/quality-gates-31`.
-- **Issues closed/created:** resolves #31 on merge.
+- **PRs merged:** #32 (squash-merged to `main` as `a151ea8`; all 8 CI checks
+  green — lint, test ×3.10/3.11/3.12, Bandit, gitleaks, CodeQL).
+- **Issues closed/created:** closed #31 (auto-closed on merge).
 - **Decisions:** reconcile the python-lib gates with QM-light by scoping
   coverage and relaxing `D205` (ADR 0007).
 - **Verification:** `ruff check .`, `mypy`, `bandit -r corrosim` clean;
   `pytest` 66 passed / 1 skipped; scoped coverage ~85% (gate 80%).
+- **Pending:** #18 (frequency-corrected pKaH) is the only open issue. The
+  detached QM job `corrosim_pka_freq` (gas opt+freq cycle) has 1 of 3 molecules
+  done — first corrected pKaH ≈ −12.90 (vs −7.29 electronic-only), so still ~0%
+  protonated in 1 M HCl and the quercetin lead is unaffected; `results/pka_freq.json`
+  is written only once all 3 finish. On completion: verify `n_imag = 0`, fold
+  into `results/pka.json`, regenerate the `report/` bundle, update ADR 0005 +
+  `docs/validation.md`, PR, and close #18.
+
+## 2026-07-01 — Report insight: per-stage subfolders, Word output, equations
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes (customer request):** Reorganised the `report/` bundle into
+  per-stage subfolders (`figures/{pipeline,dft,fukui,esp,mc,md}/`,
+  `tables/{dft,pka}/`), single-sourced by a new `report_layout.py` that both the
+  figure generator and the report builders resolve paths through. Added a Word
+  (`.docx`) report (`report_docx.py`, python-docx) written alongside the HTML by
+  `make_report`; both renderers share the derived data (`prepare_report_data`),
+  the governing equations (`equations.py`) and the narrative (`report_content.py`).
+  Equations appear in scientific form in both: matplotlib-mathtext images in the
+  HTML, and **native, editable Word equations (OMML)** in the `.docx` via the
+  pure-Python `latex2mathml` + `mathml2omml` chain (image fallback if absent) —
+  no LaTeX/pandoc/Office toolchain. Every figure now carries
+  a standalone explanation, and a new "Scientific basis & validation" section
+  folds in `pipeline.md` (three-stage rationale, descriptor definitions) and
+  `validation.md` (descriptor results, computed-pKaH resolution, published Fe(110)
+  cross-checks, the Mohammed 2014 experimental anchor). Section/subsection headings
+  (h2/h3) are numbered hierarchically (1, 1.1 …) identically in both formats, and
+  Fukui + ESP were folded into Stage 1 as subsections (3.7 / 3.8) — the pipeline is
+  three stages, so the old "Stage 1b/1c" badges were misleading. Regenerated the
+  bundle (HTML 4.2 MB / DOCX 3.0 MB; 27 figures + 19 equations embedded in each).
+- **Housekeeping:** de-duplicated obsolete memory/handoff files earlier in the
+  session (retired `tech-debt-backlog`, `arghel-experimental-tbd`,
+  `tech-debt.local.md`; collapsed `SESSION-HANDOFF.local.md` into this journal's
+  Pending line).
+- **PRs merged:** none yet — branch `feat/report-word-subfolders`.
+- **Issues closed/created:** —.
+- **Decisions:** report-bundle subfolders + Word output + equations in scientific
+  form — HTML mathtext images, Word native editable OMML (ADR 0008); `report`
+  extra (python-docx + latex2mathml + mathml2omml, also in `dev`), all pure-Python
+  — reconciled with the venv/CI free-software model (no pandoc/Office/system binary).
+- **Verification:** `ruff check .` and `mypy` clean; `pytest` 78 passed / 1
+  skipped; scoped coverage 87.64% (gate 80%); regenerated `.docx` carries 19
+  native (editable) equations + 27 figures.
+
+## 2026-07-02 — Frequency-corrected pKaH folded in (#18 resolved)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Key changes:** The detached `corrosim_pka_freq` QM job finished for all three
+  molecules; folded its frequency-corrected pKaH into `results/pka.json` (now the
+  canonical file; the transient `pka_freq.json` was removed). Values became **more
+  negative** (quercetin −13.3, kaempferol −12.9, isorhamnetin −5.1) than the
+  electronic-only estimate, deepening the "all < 0.1 % protonated, quercetin lead
+  robust" conclusion. Regenerated the `report/` bundle (HTML + Word) — the
+  speciation section now shows the frequency-corrected caption and values.
+- **Verification finding (surfaced, not hidden):** quercetin and kaempferol are
+  clean minima (n_imag = 0 for neutral and cation); the **isorhamnetin cation
+  retained one imaginary frequency** (a low methoxy/hydroxyl torsion). Documented
+  as a caveat in `docs/validation.md`, ADR 0005 and the report itself — it does not
+  change the conclusion (isorhamnetin stays neutral and is not the lead; the lead
+  rests on a clean calc).
+- **PRs merged:** none yet — added onto branch `feat/report-word-subfolders`
+  (PR #33), since finalising #18 requires the new report code to regenerate the
+  bundle. Resolves #18 on merge.
+- **Issues closed/created:** resolves #18.
+- **Decisions:** ADR 0005 updated (frequency-corrected pKaH is now the canonical
+  result; isorhamnetin imaginary-mode caveat recorded).
+- **Verification:** `ruff check .` and `mypy` clean; `pytest` 78 passed / 1 skipped.
+- **Pending:** none — no open issues; PR #33 (report overhaul + #18) awaiting review.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

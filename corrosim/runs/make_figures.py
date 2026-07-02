@@ -25,6 +25,7 @@ from corrosim.fukui import FukuiResult
 from corrosim.mc import run_mc
 from corrosim.md import run_md
 from corrosim.presets import ARGHEL
+from corrosim.report_layout import figure_path
 
 ORDER = ARGHEL.molecule_list()
 
@@ -52,7 +53,12 @@ def main(argv=None) -> int:
     p.add_argument("--steps-md", type=int, default=6000)
     args = p.parse_args(argv)
     os.makedirs(args.outdir, exist_ok=True)
-    out = lambda f: os.path.join(args.outdir, f)
+
+    def out(f):                                       # place each figure in its stage subfolder
+        path = figure_path(args.outdir, f)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        return path
+
     log = lambda m: print(m, file=sys.stderr)
 
     log("Fig 1: structures")

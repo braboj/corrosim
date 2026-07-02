@@ -1,29 +1,47 @@
 [
   {
     "name": "kaempferol",
-    "e_neutral_aq_ev": -28007.9633,
-    "e_cation_aq_ev": -28019.0238,
-    "proton_affinity_aq_ev": 11.0605,
+    "e_neutral_aq_ev": -28008.1951,
+    "e_cation_aq_ev": -28019.4845,
+    "proton_affinity_aq_ev": 11.2894,
     "g_aq_proton_ev": -11.7209,
-    "pkah_electronic": -11.16,
-    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water), electronic-only"
+    "pkah_electronic": -7.29,
+    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water) // B3LYP/6-31G(d) gas opt+freq, frequency-corrected",
+    "g_corr_neutral_ev": 4.9469,
+    "g_corr_cation_ev": 5.2787,
+    "pkah": -12.9,
+    "n_imag_neutral": 0,
+    "n_imag_cation": 0,
+    "temperature_k": 298.15
   },
   {
     "name": "quercetin",
-    "e_neutral_aq_ev": -30055.5652,
-    "e_cation_aq_ev": -30066.5685,
-    "proton_affinity_aq_ev": 11.0033,
+    "e_neutral_aq_ev": -30055.846,
+    "e_cation_aq_ev": -30067.1114,
+    "proton_affinity_aq_ev": 11.2654,
     "g_aq_proton_ev": -11.7209,
-    "pkah_electronic": -12.13,
-    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water), electronic-only"
+    "pkah_electronic": -7.7,
+    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water) // B3LYP/6-31G(d) gas opt+freq, frequency-corrected",
+    "g_corr_neutral_ev": 5.0275,
+    "g_corr_cation_ev": 5.3587,
+    "pkah": -13.3,
+    "n_imag_neutral": 0,
+    "n_imag_cation": 0,
+    "temperature_k": 298.15
   },
   {
     "name": "isorhamnetin",
-    "e_neutral_aq_ev": -31124.9002,
-    "e_cation_aq_ev": -31136.4249,
-    "proton_affinity_aq_ev": 11.5247,
+    "e_neutral_aq_ev": -31125.1479,
+    "e_cation_aq_ev": -31136.972,
+    "proton_affinity_aq_ev": 11.8241,
     "g_aq_proton_ev": -11.7209,
-    "pkah_electronic": -3.32,
-    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water), electronic-only"
+    "pkah_electronic": 1.74,
+    "level": "B3LYP/6-311++G(d,p) (ddCOSMO:water) // B3LYP/6-31G(d) gas opt+freq, frequency-corrected",
+    "g_corr_neutral_ev": 5.7305,
+    "g_corr_cation_ev": 6.1369,
+    "pkah": -5.12,
+    "n_imag_neutral": 0,
+    "n_imag_cation": 1,
+    "temperature_k": 298.15
   }
 ]

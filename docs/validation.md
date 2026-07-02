@@ -57,14 +57,25 @@ isorhamnetin at only ~5–7 % protonation** (pKaH ≈ −1.1 to −1.3). So whic
 correct hinges on the protonation pKa — the dominant uncertainty for the acidic
 case (more than geometry or level of theory).
 
-**Computed pKaH resolves it (ADR 0005).** A DFT deprotonation cycle
-(B3LYP/6-311++G(d,p) + ddCOSMO; `results/pka.json`, `run_pka`) gives **pKaH =
-quercetin −12.1, kaempferol −11.2, isorhamnetin −3.3** — all far below the
-crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The neutral
-form is therefore the physically dominant species, not just the conventional
-choice, and the **quercetin lead is robust**. (Electronic-only estimate; the
-omitted O–H zero-point energy only pushes pKaH lower / more neutral, reinforcing
-this.)
+**Computed pKaH resolves it (ADR 0005; frequency-corrected, issue #18).** A DFT
+deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO on B3LYP/6-31G(d) gas
+opt+frequency geometries; `results/pka.json`, `run_pka --freq`) gives
+**pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −5.12** — all far below
+the crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The
+neutral form is therefore the physically dominant species, not just the
+conventional choice, and the **quercetin lead is robust**. The ZPE/thermal/entropy
+correction pushes every value *more* negative (more neutral) than the
+electronic-only estimate, deepening the conclusion.
+
+*Caveat (issue #18).* The quercetin and kaempferol optimisations are clean minima
+(no imaginary frequencies for either the neutral or the cation). The **isorhamnetin
+cation retained one imaginary frequency** (a low-frequency methoxy/hydroxyl torsion
+that did not fully converge to a minimum), so its corrected pKaH (−5.12) is less
+tightly determined — and isorhamnetin is the most geometry-sensitive of the three
+(its electronic-only pKaH on the DFT-optimised geometry is +1.7, pulled firmly
+neutral only by the correction). This does **not** affect the conclusion: even at
+its flagged value isorhamnetin stays < 0.1 % protonated, and it is not the lead —
+the lead (quercetin) rests on a clean, imaginary-frequency-free calculation.
 
 ### Geometry refinement (FF vs DFT-optimised)
 

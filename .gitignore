@@ -21,7 +21,8 @@ env/
 
 # Tool / run outputs
 *.html
-# the curated multiscale report bundle is tracked (see runs/make_report.py)
+# the curated multiscale report bundle is tracked (report.html + report.docx +
+# figures/ + tables/; see runs/make_report.py)
 !report/report.html
 *.cif
 *.cube
@@ -40,6 +41,7 @@ g16_*/
 .DS_Store
 .idea/
 .vscode/
+~$*.docx        # Word lock/owner files
 
 # Local-only notes (kept with the project, never pushed)
 *.local.md

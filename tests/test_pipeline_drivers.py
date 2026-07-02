@@ -33,13 +33,16 @@ def test_make_figures_renders_pngs_from_results(tmp_path):
         "--steps-mc", "60", "--steps-md", "60",
     ])
     assert rc == 0
-    assert list(tmp_path.glob("*.png")), "expected manuscript figures to be written"
+    # figures are nested into per-stage subfolders (report_layout), so glob deep
+    assert list(tmp_path.glob("**/*.png")), "expected manuscript figures to be written"
+    assert (tmp_path / "dft").is_dir()          # Stage-1 figures land under dft/
 
 
 def test_make_report_builds_self_contained_html(tmp_path):
     from corrosim.runs import make_report
 
     out = tmp_path / "report.html"
+    docx = tmp_path / "report.docx"
     rc = make_report.main([
         "--descriptors", str(RESULTS / "dft_descriptors.csv"),
         "--opt-descriptors", str(RESULTS / "dft_descriptors_opt.csv"),
@@ -49,11 +52,15 @@ def test_make_report_builds_self_contained_html(tmp_path):
         "--pka", str(RESULTS / "pka.json"),
         "--figdir", str(FIGURES),
         "--out", str(out),
+        "--out-docx", str(docx),
         "--tablesdir", str(tmp_path / "tables"),
     ])
     assert rc == 0
     assert out.exists() and out.stat().st_size > 1000
-    assert (tmp_path / "tables" / "ranking.csv").exists()
+    # Word report is written too (python-docx is a dev dependency)
+    assert docx.exists() and docx.stat().st_size > 1000
+    # tables are bundled into per-stage subfolders
+    assert (tmp_path / "tables" / "dft" / "ranking.csv").exists()
 
 
 def test_compare_geometry_writes_csv_and_figure(tmp_path):
