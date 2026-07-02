@@ -33,11 +33,11 @@ You give corrosim three things (the three boxes at the top of the diagram):
 Out the other end comes a **ranking** of the candidates and a self-contained
 HTML report: every number, chart, and 3D picture bundled into one shareable file.
 
-![corrosim pipeline](../report/figures/fig0_pipeline.png)
+![corrosim pipeline](../docs/diagrams/pipeline.png)
 
 *Source: [`diagrams/pipeline.drawio`](diagrams/pipeline.drawio) — edit in
 [diagrams.net](https://app.diagrams.net), re-export with
-`drawio -x -f png -s 2 -o report/figures/fig0_pipeline.png docs/diagrams/pipeline.drawio`. The
+`drawio -x -f png -s 2 -o docs/diagrams/pipeline.png docs/diagrams/pipeline.drawio`. The
 bottom of this page maps each stage to the code.*
 
 ## The big idea: three stages, zooming in
@@ -90,7 +90,7 @@ the **gap** (smaller = more reactive) and **ΔN** (roughly, how many electrons t
 molecule tends to hand to the metal). The full set, for completeness (via
 Koopmans' theorem):
 
-```
+```text
 Energy gap            ΔE   = E_LUMO − E_HOMO          (smaller → more reactive)
 Ionization potential  IP   = − E_HOMO
 Electron affinity     EA   = − E_LUMO
