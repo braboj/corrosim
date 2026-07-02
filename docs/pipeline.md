@@ -123,11 +123,11 @@ Back-donation energy  ΔE_back = − η / 4
 The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
 hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`. **Output** — the
-same descriptor table on **two geometries**: `results/dft_descriptors.{csv,json}`
+same descriptor table on **two geometries**: `results/dft_descriptors_ff.{csv,json}`
 (the cheap FF geometry, the default screen) and
 `results/dft_descriptors_opt.{csv,json}` (recomputed on the DFT-optimised
-geometry). Same descriptors, different geometry — the `_opt` suffix marks the
-*geometry*, not a different quantity.
+geometry). Same descriptors, different geometry — the symmetric `_ff` / `_opt`
+suffixes mark the *geometry*, not a different quantity.
 
 ### Local reactivity descriptors
 
@@ -154,11 +154,12 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
 | **What it does** | Finds the lowest-energy pose (position + orientation) on the metal surface and reports its **adsorption energy** E_ads (more negative = stronger grip). For the flavonoids on steel they lie **flat** at E_ads ≈ −16 kJ/mol — weak "physical" sticking (*physisorption*), consistent with published plant-inhibitor results. |
 | **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role. |
+| **Input** | The molecule's **force-field geometry**, rebuilt from SMILES (`build_molecule`, seed 42) — deliberately *not* the DFT-optimised structure. See the geometry note below. |
 | **Output** | `results/mc_adsorption.json`. |
 
 > A tempting shortcut — a tiny metal *cluster* scored with the fast `xtb` engine —
 > was tried and **rejected**: bare clusters give wildly unphysical energies. See
-> [ADR 0001](adr/0001-reject-cluster-xtb-adsorption-energy.md).
+> [ADR 0001](decisions/0001-reject-cluster-xtb-adsorption-energy.md).
 
 ## Molecular dynamics — adsorption distance (metal–O RDF)
 
@@ -167,7 +168,19 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | A single best pose is just a snapshot; real molecules wiggle at temperature, so we check how the molecule actually settles and how far it sits from the metal. |
 | **What it does** | Lets the molecule move over the surface at room temperature (298 K) and reports the **adsorption distance** from the **metal–O radial distribution function (RDF)** — its first peak marks the typical binding distance (closer than ~3.5 Å → *chemisorption*; farther → *physisorption*). For the flavonoids the Fe–O first peak sits at ≈ 3.5 Å, the physisorption range, agreeing with the Monte Carlo step. |
 | **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (recipe in `LAMMPS_HANDOFF_NOTE`; GAFF/OPLS + EAM, explicit water) — the heavy job deliberately left outside the package. |
+| **Input** | The same **force-field geometry** as the Monte Carlo step (rebuilt from SMILES). |
 | **Output** | `results/md_rdf.json`. |
+
+> **Geometry across stages.** The Stage-1 descriptors are read off the
+> **DFT-optimised** geometry; the Monte Carlo and molecular-dynamics stages
+> instead run on the cheap **force-field** geometry, rebuilt from SMILES
+> (`build_molecule`, seed 42). This is deliberate, not an inconsistency: MC/MD
+> here are *rigid-body* van-der-Waals models, where the internal conformer barely
+> shifts the adsorption pose or the metal–O RDF, so the expensive DFT structure is
+> reserved for the reactivity descriptors that genuinely depend on it. See
+> [ADR 0009](decisions/0009-ff-geometry-for-mc-md.md); once the DFT geometry is
+> persisted (issue #36), MC/MD *could* optionally consume it for full cross-stage
+> coherence.
 
 ## Open-source tooling
 

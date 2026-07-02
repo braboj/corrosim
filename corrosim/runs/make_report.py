@@ -36,7 +36,7 @@ def _load_json(path: str):
 def main(argv=None) -> int:
     """CLI entry point: build the self-contained multiscale HTML pipeline report."""
     p = argparse.ArgumentParser(prog="corrosim-make-report")
-    p.add_argument("--descriptors", default="results/dft_descriptors.csv")
+    p.add_argument("--descriptors", default="results/dft_descriptors_ff.csv")
     p.add_argument("--opt-descriptors", default="results/dft_descriptors_opt.csv",
                    help="DFT-optimised-geometry matrix; surfaced as a labelled "
                         "section (neutral ranking + protonated cations) when present.")

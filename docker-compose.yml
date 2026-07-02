@@ -4,7 +4,7 @@
 #   docker compose run --rm qm              # smoke: import the engines
 #   docker compose run --rm qm pytest -q    # full suite incl. the xTB smoke test
 #   docker compose run --rm qm python -m corrosim.runs.run_dft --engine pyscf \
-#         --out-json dft_descriptors.json --out-csv dft_descriptors.csv
+#         --out-json dft_descriptors_ff.json --out-csv dft_descriptors_ff.csv
 #
 # The repo is bind-mounted at /work, so outputs (JSON/CSV/HTML) land back in the
 # project directory on the host and code edits need no rebuild.

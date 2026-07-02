@@ -7,7 +7,7 @@
 #   docker compose build qm
 #   docker compose run --rm qm pytest -q
 #   docker compose run --rm qm python -m corrosim.runs.run_dft --engine pyscf \
-#         --out-json dft_descriptors.json --out-csv dft_descriptors.csv
+#         --out-json dft_descriptors_ff.json --out-csv dft_descriptors_ff.csv
 #
 # Python 3.12: pyscf publishes manylinux wheels for it; tblite builds from the
 # toolchain below if a wheel isn't used.

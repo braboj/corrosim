@@ -41,7 +41,7 @@ cubes — must run detached so a shell or session exit does not kill them.
 
 ```bash
 docker compose run --rm qm \
-    python -m corrosim.runs.run_dft --out-csv results/dft_descriptors.csv
+    python -m corrosim.runs.run_dft --out-csv results/dft_descriptors_ff.csv
 
 # detached (long jobs):
 docker compose run -d --name corrosim_job qm \

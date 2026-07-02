@@ -1,7 +1,7 @@
 """corrosim.runs.make_figures  (M5).
 
 Regenerate the full manuscript figure set into report/figures/. Reads the committed data
-(dft_descriptors.csv, *_fukui.json), re-runs the fast classical MC/MD, and renders
+(dft_descriptors_ff.csv, *_fukui.json), re-runs the fast classical MC/MD, and renders
 orbital isosurfaces from any *_homo.cube / *_lumo.cube present.
 
 Runs in the venv (no QM container needed unless you want fresh orbital cubes):
@@ -64,9 +64,9 @@ def main(argv=None) -> int:
     log("Fig 1: structures")
     figures.plot_structures(ORDER, out=out("fig1_structures.png"))
 
-    if os.path.exists(f"{args.datadir}/dft_descriptors.csv"):
+    if os.path.exists(f"{args.datadir}/dft_descriptors_ff.csv"):
         log("Fig 2/3: FMO energy diagram, descriptors, protonation effect")
-        df = pd.read_csv(f"{args.datadir}/dft_descriptors.csv")
+        df = pd.read_csv(f"{args.datadir}/dft_descriptors_ff.csv")
         naq = (df[(df.form == "neutral") & (df.phase == "aqueous")]
                .set_index("name").loc[ORDER].reset_index())
         rows = naq.to_dict("records")

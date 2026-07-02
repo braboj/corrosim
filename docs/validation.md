@@ -48,7 +48,7 @@ it only for screening, never for reported descriptors:
 
 In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
 aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
-gas/aqueous matrix: `results/dft_descriptors.{json,csv}` (run `python -m corrosim.runs.run_dft`).
+gas/aqueous matrix: `results/dft_descriptors_ff.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
 **Quantitative pH-speciation (ADR 0004).** The most basic site is the 4-oxo
 carbonyl, a very weak base. A literature-range estimate (pKaH ≈ −1.5) puts the

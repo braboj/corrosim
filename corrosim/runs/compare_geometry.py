@@ -7,7 +7,7 @@ CSV and a grouped-bar figure, and prints a summary.
 
 Runs in the venv (no QM container):
     python -m corrosim.runs.compare_geometry \
-        --ff results/dft_descriptors.csv --opt results/dft_descriptors_opt.csv \
+        --ff results/dft_descriptors_ff.csv --opt results/dft_descriptors_opt.csv \
         --out-csv results/geometry_comparison.csv \
         --out-fig report/figures/fig8_geometry_comparison.png
 """
@@ -78,7 +78,7 @@ def _compare_form(ff_full, opt_full, form, phase):
 def main(argv=None) -> int:
     """CLI entry point: compare FF vs DFT-optimised descriptors and check ranking robustness."""
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
-    p.add_argument("--ff", default="results/dft_descriptors.csv",
+    p.add_argument("--ff", default="results/dft_descriptors_ff.csv",
                    help="Force-field-geometry descriptor matrix.")
     p.add_argument("--opt", default="results/dft_descriptors_opt.csv",
                    help="DFT-optimised-geometry descriptor matrix.")
