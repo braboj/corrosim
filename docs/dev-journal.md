@@ -211,4 +211,40 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
 - **Pending:** PR #35 awaiting review; **#34** open (isorhamnetin imaginary-freq
   cleanup, optional).
 
+## 2026-07-02 — Tickets #37 + #38: MC/MD geometry doc + descriptor `_ff`/`_opt` rename
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** picked up the two **non-QM** open tickets (the other two, #34 and #36,
+  need the `corrosim-qm` image and were left). PR #35 from the prior session had
+  merged (tip `2934a35`), so `main` was clean.
+- **Key changes:**
+  - **#38 (refactor):** disambiguated the two DFT descriptor tables. The
+    FF-geometry matrix was `results/dft_descriptors.{csv,json}` (geometry implicit)
+    while the optimised one carried `_opt`; renamed the FF one to
+    `dft_descriptors_ff.{csv,json}` for a symmetric `_ff` / `_opt` pair. Pure `git
+    mv` (byte-identical), incl. the bundled `report/tables/dft/` copy. Updated every
+    reader (`report_layout`, `make_report`, `make_figures`, `compare_geometry`,
+    `run_dft` docstring, the driver smoke tests) and all docs/config (README,
+    CLAUDE.md, PLAYBOOK, pipeline.md, validation.md, docker-compose.yml, Dockerfile).
+    `report.html`/`report.docx` are filename-agnostic (verified — zero references),
+    so their content is unchanged; only the source/bundled table names moved.
+  - **#37 (docs):** made the FF-vs-DFT geometry choice explicit — new **ADR 0009**
+    (MC/MD run on the FF geometry by design; Stage-1 descriptors use the
+    DFT-optimised geometry; rigid-body-vdW rationale + #36 follow-on), plus an
+    **Input** row on the MC and MD stage tables in `pipeline.md` (they had none) and
+    a shared "Geometry across stages" note linking the ADR.
+  - **Bonus:** fixed a pre-existing broken ADR link in `pipeline.md`
+    (`adr/…` → `decisions/…`).
+- **PRs merged:** **PR #39** (branch `refactor/dft-descriptors-ff-opt`) — resolves
+  #37 and #38.
+- **Issues closed/created:** resolves **#37**, **#38**. Still open: **#34**, **#36**
+  (both QM-dependent).
+- **Decisions:** **ADR 0009** — FF geometry for MC/MD.
+- **Verification:** `ruff check .` clean; `mypy` clean (31 files); `pytest` green
+  (exit 0, coverage gate satisfied, 1 skip). No QM run needed — rename + docs only.
+- **Pending:** **#34** (clear the isorhamnetin cation imaginary frequency,
+  tighter-convergence re-opt) and **#36** (persist `results/*_opt.xyz`) remain —
+  both need the `corrosim-qm` Docker image; **#36** would unblock the optional MC/MD
+  DFT-geometry sharing flagged in ADR 0009.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
