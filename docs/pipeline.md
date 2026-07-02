@@ -210,7 +210,16 @@ hand-off for a quantitative E_ads), never into software licences.
 | **DFT** (Density Functional Theory) | The quantum method for the molecule's electrons; accurate but costly. |
 | **PySCF · xTB · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines. **PySCF** (Python-based Simulations of Chemistry Framework) and **xTB** (extended Tight-Binding, via **tblite**) are free; ORCA / Gaussian optional. |
 | **geomeTRIC** | The geometry optimiser that drives the DFT geometry optimisation. |
-| **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors. |
+| **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors below. |
+| **HOMO–LUMO gap (ΔE)** | Energy separation between HOMO and LUMO; a smaller gap = more reactive, bonds to metal more readily. |
+| **Ionization potential (IP) / electron affinity (EA)** | Energy to remove an electron (IP = −E_HOMO) or released on gaining one (EA = −E_LUMO). |
+| **Electronegativity (χ)** | How strongly the molecule pulls on electrons overall (χ = (IP + EA)/2). |
+| **Chemical hardness (η) / softness (σ)** | Resistance to (η) vs ease of (σ = 1/η) distorting the electron cloud; softer molecules adsorb better. |
+| **Chemical potential (µ)** | The electrons' escaping tendency (µ = −χ); higher = readier to donate. |
+| **Electrophilicity (ω)** | Overall tendency to *accept* electrons (ω = µ²/2η). |
+| **ΔN** | Predicted electrons transferred from the molecule to the metal — a key inhibition indicator (Lukovits). |
+| **Back-donation (ΔE_back)** | Energy of electrons flowing back from the metal into the molecule (ΔE_back = −η/4). |
+| **Work function (Φ)** | How tightly the *metal* holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV). |
 | **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites); named after Kenichi Fukui. |
 | **ESP / MEP** (Molecular Electrostatic Potential) | A 3D charge "heat map" of the molecule. |
 | **Monte Carlo / simulated annealing** | Randomised search for the best adsorption pose. |
