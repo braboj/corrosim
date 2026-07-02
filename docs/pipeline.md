@@ -4,7 +4,7 @@
 it. No computational-chemistry background needed — the technical detail is
 layered in for those who want it, but you can follow the story without it.*
 
-## The problem, in one paragraph
+## Motivation
 
 Metals corrode. Iron rusts, and in an acid — like the hydrochloric acid (HCl)
 used industrially to clean steel — it dissolves alarmingly fast. A cheap,
@@ -16,7 +16,7 @@ chemicals. The catch: there are thousands of candidate molecules, and testing
 each one in the lab is slow and costly. **corrosim screens them on a computer
 first**, so only the most promising candidates go to the bench.
 
-## What goes in, what comes out
+## Inputs and outputs
 
 You give corrosim three things (the three boxes at the top of the diagram):
 
@@ -38,7 +38,7 @@ HTML report: every number, chart, and 3D picture bundled into one shareable file
 [`PLAYBOOK.md`](PLAYBOOK.md) (§ 4 Maintenance). The bottom of this page maps
 each step to the code.*
 
-## The big idea: five steps, top to bottom
+## Pipeline overview
 
 corrosim follows the diagram top to bottom — the same recipe that recurs across
 the green-inhibitor literature. The first two steps build and refine a geometry to
@@ -110,7 +110,7 @@ numbers), and optional `orca` / `gaussian` wrappers if you have them. The
 literature typically uses commercial Gaussian (B3LYP, 6-311++G(d,p), implicit
 water) or DMol³; corrosim matches that level of theory with free tools.
 
-### Global descriptors — the molecule's "scorecard"
+### Global reactivity descriptors
 
 From E_HOMO and E_LUMO a standard set of reactivity numbers (the *global
 descriptors*) is derived. **You don't need the algebra** — the two to watch are
@@ -135,7 +135,7 @@ The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
 hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`.
 
-### Local descriptors — which atoms actually do the gripping?
+### Local reactivity descriptors
 
 The descriptors above describe the *whole* molecule; we also want to know *which
 individual atoms* latch onto the metal. Two tools answer that:
@@ -151,7 +151,7 @@ the 3-OH group are the metal-binding sites. Implemented in `corrosim/fukui.py`
 `figures.render_esp` (PySCF `cubegen` density + electrostatic potential, painted
 onto the molecule's surface).
 
-## Monte Carlo — find the comfiest fit on the metal
+## Monte Carlo — adsorption pose search
 
 **In plain terms.** Now we place the molecule on the metal surface and look for
 the *best way it can lie down* — the position and orientation where it sits most
@@ -176,7 +176,7 @@ same role.
 > was tried and **rejected**: bare clusters give wildly unphysical energies. See
 > [ADR 0001](adr/0001-reject-cluster-xtb-adsorption-energy.md).
 
-## Molecular dynamics — let it settle and measure the grip
+## Molecular dynamics — adsorption distance (metal–O RDF)
 
 **In plain terms.** A single best pose is just a snapshot; real molecules wiggle.
 In **molecular dynamics (MD)** we let the molecule move around over the surface at
@@ -199,7 +199,7 @@ water, run the simulation, and compute E_ads and the RDF. That's the heavy,
 compute-hungry job deliberately left *outside* the package — stay on this
 classical path; full first-principles MD is far more expensive.
 
-## Everything here is free software
+## Open-source tooling
 
 The reference papers lean on Gaussian and BIOVIA Materials Studio — both
 expensive commercial packages. corrosim reproduces the whole pipeline with free,
@@ -216,7 +216,7 @@ open-source tools, so it costs **$0 in licences**:
 The takeaway: spend any compute budget on the molecular-dynamics simulation, not
 on software licences.
 
-## Where each step lives in the code
+## Implementation map
 
 | Step | Module | Entry points |
 |---|---|---|
@@ -231,7 +231,7 @@ on software licences.
 | Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
 | Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
 
-## What this does — and doesn't — tell you
+## Scope and limitations
 
 - Simulations **screen and explain**; they do not *prove* that a molecule works.
   Always confirm the promising candidates with real electrochemistry — EIS,
