@@ -125,7 +125,7 @@ report/          report bundle (make_report): report.html + report.docx +
 examples/        sample batch CSV
 tests/           pytest suite (QM-light, no DFT — fast)
 docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,
-                 dev-journal.md, decisions/ (ADRs)
+                 dev-journal.md, decisions/ (ADRs), diagrams/ (.drawio sources)
 Dockerfile              the corrosim-qm QM environment (PySCF + tblite)
 docker-compose.yml
 ```

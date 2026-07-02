@@ -25,41 +25,26 @@ Project-specific overrides and additions follow below.
 - Multiscale pipeline: Stage 1 DFT/xTB descriptors + Fukui + ESP -> Stage 2
   Monte Carlo adsorption pose -> Stage 3 Brownian MD (metal-O RDF) -> a
   self-contained HTML report. Scientific basis: `docs/pipeline.md`.
-- Core deps: numpy, rdkit, ase, pandas, matplotlib.
+- Core deps (orientation): numpy, rdkit, ase, pandas, matplotlib. Authoritative
+  list: `pyproject.toml` `[project.dependencies]`.
 - The QM engines (pyscf, tblite, geometric) have no Windows wheels and run
   ONLY in the `corrosim-qm` Docker image. Everything else runs in a venv.
 
 ### 1.2 Project structure
 
-Layout is flat (`corrosim/`, not `src/`). `README.md` is the single source of
-truth for structure; the tree below is the agent-oriented view.
+Layout is flat (`corrosim/`, not `src/`). **[`README.md` § Project
+structure](README.md) is the single source of truth** — the annotated
+module/driver map lives there; read it rather than duplicating it here.
+Agent-relevant facts that tree does not carry:
 
-```text
-corrosim/        package: molecules, engines, descriptors, fukui, mc, md,
-                 adsorption, surface, medium, speciation, pka, figures,
-                 equations, report, report_docx, report_content, report_layout,
-                 cli, presets
-corrosim/runs/   stage drivers (run_dft/fukui/mc/md/pka, make_cubes/figures/
-                 report, compare_geometry)
-tests/           pytest suite (no DFT/Docker — fast)
-results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa, comparison)
-cubes/           volumetric .cube files (regenerable, gitignored)
-report/          tracked report bundle (ADR 0006/0008): report.html + report.docx
-                 (self-contained) + figures/<stage>/ + tables/<stage>/ nested by
-                 pipeline stage via report_layout (dft/fukui/esp/mc/md/pipeline;
-                 fig0 = pipeline diagram)
-docs/
-  ONBOARDING.md        onboarding guide for new contributors
-  PLAYBOOK.md          operational reference for common tasks
-  dev-journal.md       development history and session log
-  decisions/           architecture decision records (NNN-slug.md)
-  pipeline.md          scientific basis for the multiscale pipeline
-  validation.md        computational + experimental validation
-  pipeline.drawio      editable source for the pipeline diagram
-  local/               private notes + source literature (gitignored)
-  solid-ai-templates/  quality-convention template submodule
-Dockerfile, docker-compose.yml   the corrosim-qm QM environment
-```
+- `cubes/` — regenerable volumetric `.cube` files; `docs/local/` — private
+  notes/literature (tracked-vs-gitignored: see § 2.1).
+- `docs/diagrams/` — editable `.drawio` diagram sources.
+- `docs/solid-ai-templates/` — the quality-convention submodule (see this file's
+  header).
+- The `report/` bundle nests `figures/<stage>/` + `tables/<stage>/` by pipeline
+  stage via `report_layout` (dft/fukui/esp/mc/md/pipeline; fig0 = pipeline
+  diagram) — ADR 0006/0008.
 
 ### 1.3 Commands
 
@@ -160,7 +145,8 @@ Testing, quality gates, and packaging follow the referenced templates
   stays fast. Run `pytest -q`. CI matrix is py3.10-3.12 with
   `pip install -e .[dev]`. Every new feature/module ships a test; name
   `test_<unit>_<state>_<expected>`.
-- Quality gates in CI: `ruff check` (incl. Google docstrings, `D`) + `mypy`
+- Quality gates in CI (authoritative config: `.github/workflows/ci.yml` +
+  `codeql.yml`): `ruff check` (incl. Google docstrings, `D`) + `mypy`
   (non-strict) + `pytest` with scoped coverage ≥ 80% + Bandit (SAST) + gitleaks
   (secrets) + CodeQL. Explicit, deferrable deviations from the python-lib stack
   (ADR 0007): `ruff format` deferred; `mypy --strict` deferred; docstring rule
