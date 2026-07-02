@@ -67,6 +67,7 @@ surface, the better it fights corrosion.
 | **Why** | Everything downstream needs a concrete 3D shape to act on; a name or a SMILES string carries no coordinates. |
 | **What it does** | Turns the input into a sensible *starting* geometry — cheap, classical, and approximate, not the final word — and builds the acid-protonated form (the extra-H⁺ cation) the same way. Runs once per molecule; independent of the metal and the medium. |
 | **How** | Makes the SMILES's *implicit* hydrogens explicit (`AddHs` — SMILES leaves H's implied by valence, not as atoms), generates 3D coordinates for every atom (RDKit's ETKDG distance-geometry method), then tidies them with a quick force-field optimisation (MMFF, falling back to UFF). `corrosim/molecules.py` — `build_molecule`, `build_protonated`. |
+| **Input** | A molecule as a name (e.g. `quercetin`) or a SMILES string. |
 | **Output** | An in-memory structure passed to the next step; not persisted as a standalone file. |
 
 ## DFT geometry optimisation
@@ -76,6 +77,7 @@ surface, the better it fights corrosion.
 | **Why** | The force-field shape is only a rough draft; every descriptor below is read off this geometry, so it must be a genuine quantum-mechanical minimum before any number is trusted. |
 | **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. |
 | **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. |
+| **Input** | The starting 3D geometry from the previous step. |
 | **Output** | Descriptors on the optimised geometry in `results/dft_descriptors_opt.{csv,json}`; the robustness table in `results/geometry_comparison.csv`. |
 
 ## DFT — global and local reactivity descriptors
@@ -85,6 +87,7 @@ surface, the better it fights corrosion.
 | **Why** | Gripping a metal surface is largely about donating electrons into it, so an "electron-generous" molecule tends to be a better inhibitor; here we characterise the isolated molecule's willingness to share electrons. |
 | **What it does** | Reads the molecule's reactivity from its DFT electronic structure — *global* numbers for the whole molecule (below) and *local* ones that pinpoint the binding atoms (further below). |
 | **How** | Solves the quantum-mechanical equations for the molecule's electrons (**DFT**, density functional theory — an X-ray of its electronic personality) with one of four interchangeable engines: `xtb` (very fast, first pass), `pyscf` (open-source DFT, the publication-grade default), and optional `orca` / `gaussian`. The literature typically uses commercial Gaussian (B3LYP, 6-311++G(d,p), implicit water) or DMol³; corrosim matches that level with free tools. |
+| **Input** | The DFT-optimised geometry, plus the metal (its work function Φ, for ΔN). |
 | **Output** | Split across the two subsections below (`results/dft_descriptors*.{csv,json}`, `results/<molecule>_fukui.json`, `cubes/`). |
 
 The two most important numbers come from the molecule's *frontier orbitals*:
@@ -147,6 +150,7 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
 | **What it does** | Finds the lowest-energy pose (position + orientation) on the metal surface and reports its **adsorption energy** E_ads (more negative = stronger grip). For the flavonoids on steel they lie **flat** at E_ads ≈ −16 kJ/mol — weak "physical" sticking (*physisorption*), consistent with published plant-inhibitor results. |
 | **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role. |
+| **Input** | The molecule and the metal substrate (a periodic slab). |
 | **Output** | `results/mc_adsorption.json`. |
 
 > A tempting shortcut — a tiny metal *cluster* scored with the fast `xtb` engine —
@@ -160,6 +164,7 @@ onto the molecule's surface). **Output:** per-molecule
 | **Why** | A single best pose is just a snapshot; real molecules wiggle at temperature, so we check how the molecule actually settles and how far it sits from the metal. |
 | **What it does** | Lets the molecule move over the surface at room temperature (298 K) and reports the **adsorption distance** from the **metal–O radial distribution function (RDF)** — its first peak marks the typical binding distance (closer than ~3.5 Å → *chemisorption*; farther → *physisorption*). For the flavonoids the Fe–O first peak sits at ≈ 3.5 Å, the physisorption range, agreeing with the Monte Carlo step. |
 | **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (recipe in `LAMMPS_HANDOFF_NOTE`; GAFF/OPLS + EAM, explicit water) — the heavy job deliberately left outside the package. |
+| **Input** | The molecule on the metal slab, seeded from the Monte Carlo best pose. |
 | **Output** | `results/md_rdf.json`. |
 
 ## Open-source tooling
