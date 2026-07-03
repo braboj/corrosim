@@ -9,6 +9,7 @@ The built-in library focuses on the major documented constituents of Arghel
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 
 from rdkit import Chem
@@ -63,6 +64,19 @@ class Molecule:
         for s, (x, y, z) in zip(self.symbols, self.coords):
             lines.append(f"{s:2s} {x:14.8f} {y:14.8f} {z:14.8f}")
         return "\n".join(lines)
+
+
+def write_xyz(mol: Molecule, path: str) -> str:
+    """Write ``mol`` to ``path`` as a standard XYZ file (coordinates in Å) and
+    return ``path``, creating the parent directory if needed.
+
+    The file-name convention is the caller's concern: the DFT driver persists each
+    optimised geometry as ``<molecule>_opt.xyz`` (``run_dft --optimize``, issue #36).
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(mol.to_xyz() + "\n")
+    return path
 
 
 def resolve_smiles(name_or_smiles: str) -> tuple[str, str]:

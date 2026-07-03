@@ -1,7 +1,9 @@
+import os
+
 import pytest
 
 from corrosim.cli import read_input_csv
-from corrosim.molecules import build_molecule, resolve_smiles
+from corrosim.molecules import build_molecule, resolve_smiles, write_xyz
 
 
 def test_build_from_library_name():
@@ -43,3 +45,21 @@ def test_csv_headerless(tmp_path):
     p.write_text("kaempferol\nquercetin\n")
     mols = read_input_csv(str(p))
     assert mols == ["kaempferol", "quercetin"]
+
+
+def test_write_xyz_writes_valid_named_block(tmp_path):
+    # #36: persist the (would-be DFT-optimised) geometry as a standard XYZ file.
+    mol = build_molecule("kaempferol")
+    path = write_xyz(mol, str(tmp_path / "kaempferol_opt.xyz"))
+    lines = open(path, encoding="utf-8").read().splitlines()
+    assert int(lines[0]) == mol.n_atoms            # XYZ header: atom count
+    assert lines[1] == mol.name                    # comment line = molecule name
+    coord_lines = [ln for ln in lines[2:] if ln.strip()]
+    assert len(coord_lines) == mol.n_atoms
+    assert all(len(ln.split()) == 4 for ln in coord_lines)   # symbol x y z
+
+
+def test_write_xyz_creates_missing_parent_dir(tmp_path):
+    mol = build_molecule("quercetin")
+    path = write_xyz(mol, str(tmp_path / "nested" / "quercetin_opt.xyz"))
+    assert os.path.exists(path)

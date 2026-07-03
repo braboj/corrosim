@@ -190,15 +190,12 @@ The screening run is configured through CLI options (`corrosim --help`):
 | `--out` | path | `corrosion_report.html` | HTML report output path. |
 | `--csv` | path | *(none)* | Also write the ranked results table to this CSV. |
 
-## Limitations & roadmap
+## Limitations
 
 - The adsorption stages (Monte Carlo pose search + Brownian MD) use a **UFF
   van-der-Waals model** (rigid bodies, no charge transfer): bounded and good for
   ranking and the physisorption distance, but **not a quantitative chemisorption
-  E_ads**. That last step is the LAMMPS (EAM+GAFF) or periodic-DFT hand-off —
-  *roadmap*.
-- Geometry optimisation covers the **neutral** forms; a vibrational-frequency
-  check (confirm true minima) and optimised **protonated** cations are *roadmap*.
+  E_ads**.
 - The flavonoids are **documented major constituents** of *S. argel*, simulated
   as representatives — confirm a specific extract with LC-MS/GC-MS.
 - Simulations **screen and explain**; they do not prove efficiency. Validate with

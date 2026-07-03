@@ -26,12 +26,18 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import os
 import sys
 
 import corrosim
 from corrosim.engines import optimize_geometry, run_engine
 from corrosim.medium import parse_medium, relevant_forms
-from corrosim.molecules import build_molecule, build_protonated, enumerate_protonation_sites
+from corrosim.molecules import (
+    build_molecule,
+    build_protonated,
+    enumerate_protonation_sites,
+    write_xyz,
+)
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()
@@ -64,7 +70,7 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                    basis="6-311++G(d,p)", xc="b3lyp",
                    forms="both", select_engine="xtb",
                    optimize=False, opt_basis="6-31G(d)", opt_xc="b3lyp",
-                   opt_solvent=None, opt_maxsteps=100):
+                   opt_solvent=None, opt_maxsteps=100, opt_geom_dir=None):
     """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts.
 
     ``forms`` selects which species to run: 'neutral', 'protonated', or 'both'.
@@ -74,7 +80,9 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
     If ``optimize`` is set, each species' geometry is DFT-relaxed once (at
     ``opt_basis``/``opt_xc``, gas-phase by default) before the production single
     points, replacing the force-field geometry. A ``geometry`` provenance field
-    records which was used.
+    records which was used. When ``opt_geom_dir`` is also given, the relaxed
+    geometry is persisted there as ``<molecule>_opt.xyz`` (issue #36) — it is the
+    expensive artifact every Stage-1 descriptor sits on.
     """
     geom_tag = (f"DFT-opt {opt_xc}/{opt_basis}"
                 + (f" ({opt_solvent})" if opt_solvent else " (gas)")) \
@@ -99,6 +107,10 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                     mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
                     charge=mol.charge, solvent=opt_solvent, maxsteps=opt_maxsteps)
                 mol = dataclasses.replace(mol, coords=opt_coords)
+                if opt_geom_dir is not None:
+                    path = write_xyz(
+                        mol, os.path.join(opt_geom_dir, f"{mol.name}_opt.xyz"))
+                    print(f"  opt geometry -> {path}", file=sys.stderr)
             for phase, solvent in (("gas", None), ("aqueous", "water")):
                 print(f"  DFT {form}/{phase} ...", file=sys.stderr)
                 kw = (dict(basis=basis, xc=xc, solvent=solvent)
@@ -142,6 +154,10 @@ def main(argv=None) -> int:
                    help="Relax in implicit solvent (e.g. 'water'); default gas phase.")
     p.add_argument("--opt-maxsteps", type=int, default=100,
                    help="Max geometry-optimisation steps.")
+    p.add_argument("--opt-xyz-dir", default=None,
+                   help="Directory for the persisted DFT-optimised geometries "
+                        "(<molecule>_opt.xyz), written only with --optimize (#36). "
+                        "Defaults to the --out-csv/--out-json directory, else 'results'.")
     p.add_argument("--out-json", default=None, help="Cache rows to this JSON file.")
     p.add_argument("--out-csv", default=None, help="Also write the table to CSV.")
     args = p.parse_args(argv)
@@ -161,13 +177,21 @@ def main(argv=None) -> int:
     elif medium_wants_prot and not want_prot:
         print(f"warning: medium {args.medium!r}{ph_str} is acidic — the inhibitor is "
               f"largely protonated there; consider --forms both.", file=sys.stderr)
+    # Persist the DFT-optimised geometries alongside the descriptors (#36); default
+    # to the descriptor-table directory so the .xyz land next to *_opt.{csv,json}.
+    opt_geom_dir = None
+    if args.optimize:
+        opt_geom_dir = (args.opt_xyz_dir
+                        or os.path.dirname(args.out_csv or args.out_json or "")
+                        or "results")
+
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,
                           forms=forms,
                           select_engine=args.select_engine,
                           optimize=args.optimize, opt_basis=args.opt_basis,
                           opt_xc=args.opt_xc, opt_solvent=args.opt_solvent,
-                          opt_maxsteps=args.opt_maxsteps)
+                          opt_maxsteps=args.opt_maxsteps, opt_geom_dir=opt_geom_dir)
 
     if args.out_json:
         with open(args.out_json, "w") as f:
