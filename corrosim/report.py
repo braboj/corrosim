@@ -163,10 +163,14 @@ def _explain(role: str) -> str:
     return f'<p class="figexpl">{txt}</p>' if txt else ""
 
 
+def _inline(text: str) -> str:
+    """Render the shared content's ``**bold**`` markup to inline HTML."""
+    return "".join(f"<b>{t}</b>" if b else t for t, b in _content.inline_runs(text))
+
+
 def _p(text: str) -> str:
     """A paragraph rendering the shared content's ``**bold**`` markup."""
-    inner = "".join(f"<b>{t}</b>" if b else t for t, b in _content.inline_runs(text))
-    return f"<p>{inner}</p>"
+    return f"<p>{_inline(text)}</p>"
 
 
 def _equation_img(key: str) -> str:
@@ -462,6 +466,20 @@ class PreparedReport(NamedTuple):
     fukui_items: list[tuple[str, str]]    # (molecule, "O5 (f⁻=0.090), ...")
 
 
+# Human-readable headers for the headline summary table (display only; the raw
+# result keys stay on the full descriptor table). ads_dist_A is labelled with the
+# actual metal in prepare_report_data.
+_SUMMARY_LABELS = {
+    "name": "Inhibitor",
+    "gap_ev": "Gap (eV)",
+    "hardness_ev": "Hardness η (eV)",
+    "softness_inv_ev": "Softness σ (1/eV)",
+    "delta_n": "ΔN",
+    "e_ads_kjmol": "E_ads (kJ/mol)",
+    "score": "Score",
+}
+
+
 def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
                         md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
                         metal: str, order: list[str] | None) -> PreparedReport:
@@ -490,6 +508,8 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
     level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
     summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
                       "delta_n", "e_ads_kjmol", "ads_dist_A", "score"]].round(3)
+    summary = summary.rename(columns={**_SUMMARY_LABELS,
+                                      "ads_dist_A": f"{m_elem}–O (Å)"})
     full = results_dataframe(df.to_dict("records"))
 
     fukui_items = []
@@ -530,6 +550,19 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                                metal, order)
     df, summary, full, level, m_elem = (prep.df, prep.summary, prep.full,
                                         prep.level, prep.m_elem)
+
+    # Data-derived headline: name the top-ranked inhibitor and its key numbers so a
+    # reader gets the takeaway before the detail. Shared with the Word renderer via
+    # report_content.bottom_line; read from the ranking, never hardcoded.
+    if len(prep.ranked):
+        _lead = prep.ranked.iloc[0]
+        _eads = _lead.get("e_ads_kjmol")
+        bottom_line = '<div class="note">' + _inline(_content.bottom_line(
+            len(df), str(_lead["name"]), float(_lead["score"]), float(_lead["gap_ev"]),
+            float(_eads) if _eads is not None and pd.notna(_eads) else None,
+            m_elem)) + "</div>"
+    else:
+        bottom_line = ""
     fukui_summary = (
         "<ul>" + "".join(f"<li><b>{n}</b>: {s}</li>" for n, s in prep.fukui_items)
         + "</ul>" if prep.fukui_items else '<p class="meta">No Fukui data found.</p>')
@@ -544,6 +577,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         f' &nbsp;|&nbsp; Generated '
         f'{generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}</p>',
         f'<div class="note">{_content.HEADLINE_CAVEAT}</div>',
+        bottom_line,
         "<h2>Overview</h2>",
         _p(_content.STAGE_INTROS["overview"]),
         _explain("pipeline"),
@@ -552,13 +586,10 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         # Summary / ranking ------------------------------------------------
         "<h2>Summary &amp; ranking</h2>",
         _html_table(summary, best_first_row=True),
-        '<p class="meta">Composite score z-scores a smaller gap, lower hardness and '
-        "higher softness (higher = stronger predicted reactivity). E<sub>ads</sub> "
-        f"(Stage&nbsp;2 Monte Carlo) and the {m_elem}–O distance (Stage&nbsp;3 MD) are shown "
-        "alongside for the adsorption picture.</p>",
+        f'<p class="meta">{_inline(_content.score_explanation(m_elem))}</p>',
 
         # Stage 1 ----------------------------------------------------------
-        '<h2><span class="stage">Stage 1</span> &nbsp;DFT electronic descriptors</h2>',
+        "<h2>DFT electronic descriptors</h2>",
         _p(_content.STAGE_INTROS["dft"]),
         _grid([
             _img_block(figdir, "fig1_structures.png", "Modelled flavonoids"),
@@ -610,7 +641,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _explain("esp"),
 
         # Stage 2 — Monte Carlo -------------------------------------------
-        '<h2><span class="stage">Stage 2</span> &nbsp;Monte Carlo adsorption</h2>',
+        "<h2>Monte Carlo adsorption</h2>",
         _p(_content.STAGE_INTROS["mc"]),
         _grid([_img_block(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
                for n in df["name"]]),
@@ -620,7 +651,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         _explain("mc_energy"),
 
         # Stage 3 — MD -----------------------------------------------------
-        f'<h2><span class="stage">Stage 3</span> &nbsp;Brownian MD — {m_elem}–O RDF</h2>',
+        f"<h2>Brownian MD — {m_elem}–O RDF</h2>",
         _p(_content.STAGE_INTROS["md"]),
         _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {m_elem}–O RDF")
                for n in df["name"]]),

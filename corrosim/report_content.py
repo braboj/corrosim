@@ -34,23 +34,30 @@ METHOD_CAVEAT = (
 # --- per-stage introductions -------------------------------------------------
 STAGE_INTROS = {
     "overview": (
-        "corrosim screens a green corrosion inhibitor by zooming in over three "
-        "stages, each answering one question about how strongly the molecule "
-        "sticks to the metal. Stage 1 studies the isolated molecule with quantum "
-        "chemistry (which electrons it will share, and from which atoms). Stage 2 "
-        "searches for its best pose on the metal surface. Stage 3 lets that pose "
-        "settle at room temperature and reads off the adsorption distance. The "
-        "sections below follow that order; every figure is explained on its own, "
-        "and the governing equations are collected in the Scientific basis section."
+        "corrosim screens a green corrosion inhibitor by zooming in step by step, "
+        "each answering one question about how strongly the molecule sticks to the "
+        "metal. First it studies the isolated molecule with quantum chemistry — "
+        "which electrons it will share, and from which atoms. Next it searches for "
+        "the molecule's best pose on the metal surface (Monte Carlo). Finally it "
+        "lets that pose settle at room temperature and reads off the adsorption "
+        "distance (molecular dynamics). The sections below follow that order; every "
+        "figure is explained on its own, and the governing equations are collected "
+        "in the Scientific basis section."
     ),
     "dft": (
-        "Density-functional theory solves the molecule's electronic structure and "
-        "gives the frontier orbitals — the HOMO (the electrons most willing to be "
-        "shared with the metal) and the LUMO (the lowest empty level that can "
+        "Density-functional theory (DFT) solves the molecule's electronic structure "
+        "and gives the frontier orbitals — the HOMO (the electrons most willing to "
+        "be shared with the metal) and the LUMO (the lowest empty level that can "
         "accept metal back-donation). Their energies yield the global reactivity "
         "descriptors (gap, hardness η, softness σ, electronegativity χ, "
         "electrophilicity ω, and the charge transfer ΔN) used to rank the "
-        "candidates. See the Scientific basis section for each definition."
+        "candidates. See the Scientific basis section for each definition. "
+        "The calculation runs at the B3LYP/6-311++G(d,p) level with an implicit-water "
+        "(ddCOSMO) model: B3LYP is the exchange–correlation functional (the "
+        "approximation DFT uses for how the electrons interact), 6-311++G(d,p) is the "
+        "basis set (how finely each orbital is represented), and ddCOSMO surrounds the "
+        "molecule with a water-like dielectric — the adopted publication level "
+        "(ADR 0002)."
     ),
     "fukui": (
         "Global descriptors say how reactive a molecule is; the condensed Fukui "
@@ -62,15 +69,25 @@ STAGE_INTROS = {
     "esp": (
         "The molecular electrostatic-potential (ESP) map colours the electron-"
         "density surface by potential: red (negative) regions are electron-rich "
-        "and nucleophilic — the metal-coordinating patches — corroborating the "
-        "Fukui donor analysis."
+        "and nucleophilic — the metal-coordinating patches. The ESP is computed "
+        "directly from the DFT electron density and its electrostatic potential "
+        "(PySCF cubegen) — a different quantity from the Fukui functions, which "
+        "come from the frontier-orbital populations. They are two independent "
+        "analyses that happen to agree on the same binding oxygens, so each "
+        "corroborates the other."
     ),
     "mc": (
         "A Metropolis / simulated-annealing Monte-Carlo search nudges and rotates "
         "the rigid molecule thousands of times over an Fe(110) slab to find the "
         "lowest-energy pose, scored with the UFF van-der-Waals interaction. The "
         "flavonoids settle flat/parallel to the surface; the adsorption energy "
-        "E_ads ≈ −16 kJ/mol places them in the physisorption regime."
+        "E_ads ≈ −16 kJ/mol places them in the physisorption regime. "
+        "Software: the periodic metal slab is built with ASE — the standard "
+        "Atomic Simulation Environment (its bcc110 builder for Fe(110)) — and the "
+        "van-der-Waals parameters are the published UFF set (Rappé et al. 1992); the "
+        "Metropolis/simulated-annealing search and the van-der-Waals scoring are "
+        "corrosim's own implementation, not an external Monte-Carlo package. It "
+        "reproduces the role of Materials Studio's Adsorption Locator with free tools."
     ),
     "md": (
         "Starting from the best Monte-Carlo pose, a Brownian rigid-body molecular-"
@@ -90,17 +107,19 @@ FIGURE_EXPLANATIONS = {
         "report come out."
     ),
     "structures": (
-        "The 2D structures of the modelled flavonoids. All three share the "
-        "flavonol core (a 4-oxo chromone with a 3-OH and a B-ring); they differ in "
-        "B-ring substitution — quercetin's catechol (3',4'-diOH), kaempferol's "
-        "single 4'-OH, and isorhamnetin's 3'-OMe/4'-OH — which is what shifts their "
-        "descriptors."
+        "The 2D structures of the modelled flavonoids, drawn by RDKit from each "
+        "molecule's SMILES string (the 3D geometry used downstream is built from the "
+        "same SMILES by RDKit's ETKDG distance-geometry embedding, then cleaned up "
+        "with an MMFF force field). All three share the flavonol core (a 4-oxo "
+        "chromone with a 3-OH and a B-ring); they differ in B-ring substitution — "
+        "quercetin's catechol (3',4'-diOH), kaempferol's single 4'-OH, and "
+        "isorhamnetin's 3'-OMe/4'-OH — which is what shifts their descriptors."
     ),
     "mo_diagram": (
-        "Frontier-orbital energy levels (HOMO below, LUMO above, gap arrowed) for "
-        "each molecule, with the Fe(110) Fermi level (−Φ = −4.82 eV) as the dashed "
-        "reference. A HOMO lying near −Φ and a small gap favour electron sharing "
-        "with the metal."
+        "The frontier orbitals are the HOMO and the LUMO; this plots their energy "
+        "levels (HOMO below, LUMO above, gap arrowed) for each molecule, with the "
+        "Fe(110) Fermi level (−Φ = −4.82 eV) as the dashed reference. A HOMO lying "
+        "near −Φ and a small gap favour electron sharing with the metal."
     ),
     "orbital_homo": (
         "The HOMO isosurface — the spatial shape of the electrons the molecule is "
@@ -120,16 +139,22 @@ FIGURE_EXPLANATIONS = {
     ),
     "protonation": (
         "Gap and ΔN for the neutral molecule vs its +1 cation in the acidic "
-        "medium. Protonation lowers the gap and drives ΔN negative — the electron-"
-        "poor cation stops donating — which is why the headline ranking is stated "
-        "on the neutral form (ADR 0003), the species that actually dominates here "
-        "(see Speciation)."
+        "medium. The cation is built by adding a proton at the most basic site — "
+        "picked as the lowest-energy conjugate acid — and how much of it actually "
+        "exists in 1 M HCl is set by a computed pKaH (see Speciation). Protonation "
+        "lowers the gap and drives ΔN negative — the electron-poor cation stops "
+        "donating — which is why the headline ranking is stated on the neutral form "
+        "(ADR 0003), the species that actually dominates here."
     ),
     "geometry": (
-        "Descriptors on force-field vs DFT-optimised geometries. Relaxing each "
-        "structure at B3LYP/6-31G(d) lowers the gap (~0.4–0.5 eV) and hardness and "
-        "raises ΔN, but leaves both the gap and ΔN rankings unchanged — the lead "
-        "assignments are geometry-robust."
+        "Descriptors on force-field vs DFT-optimised geometries. Why refine the "
+        "geometry at all? Every descriptor is read off the molecule's shape, so we "
+        "check the cheap force-field shape against a proper DFT minimum. Relaxing "
+        "each structure at B3LYP/6-31G(d) lowers the gap (~0.4–0.5 eV) and hardness "
+        "and raises ΔN, but leaves both the gap and ΔN rankings unchanged — the lead "
+        "assignments are geometry-robust. The headline ranking above uses the "
+        "force-field-geometry descriptors; this DFT-optimised set is a robustness "
+        "check, not a separate score."
     ),
     "fukui": (
         "Condensed Fukui functions per heavy atom: f⁻ (donor, binds the metal) "
@@ -172,10 +197,11 @@ SCIENTIFIC_BASIS: list[tuple[str, object]] = [
 
     ("h3", "Governing equations"),
     ("p",
-     "Stage 1 turns the two frontier-orbital energies into the standard reactivity "
-     "descriptors via Koopmans' theorem; Stage 1b localises reactivity with the "
-     "condensed Fukui functions; the speciation layer fixes the protonation state; "
-     "and Stages 2–3 quantify adsorption. The full set is collected below."),
+     "The DFT step turns the two frontier-orbital energies into the standard "
+     "reactivity descriptors via Koopmans' theorem; the condensed Fukui functions "
+     "localise reactivity to individual atoms; the speciation layer fixes the "
+     "protonation state; and the Monte-Carlo and molecular-dynamics steps quantify "
+     "adsorption. The full set is collected below."),
     ("eqgroups", None),   # renderer injects equations.EQUATION_GROUPS here
 
     ("h3", "Descriptor results (B3LYP/6-311++G(d,p), neutral, aqueous)"),
@@ -266,3 +292,40 @@ def inline_runs(text: str) -> list[tuple[str, bool]]:
         if chunk:
             runs.append((chunk, i % 2 == 1))
     return runs
+
+
+def score_explanation(metal_element: str) -> str:
+    """Composite-score explanation, shared by both renderers so the HTML and Word
+    outputs read identically. ``**bold**`` markup only (no HTML), rendered via
+    ``inline_runs`` in either format. ``metal_element`` names the RDF partner (Fe).
+    """
+    return (
+        "**How the composite score is built.** Three descriptors mark an easily-"
+        "polarised, electron-sharing molecule: a smaller HOMO–LUMO gap, lower "
+        "hardness, and higher softness. Each molecule's value for each becomes a "
+        "z-score (how many standard deviations it lies from this set's mean), "
+        "sign-flipped so “more reactive” counts as positive, and the three are "
+        "averaged. **Higher = stronger predicted reactivity** — a relative ranking "
+        "within these candidates, not an absolute scale. E_ads (from the Monte-Carlo "
+        f"pose search) and the {metal_element}–O distance (from the molecular-dynamics "
+        "run) are shown alongside for the adsorption picture."
+    )
+
+
+def bottom_line(n_molecules: int, lead: str, score: float, gap_ev: float,
+                e_ads_kjmol: float | None, metal_element: str) -> str:
+    """Data-derived headline naming the top-ranked inhibitor, shared by both
+    renderers (``**bold**`` markup only). Every value comes from the ranking, so the
+    sentence stays correct if the molecule set or substrate changes.
+    """
+    eads = (f" It physisorbs flat on {metal_element} "
+            f"(E_ads ≈ {e_ads_kjmol:.0f} kJ/mol)."
+            if e_ads_kjmol is not None else "")
+    return (
+        f"**Bottom line.** Of the {n_molecules} screened molecules, **{lead}** is the "
+        f"top-ranked inhibitor on the composite electronic score ({score:+.2f}): the "
+        f"smallest HOMO–LUMO gap ({gap_ev:.2f} eV) and the highest softness — the most "
+        f"electron-generous, easily-polarised molecule of the set.{eads} This is a "
+        "computational screening prediction, to be confirmed electrochemically "
+        "(see the caveats and the Method section)."
+    )
