@@ -265,6 +265,14 @@ def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     d.para(f"Substrate: {metal}  |  Medium: {medium}  |  DFT level: "
            f"{prep.level}  |  Generated {ts}", muted=True)
     d.note(_content.HEADLINE_CAVEAT)
+    if len(prep.ranked):
+        _lead = prep.ranked.iloc[0]
+        _eads = _lead.get("e_ads_kjmol")
+        d.note(_content.bottom_line(
+            len(prep.df), str(_lead["name"]), float(_lead["score"]),
+            float(_lead["gap_ev"]),
+            float(_eads) if _eads is not None and pd.notna(_eads) else None,
+            prep.m_elem))
 
     d.heading("Overview", level=1)
     d.para(_content.STAGE_INTROS["overview"])
@@ -273,13 +281,10 @@ def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
 
     d.heading("Summary & ranking", level=1)
     d.df_table(prep.summary, highlight_first=True)
-    d.para("Composite score z-scores a smaller gap, lower hardness and higher "
-           f"softness (higher = stronger predicted reactivity); E_ads (Stage 2) "
-           f"and the {prep.m_elem}-O distance (Stage 3) are shown alongside.",
-           muted=True)
+    d.para(_content.score_explanation(prep.m_elem), muted=True)
 
     # Stage 1 -----------------------------------------------------------------
-    d.heading("Stage 1 — DFT electronic descriptors", level=1)
+    d.heading("DFT electronic descriptors", level=1)
     d.para(_content.STAGE_INTROS["dft"])
     d.figure(figdir, "fig1_structures.png", "Modelled flavonoids")
     d.explain("structures")
@@ -349,7 +354,7 @@ def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     d.explain("esp")
 
     # Stage 2 — Monte Carlo ---------------------------------------------------
-    d.heading("Stage 2 — Monte Carlo adsorption", level=1)
+    d.heading("Monte Carlo adsorption", level=1)
     d.para(_content.STAGE_INTROS["mc"])
     for n in names:
         d.figure(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
@@ -359,7 +364,7 @@ def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     d.explain("mc_energy")
 
     # Stage 3 — MD ------------------------------------------------------------
-    d.heading(f"Stage 3 — Brownian MD ({prep.m_elem}-O RDF)", level=1)
+    d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
     d.para(_content.STAGE_INTROS["md"])
     for n in names:
         d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-O RDF")
