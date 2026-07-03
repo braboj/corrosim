@@ -78,7 +78,7 @@ surface, the better it fights corrosion.
 | **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. |
 | **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. |
 | **Input** | The starting 3D geometry from the previous step. |
-| **Output** | The DFT-optimised geometry (in-memory; not yet persisted — issue #36) and the FF-vs-DFT robustness table `results/geometry_comparison.csv`. (The descriptors *on* this geometry are written by the next step.) |
+| **Output** | The DFT-optimised geometry, persisted as `results/<molecule>_opt.xyz` (each neutral and its `+H+` cation; `run_dft --optimize`), plus the FF-vs-DFT robustness table `results/geometry_comparison.csv`. (The descriptors *on* this geometry are written by the next step.) |
 
 ## DFT — global and local reactivity descriptors
 
@@ -122,12 +122,13 @@ Back-donation energy  ΔE_back = − η / 4
 
 The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
-hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`. **Output** — the
-same descriptor table on **two geometries**: `results/dft_descriptors_ff.{csv,json}`
-(the cheap FF geometry, the default screen) and
-`results/dft_descriptors_opt.{csv,json}` (recomputed on the DFT-optimised
-geometry). Same descriptors, different geometry — the symmetric `_ff` / `_opt`
-suffixes mark the *geometry*, not a different quantity.
+hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`.
+
+**Output** — the same descriptor table on **two geometries**:
+`results/dft_descriptors_ff.{csv,json}` (the cheap FF geometry, the default
+screen) and `results/dft_descriptors_opt.{csv,json}` (recomputed on the
+DFT-optimised geometry). Same descriptors, different geometry — the symmetric
+`_ff` / `_opt` suffixes mark the *geometry*, not a different quantity.
 
 ### Local reactivity descriptors
 
@@ -143,8 +144,9 @@ For the Arghel flavonoids both agree: the oxygen atoms on the catechol ring and
 the 3-OH group are the metal-binding sites. Implemented in `corrosim/fukui.py`
 (condensed Fukui, by frozen-orbital or finite-difference) and
 `figures.render_esp` (PySCF `cubegen` density + electrostatic potential, painted
-onto the molecule's surface). **Output:** per-molecule
-`results/<molecule>_fukui.json` (Fukui); volumetric
+onto the molecule's surface).
+
+**Output:** per-molecule `results/<molecule>_fukui.json` (Fukui); volumetric
 `cubes/<molecule>_{density,esp,homo,lumo}.cube` (ESP/orbitals, gitignored).
 
 ## Monte Carlo — adsorption pose search
@@ -153,13 +155,9 @@ onto the molecule's surface). **Output:** per-molecule
 | --- | --- |
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
 | **What it does** | Finds the lowest-energy pose (position + orientation) on the metal surface and reports its **adsorption energy** E_ads (more negative = stronger grip). For the flavonoids on steel they lie **flat** at E_ads ≈ −16 kJ/mol — weak "physical" sticking (*physisorption*), consistent with published plant-inhibitor results. |
-| **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role. |
-| **Input** | The molecule's **force-field geometry**, rebuilt from SMILES (`build_molecule`, seed 42) — deliberately *not* the DFT-optimised structure. See the geometry note below. |
+| **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role (Note 1). |
+| **Input** | The molecule's **force-field geometry**, rebuilt from SMILES (`build_molecule`, seed 42) — deliberately *not* the DFT-optimised structure (Note 2). |
 | **Output** | `results/mc_adsorption.json`. |
-
-> A tempting shortcut — a tiny metal *cluster* scored with the fast `xtb` engine —
-> was tried and **rejected**: bare clusters give wildly unphysical energies. See
-> [ADR 0001](decisions/0001-reject-cluster-xtb-adsorption-energy.md).
 
 ## Molecular dynamics — adsorption distance (metal–O RDF)
 
@@ -167,20 +165,26 @@ onto the molecule's surface). **Output:** per-molecule
 | --- | --- |
 | **Why** | A single best pose is just a snapshot; real molecules wiggle at temperature, so we check how the molecule actually settles and how far it sits from the metal. |
 | **What it does** | Lets the molecule move over the surface at room temperature (298 K) and reports the **adsorption distance** from the **metal–O radial distribution function (RDF)** — its first peak marks the typical binding distance (closer than ~3.5 Å → *chemisorption*; farther → *physisorption*). For the flavonoids the Fe–O first peak sits at ≈ 3.5 Å, the physisorption range, agreeing with the Monte Carlo step. |
-| **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (recipe in `LAMMPS_HANDOFF_NOTE`; GAFF/OPLS + EAM, explicit water) — the heavy job deliberately left outside the package. |
-| **Input** | The same **force-field geometry** as the Monte Carlo step (rebuilt from SMILES). |
+| **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (free, GPL; recipe in `LAMMPS_HANDOFF_NOTE`; free GAFF/OPLS + EAM force fields, explicit water) — compute-heavy, so deliberately left outside the package (no licence cost, just runtime). |
+| **Input** | The same **force-field geometry** as the Monte Carlo step, rebuilt from SMILES (Note 2). |
 | **Output** | `results/md_rdf.json`. |
 
-> **Geometry across stages.** The Stage-1 descriptors are read off the
-> **DFT-optimised** geometry; the Monte Carlo and molecular-dynamics stages
-> instead run on the cheap **force-field** geometry, rebuilt from SMILES
-> (`build_molecule`, seed 42). This is deliberate, not an inconsistency: MC/MD
-> here are *rigid-body* van-der-Waals models, where the internal conformer barely
-> shifts the adsorption pose or the metal–O RDF, so the expensive DFT structure is
-> reserved for the reactivity descriptors that genuinely depend on it. See
-> [ADR 0009](decisions/0009-ff-geometry-for-mc-md.md); once the DFT geometry is
-> persisted (issue #36), MC/MD *could* optionally consume it for full cross-stage
-> coherence.
+## Notes
+
+1. **Cluster model rejected.** An `xtb`-scored bare-metal *cluster* was evaluated
+   as a cheaper alternative to the periodic slab and rejected: small bare clusters
+   give unphysical adsorption energies. See
+   [ADR 0001](decisions/0001-reject-cluster-xtb-adsorption-energy.md).
+2. **Geometry across the pipeline.** The DFT reactivity descriptors are read off
+   the **DFT-optimised** geometry, whereas the Monte Carlo and molecular-dynamics
+   steps run on the cheap **force-field** geometry, rebuilt from SMILES
+   (`build_molecule`, seed 42). This is deliberate: MC/MD here are *rigid-body*
+   van-der-Waals models, where the internal conformer barely shifts the adsorption
+   pose or the metal–O RDF, so the expensive DFT structure is reserved for the
+   reactivity descriptors that depend on it. See
+   [ADR 0009](decisions/0009-ff-geometry-for-mc-md.md); once the DFT geometry is
+   persisted (issue #36), MC/MD *could* optionally consume it for full geometric
+   coherence.
 
 ## Open-source tooling
 
@@ -190,11 +194,11 @@ open-source tools, so it costs **$0 in licences**:
 
 | Reference (commercial) | Free equivalent used here |
 |---|---|
-| Gaussian / DMol³ (DFT) | PySCF, xTB (ORCA optional, free for academia) |
-| DMol³ geometry-opt | PySCF + geomeTRIC (`run_dft --optimize`) |
-| Adsorption Locator (MC) | ASE slab + UFF Monte Carlo pose search (`corrosim/mc.py`) |
-| Forcite (MD) | Brownian rigid-body MD → metal–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
-| Multiwfn (Fukui / ESP) | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
+| Gaussian; DMol³ (Materials Studio) — DFT | PySCF, xTB (ORCA optional, free for academia) |
+| DMol³ (Materials Studio) — geometry-opt | PySCF + geomeTRIC (`run_dft --optimize`) |
+| Adsorption Locator (Materials Studio) — MC | ASE slab + UFF Monte Carlo pose search (`corrosim/mc.py`) |
+| Forcite (Materials Studio) — MD | Brownian rigid-body MD → metal–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
+| Multiwfn — Fukui / ESP | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
 
 The takeaway: your compute goes into the **DFT stage** (and the optional LAMMPS
 hand-off for a quantitative E_ads), never into software licences.
@@ -218,21 +222,21 @@ hand-off for a quantitative E_ads), never into software licences.
 
 | Term | What it is |
 | --- | --- |
-| **SMILES** (Simplified Molecular-Input Line-Entry System) | A compact text encoding of a molecule's structure (`CCO` = ethanol). |
-| **RDKit** (Rational Discovery toolkit) | Open-source cheminformatics library — parses SMILES, builds 3D structures. |
+| **ASE** (Atomic Simulation Environment) | Builds the metal slab. |
+| **DFT** (Density Functional Theory) | The quantum method for the molecule's electrons; accurate but costly. |
+| **ESP / MEP** (Molecular Electrostatic Potential) | A 3D charge "heat map" of the molecule. |
 | **ETKDG** (Experimental-Torsion Knowledge Distance Geometry) | RDKit's method for a sensible initial 3D conformer. |
 | **Force field** | Fast *classical* (non-quantum) energy model. **MMFF** = Merck Molecular Force Field (better for organics); **UFF** = Universal Force Field (general-purpose fallback). |
-| **DFT** (Density Functional Theory) | The quantum method for the molecule's electrons; accurate but costly. |
-| **PySCF · xTB · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines. **PySCF** (Python-based Simulations of Chemistry Framework) and **xTB** (extended Tight-Binding, via **tblite**) are free; ORCA / Gaussian optional. |
+| **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites); named after Kenichi Fukui. |
 | **geomeTRIC** | The geometry optimiser that drives the DFT geometry optimisation. |
 | **HOMO / LUMO** | Highest Occupied / Lowest Unoccupied Molecular Orbital; their energies drive the descriptors. |
-| **Fukui function / dual descriptor** | Per-atom measure of where the molecule donates / accepts electrons (binding sites); named after Kenichi Fukui. |
-| **ESP / MEP** (Molecular Electrostatic Potential) | A 3D charge "heat map" of the molecule. |
+| **LAMMPS** (Large-scale Atomic/Molecular Massively Parallel Simulator) | Free, open-source (GPL) external molecular-dynamics engine for the optional quantitative E_ads hand-off. |
 | **Monte Carlo / simulated annealing** | Randomised search for the best adsorption pose. |
-| **ASE** (Atomic Simulation Environment) | Builds the metal slab. |
-| **RDF** (Radial Distribution Function) | Distance histogram; its first peak = typical binding distance. |
 | **Physisorption / chemisorption** | Weak physical sticking vs strong chemical bonding. |
-| **LAMMPS** (Large-scale Atomic/Molecular Massively Parallel Simulator) | External molecular-dynamics engine for the optional quantitative E_ads hand-off. |
+| **PySCF · xTB · ORCA · Gaussian** | Interchangeable DFT / semi-empirical engines. **PySCF** (Python-based Simulations of Chemistry Framework) and **xTB** (extended Tight-Binding, via **tblite**) are free; ORCA / Gaussian optional. |
+| **RDF** (Radial Distribution Function) | Distance histogram; its first peak = typical binding distance. |
+| **RDKit** (Rational Discovery toolkit) | Open-source cheminformatics library — parses SMILES, builds 3D structures. |
+| **SMILES** (Simplified Molecular-Input Line-Entry System) | A compact text encoding of a molecule's structure (`CCO` = ethanol). |
 
 ## Scope and limitations
 
