@@ -59,9 +59,10 @@ def orient_flat(coords):
     """Rotate the molecule so its largest plane lies parallel to xy (max contact)."""
     c = np.asarray(coords, float)
     c = c - c.mean(axis=0)
-    # principal axes; smallest-variance axis -> z
+    # SVD rows come in descending spread, so vt[2] is the least-spread axis;
+    # R's columns are the principal axes, mapping that axis onto z (plane -> xy).
     _, _, vt = np.linalg.svd(c, full_matrices=False)
-    R = vt[::-1].T               # least-spread direction becomes z
+    R = vt.T
     out = c @ R
     if np.linalg.det(R) < 0:     # keep right-handed
         out[:, 0] *= -1

@@ -52,6 +52,22 @@ def test_orient_flat_is_centered_isometry():
     assert np.isclose(out.var(axis=0).sum(), np.asarray(m.coords).var(axis=0).sum())
 
 
+def test_orient_flat_puts_least_spread_axis_on_z():
+    """The molecular plane must lie in xy so the slab sees maximum contact:
+    the thinnest (least-variance) axis maps to z (issue #47). The isometry test
+    above cannot catch a wrong orientation, since any rotation is an isometry."""
+    rng = np.random.default_rng(0)
+    n = 40
+    # a markedly anisotropic slab (wide-x, medium-y, thin-z) ...
+    cloud = np.column_stack([rng.normal(0, 5, n), rng.normal(0, 2, n),
+                             rng.normal(0, 0.05, n)])
+    # ... tumbled to an arbitrary orientation, then re-flattened
+    cloud = cloud @ surface.rot(np.array([0.3, -0.7, 0.5]), 1.1).T
+    std = surface.orient_flat(cloud).std(axis=0)
+    assert np.argmin(std) == 2            # thin axis recovered on z, not x
+    assert std[2] < std[0] and std[2] < std[1]
+
+
 def test_single_source_no_duplicate_definitions():
     """mc/md/adsorption must reference surface's objects, not private copies —
     so there is exactly one facet map / UFF table / rotation helper."""
