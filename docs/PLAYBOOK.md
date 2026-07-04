@@ -116,6 +116,25 @@ Three CI gates guard the supply/security surface:
 - **CodeQL** (platform SAST): `.github/workflows/codeql.yml`; findings surface in
   the repo Security tab.
 
+### 3.8 Periodic audits — duplication & dead code
+
+Duplication and dead code are review-time rules (`quality.md`: DRY, no dead
+code), deliberately NOT CI gates: the tree measures clean, and both tools
+false-positive on legitimate patterns (look-alike scientific/argparse
+boilerplate; intentionally unused parameters in API signatures). What review
+alone cannot catch is a pasted block whose twin lives outside the diff — so
+sweep the whole tree at epic boundaries and release points:
+
+```bash
+pip install pylint vulture    # ad hoc — deliberately not dev deps
+pylint --disable=all --enable=duplicate-code src/corrosim
+vulture src/corrosim --min-confidence 80
+```
+
+File findings as tickets instead of fixing on the spot (scope guard).
+Baseline 2026-07-04: two duplicate blocks (both covered by the per-module
+refactor epic), zero dead-code findings at ≥80% confidence.
+
 ## 4. Maintenance
 
 - Update dependencies by editing the ranges in `pyproject.toml` (ranges, not
