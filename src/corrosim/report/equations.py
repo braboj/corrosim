@@ -17,8 +17,9 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 
-# eV -> kJ/mol (mc.run_mc uses this to report e_ads_kjmol).
-EV_TO_KJMOL = 96.485
+# eV -> kJ/mol, single-sourced in surface.py (#57) — mc/md/adsorption consume
+# it there; re-exported here for back-compat and the conversion equation below.
+from ..adsorption.surface import EV_TO_KJMOL
 
 
 @dataclass(frozen=True)
@@ -111,7 +112,8 @@ _ADSORPTION = [
              "Interaction energy of the best Monte-Carlo pose; more negative = a "
              "stronger grip. Values near −16 kJ/mol indicate physisorption."),
     Equation("e_ads_conv",
-             r"E_{ads}[\mathrm{kJ\,mol^{-1}}] = 96.485 \times E_{ads}[\mathrm{eV}]",
+             rf"E_{{ads}}[\mathrm{{kJ\,mol^{{-1}}}}] = {EV_TO_KJMOL}"
+             r" \times E_{ads}[\mathrm{eV}]",
              "Unit conversion",
              "The Monte-Carlo objective is reported in kJ/mol."),
     Equation("rdf_peak",

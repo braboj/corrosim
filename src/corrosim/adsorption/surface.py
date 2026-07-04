@@ -5,17 +5,27 @@ adsorption / mc / md all agree on the metal surface and the UFF field:
 
   * METAL_LATTICE / SURFACE_FACET — crystal + conventional inhibitor facet per metal,
   * build_slab — the periodic ASE slab,
-  * UFF / KCAL_TO_EV — UFF nonbonded parameters and the energy unit conversion,
-  * orient_flat / rot — rigid-body geometry helpers (flat orientation, rotation).
+  * UFF / KCAL_TO_EV / EV_TO_KJMOL — UFF nonbonded parameters and the energy
+    unit conversions,
+  * uff_mixing / uff_vdw_energy / uff_vdw_forces — the UFF Lennard-Jones 12-6
+    molecule–slab interaction (energy, and energy + forces for MD),
+  * orient_flat / rot / initial_adsorption_pose — rigid-body geometry helpers
+    (flat orientation, rotation, the standard starting pose above the slab).
 
 These were previously underscore-private in adsorption/mc with cross-module
 imports; promoted to public here (issue #4) since they are de-facto shared API.
+The vdW energy/forces, combining rules and starting pose were de-duplicated out
+of adsorption / mc / md in issue #57.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
+import numpy.typing as npt
 from ase import Atoms
 from ase.build import bcc110, fcc111
+from ase.cell import Cell
 
 # Lattice constants (Angstrom) and crystal type per metal.
 METAL_LATTICE = {
@@ -35,6 +45,10 @@ UFF = {
     "Fe": (2.912, 0.013), "Cu": (3.495, 0.005), "Al": (4.499, 0.505),
 }
 KCAL_TO_EV = 0.0433641
+
+# eV -> kJ/mol. Single source for every reported adsorption energy
+# (e_ads_kjmol, e_mean_kjmol) and the report's unit-conversion equation (#57).
+EV_TO_KJMOL = 96.485
 
 # Close-contact floor (Å) for the UFF pair distance: caps the r -> 0 Lennard-Jones
 # singularity so a transient overlap can't blow up the energy. Defensive only — the
@@ -78,3 +92,102 @@ def rot(axis, angle):
     return np.array([[c + x*x*C, x*y*C - z*s, x*z*C + y*s],
                      [y*x*C + z*s, c + y*y*C, y*z*C - x*s],
                      [z*x*C - y*s, z*y*C + x*s, c + z*z*C]])
+
+
+def uff_mixing(mol_symbols: Iterable[str],
+               slab_symbols: Iterable[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Geometric UFF combining rules for every molecule/slab atom pair.
+
+    Args:
+        mol_symbols: Element symbols of the adsorbate atoms (length n).
+        slab_symbols: Element symbols of the slab atoms (length m).
+
+    Returns:
+        ``(x_mix, D_mix)``: (n, m) arrays of pair vdW distances
+        x_ij = sqrt(x_i x_j) (Å) and well depths D_ij = sqrt(D_i D_j)
+        (kcal/mol), per Rappe et al. 1992.
+
+    Raises:
+        ValueError: If any element has no UFF nonbonded parameters.
+    """
+    mol_symbols, slab_symbols = list(mol_symbols), list(slab_symbols)
+    missing = (set(mol_symbols) | set(slab_symbols)) - set(UFF)
+    if missing:
+        raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
+    m_x = np.array([UFF[s][0] for s in mol_symbols])
+    m_D = np.array([UFF[s][1] for s in mol_symbols])
+    s_x = np.array([UFF[s][0] for s in slab_symbols])
+    s_D = np.array([UFF[s][1] for s in slab_symbols])
+    return np.sqrt(m_x[:, None] * s_x[None, :]), np.sqrt(m_D[:, None] * s_D[None, :])
+
+
+def uff_vdw_energy(mol_pos: np.ndarray, slab_pos: np.ndarray,
+                   x_mix: np.ndarray, D_mix: np.ndarray) -> float:
+    """UFF Lennard-Jones 12-6 molecule–slab interaction energy.
+
+    Pair distances are floored at MIN_PAIR_DISTANCE_A to cap the r -> 0
+    singularity.
+
+    Args:
+        mol_pos: Molecule positions, (n, 3) (Å).
+        slab_pos: Slab positions, (m, 3) (Å).
+        x_mix: Pair vdW distances from :func:`uff_mixing`, (n, m) (Å).
+        D_mix: Pair well depths from :func:`uff_mixing`, (n, m) (kcal/mol).
+
+    Returns:
+        The interaction energy in eV (negative = attractive).
+    """
+    d = np.maximum(np.linalg.norm(mol_pos[:, None, :] - slab_pos[None, :, :], axis=2),
+                   MIN_PAIR_DISTANCE_A)
+    t6 = (x_mix / d) ** 6
+    return float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
+
+
+def uff_vdw_forces(mol_pos: np.ndarray, slab_pos: np.ndarray,
+                   x_mix: np.ndarray, D_mix: np.ndarray) -> tuple[float, np.ndarray]:
+    """UFF Lennard-Jones 12-6 energy plus per-molecule-atom forces (for MD).
+
+    Same potential as :func:`uff_vdw_energy`; a separate function rather than
+    a boolean flag so energy-only callers stay force-free.
+
+    Args:
+        mol_pos: Molecule positions, (n, 3) (Å).
+        slab_pos: Slab positions, (m, 3) (Å).
+        x_mix: Pair vdW distances from :func:`uff_mixing`, (n, m) (Å).
+        D_mix: Pair well depths from :func:`uff_mixing`, (n, m) (kcal/mol).
+
+    Returns:
+        ``(energy, forces)``: the energy in eV and the (n, 3) forces on the
+        molecule atoms in eV/Å (f = -dE/dr).
+    """
+    diff = mol_pos[:, None, :] - slab_pos[None, :, :]      # (n, m, 3)
+    d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
+    t6 = (x_mix / d) ** 6
+    e = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
+    dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)               # kcal/mol/Å
+    f = -(dEdr[:, :, None] * (diff / d[:, :, None])).sum(axis=1) * KCAL_TO_EV
+    return e, f
+
+
+def initial_adsorption_pose(coords: npt.ArrayLike, cell: Cell | np.ndarray,
+                            top_z: float, height_A: float) -> np.ndarray:
+    """Standard starting pose: flat orientation, centred on the cell, lifted.
+
+    The shared mc / md / adsorption placement: :func:`orient_flat`, then
+    translate the molecule to the lateral cell centre with its lowest atom
+    ``height_A`` above the slab's top layer.
+
+    Args:
+        coords: Molecule coordinates, (n, 3) (Å; any array-like).
+        cell: The slab's (orthogonal) cell; only [0, 0] and [1, 1] are used.
+        top_z: z of the slab's top atomic layer (Å).
+        height_A: Gap between the slab top and the molecule's lowest atom (Å).
+
+    Returns:
+        The posed (n, 3) coordinates (Å).
+    """
+    pos = orient_flat(coords)
+    pos[:, 0] += cell[0, 0] / 2.0
+    pos[:, 1] += cell[1, 1] / 2.0
+    pos[:, 2] += top_z + height_A - pos[:, 2].min()
+    return pos

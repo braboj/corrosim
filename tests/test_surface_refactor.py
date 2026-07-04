@@ -71,20 +71,26 @@ def test_orient_flat_puts_least_spread_axis_on_z():
 
 def test_single_source_no_duplicate_definitions():
     """mc/md/adsorption must reference surface's objects, not private copies —
-    so there is exactly one facet map / UFF table / rotation helper."""
+    one facet map, one vdW field, one pose helper, one unit constant (#4, #57)."""
     import corrosim.adsorption.adsorption as ads
     import corrosim.adsorption.mc as mc
     import corrosim.adsorption.md as md
+    from corrosim.report import equations
 
-    # the facet map is single-sourced (was duplicated in adsorption + mc._SURFACE)
-    assert mc.SURFACE_FACET is surface.SURFACE_FACET
-    assert md.SURFACE_FACET is surface.SURFACE_FACET
-    # the vdW table and slab builder are shared, not re-defined
+    # the facet map / slab builder / vdW machinery are shared, not re-defined
     for mod in (ads, mc, md):
-        assert mod.UFF is surface.UFF
+        assert mod.SURFACE_FACET is surface.SURFACE_FACET
         assert mod.build_slab is surface.build_slab
+        assert mod.uff_mixing is surface.uff_mixing
+        assert mod.initial_adsorption_pose is surface.initial_adsorption_pose
+        assert mod.EV_TO_KJMOL is surface.EV_TO_KJMOL
+    # one LJ implementation: energy (mc, adsorption) + energy-with-forces (md)
+    assert mc.uff_vdw_energy is surface.uff_vdw_energy
+    assert ads.uff_vdw_energy is surface.uff_vdw_energy
+    assert md.uff_vdw_forces is surface.uff_vdw_forces
     assert mc.rot is surface.rot and md.rot is surface.rot
-    assert mc.orient_flat is surface.orient_flat and md.orient_flat is surface.orient_flat
+    # the report's conversion constant is surface's, no longer a private copy
+    assert equations.EV_TO_KJMOL is surface.EV_TO_KJMOL
 
 
 def test_run_mc_md_seeded_reproducible():
