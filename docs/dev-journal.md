@@ -443,4 +443,44 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   end still open: deployment tickets **#66–#68** cite the retired epic #65. Submodule
   `docs/solid-ai-templates` not bumped this session (no template work).
 
+## 2026-07-04 — spike #73 resolved: ADR 0011 (src/ layout + subsystem sub-packages)
+
+- **Tool:** Claude Code (Fable 5).
+- **Scope:** resume the backlog at its first item — **spike #73** (project
+  structure). Analyse-only spike whose deliverable is a decision + ADR, not code.
+  Explored the repo with three parallel agents (structure/import graph,
+  duplication hotspots for #69/#70, packaging/CI/deployment surface) so the
+  decision rests on measured facts, not assumption.
+- **Decision (ADR 0011, Accepted):** adopt a **`src/` layout** AND regroup the 22
+  flat modules into three subsystem sub-packages — `qm/` (engines, descriptors,
+  fukui, pka, speciation), `adsorption/` (surface, adsorption, mc, md), `report/`
+  (report, report_content, report_docx, report_layout, figures, equations) — with
+  molecules/medium/presets/cli and `runs/` staying at the top. `src/` carries the
+  packaging-correctness payoff for #54 package-data + #67 publishing (forces
+  test-against-installed); the sub-package grouping is organisational, and its
+  only cost (import churn on lines #70 touches) is neutralised by sequencing the
+  move **before #70**.
+- **Grounding facts:** import DAG is a clean acyclic graph (surface/presets are
+  leaves); tests are layout-agnostic (no `sys.path` hacks — reinstall suffices);
+  the move edits only path-based refs (`pyproject` find/coverage/mypy/bandit,
+  `Dockerfile:26`, `ci.yml:77`, stale doc paths). Public API stays stable via the
+  `__init__` `__all__` facade; the one break — `from corrosim import
+  figures`/`report` (module→package collision) — is contained by `report/__init__`
+  re-exports + three consumer edits.
+- **Owner input:** owner leaned `src/` + sub-packages over `src/`-flat; the ADR
+  records `src/`-flat as the honest lower-churn alternative and keep-flat as
+  rejected (loses import hygiene). Session scope agreed as **ADR only** — no file
+  moves this session.
+- **Also:** filed migration ticket **#78** (concrete ordered steps, gated strictly
+  before #70); pointed CLAUDE.md §1.2 at ADR 0011 (supersedes the "flat is
+  deliberate" note). Spike **#73 closes** when this ADR merges.
+- **Verification:** doc-only change; `ruff check .`, `mypy`, `pytest -q` re-run as
+  a no-op sanity check (see commit).
+- **Pending:** ADR 0011 branch `docs/adr-0011-src-layout` committed locally, not
+  pushed (awaiting the go-ahead). Backlog resumes: land the **#78** migration PR,
+  then **#69** standards + de-dup (start #57 shared UFF vdW → surface.py, then
+  #64 `runs/_cli.py`, then stage #51/#52 gates) → **#70** per-module refactors →
+  **#72** generalization → **#71** deployment → **#40** (E_ads). Cosmetic loose
+  end still open: deployment tickets **#66–#68** cite the retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

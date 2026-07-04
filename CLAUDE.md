@@ -32,10 +32,13 @@ Project-specific overrides and additions follow below.
 
 ### 1.2 Project structure
 
-Layout is flat (`corrosim/`, not `src/`). **[`README.md` § Project
+Layout is currently flat (`corrosim/`, not `src/`). **[`README.md` § Project
 structure](README.md) is the single source of truth** — the annotated
-module/driver map lives there; read it rather than duplicating it here.
-Agent-relevant facts that tree does not carry:
+module/driver map lives there; read it rather than duplicating it here. A move to
+a `src/` layout with `qm`/`adsorption`/`report` subsystem sub-packages is decided
+in **ADR 0011** and pending in migration ticket #78 (before epic #70); this note
+supersedes the earlier "flat is deliberate" wording. Agent-relevant facts that
+tree does not carry:
 
 - `cubes/` — regenerable volumetric `.cube` files; `docs/local/` — private
   notes/literature (tracked-vs-gitignored: see § 2.1).
