@@ -250,18 +250,21 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
         })
 
 
-def build_docx_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
-                      md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
-                      figdir: str, out_path: str,
-                      metal: str = "Fe(110)", medium: str = "1 M HCl",
-                      order: list[str] | None = None,
-                      generated_at: str | None = None,
-                      acid_cation_rows: list[dict] | None = None,
-                      speciation_summary: dict | None = None,
-                      computed_pkah: list[dict] | None = None,
-                      pka_freq_corrected: bool = False,
-                      opt_neutral_rows: list[dict] | None = None,
-                      opt_acid_rows: list[dict] | None = None) -> str:
+# Linear section-by-section Word builder: high cyclomatic (one branch per
+# optional section) but low cognitive complexity, so exempt from C901.
+def build_docx_report(  # noqa: C901
+        neutral_aq_rows: list[dict], mc_rows: list[dict],
+        md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
+        figdir: str, out_path: str,
+        metal: str = "Fe(110)", medium: str = "1 M HCl",
+        order: list[str] | None = None,
+        generated_at: str | None = None,
+        acid_cation_rows: list[dict] | None = None,
+        speciation_summary: dict | None = None,
+        computed_pkah: list[dict] | None = None,
+        pka_freq_corrected: bool = False,
+        opt_neutral_rows: list[dict] | None = None,
+        opt_acid_rows: list[dict] | None = None) -> str:
     """Build the multiscale report as a Word ``.docx``.
 
     Mirrors ``report.build_pipeline_report``: same inputs, same sections, same

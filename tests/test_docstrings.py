@@ -1,17 +1,19 @@
-"""Public-API docstring + contract enforcement (issues #6, #51, #52).
+"""Public-API contract enforcement (issues #6, #51, #52).
 
-Two layers:
+Enforced across the *whole* package, complementing the ruff gate. Ruff owns
+line length (80), Google docstring format (D + D417) and complexity (C90);
+these tests own what ruff has no rule for:
 
-* :func:`test_public_api_symbols_have_docstrings` — every public, top-level
-  function/class and the public methods of public classes must carry a
-  docstring, across the whole package. Pins the #6 acceptance criterion so it
-  can't silently regress.
-* The ``_CONTRACTED`` allowlist — modules already swept to the full standard
-  (issues #51 full API contract + #52 readability) are held to it here:
-  complete type hints, Google ``Args:``/``Returns:`` sections, 80-column
-  lines, no trailing/right-side comments, and no ticket/ADR numbers in
-  comments. The list grows one module per sweep PR; the global ruff gate takes
-  over once every module is in.
+* every public symbol carries a docstring (#6);
+* every public function/method is fully type-annotated — all params + the
+  return (#51). This is the public-API contract, enforced here rather than via
+  ruff `ANN` so private QM helpers that take un-stubbed pyscf objects need no
+  annotations;
+* public functions with params carry an ``Args:`` section and non-None returns
+  carry a ``Returns:`` section (#51);
+* no comment trails code on the same line, and no comment cites a ticket / PR /
+  ADR number (#52 rules 2 and 5). Tool directives (``# noqa`` / ``# nosec``)
+  are exempt.
 """
 from __future__ import annotations
 
@@ -23,49 +25,6 @@ import tokenize
 
 PKG = pathlib.Path(__file__).resolve().parent.parent / "src" / "corrosim"
 
-# Modules swept to the full #51/#52 contract; enforced by the contract tests
-# below. Grows per sweep PR until it covers the package, then the ruff gate
-# (line-length 80 + ANN + D417 + C901) replaces this allowlist.
-CONTRACTED = [
-    "presets.py",
-    "runs/_cli.py",
-    "adsorption/__init__.py",
-    "adsorption/surface.py",
-    "adsorption/adsorption.py",
-    "adsorption/mc.py",
-    "adsorption/md.py",
-    "qm/__init__.py",
-    "qm/descriptors.py",
-    "qm/engines.py",
-    "qm/fukui.py",
-    "qm/pka.py",
-    "qm/speciation.py",
-    "report/report_layout.py",
-    "report/equations.py",
-    "report/report_docx.py",
-    "report/figures.py",
-    "report/report.py",
-    "report/report_content.py",
-    "__init__.py",
-    "cli.py",
-    "medium.py",
-    "molecules.py",
-    "runs/run_mc.py",
-    "runs/run_md.py",
-    "runs/run_fukui.py",
-    "runs/run_pka.py",
-    "runs/run_dft.py",
-    "runs/make_cubes.py",
-    "runs/make_figures.py",
-    "runs/make_report.py",
-    "runs/compare_geometry.py",
-]
-
-MAX_LINE = 80
-# Modules exempt from the 80-column check only — they carry unbreakable long
-# tokens (report.py embeds CSS rules in HTML string literals), mirroring the
-# ruff `E501` per-file-ignore. The comment/annotation rules still apply.
-WIDTH_EXEMPT = {"report/report.py"}
 # Ticket/PR/ADR/issue references that rot — banned from comments (rule 5).
 TICKET_RE = re.compile(r"#\d+|\bADR[-\s]?\d+|\bissue[-\s]?#?\d+|\bPR[-\s]?#?\d+", re.IGNORECASE)
 # Tool directives are machine-readable and must sit inline, so they are exempt
@@ -73,8 +32,8 @@ TICKET_RE = re.compile(r"#\d+|\bADR[-\s]?\d+|\bissue[-\s]?#?\d+|\bPR[-\s]?#?\d+"
 DIRECTIVE_RE = re.compile(r"^#\s*(noqa|type:|pragma:|nosec)")
 
 
-def _contracted_files() -> list[pathlib.Path]:
-    return [PKG / rel for rel in CONTRACTED]
+def _modules() -> list[pathlib.Path]:
+    return sorted(PKG.rglob("*.py"))
 
 
 def _public_defs(tree: ast.Module) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
@@ -92,9 +51,10 @@ def _public_defs(tree: ast.Module) -> list[ast.FunctionDef | ast.AsyncFunctionDe
     return defs
 
 
-def _missing_docstrings() -> list[str]:
+def test_public_api_symbols_have_docstrings():
+    """Every public top-level symbol + public method carries a docstring."""
     missing: list[str] = []
-    for f in sorted(PKG.rglob("*.py")):
+    for f in _modules():
         tree = ast.parse(f.read_text(encoding="utf-8"))
         for node in tree.body:
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -109,18 +69,13 @@ def _missing_docstrings() -> list[str]:
                             and not m.name.startswith("_")
                             and ast.get_docstring(m) is None):
                         missing.append(f"{f.name}:{m.lineno} {node.name}.{m.name}")
-    return missing
-
-
-def test_public_api_symbols_have_docstrings():
-    missing = _missing_docstrings()
     assert not missing, "Public symbols missing docstrings:\n  " + "\n  ".join(missing)
 
 
-def test_contracted_modules_are_fully_annotated():
-    """Every public def in a contracted module has all params + a return typed."""
+def test_public_defs_are_fully_annotated():
+    """Every public def has all params + a return typed (the #51 contract)."""
     bad: list[str] = []
-    for f in _contracted_files():
+    for f in _modules():
         tree = ast.parse(f.read_text(encoding="utf-8"))
         for fn in _public_defs(tree):
             a = fn.args
@@ -139,10 +94,10 @@ def test_contracted_modules_are_fully_annotated():
     assert not bad, "Incomplete type hints:\n  " + "\n  ".join(bad)
 
 
-def test_contracted_modules_document_args_and_returns():
+def test_public_defs_document_args_and_returns():
     """Public defs with params carry ``Args:``; non-None returns carry ``Returns:``."""
     bad: list[str] = []
-    for f in _contracted_files():
+    for f in _modules():
         tree = ast.parse(f.read_text(encoding="utf-8"))
         for fn in _public_defs(tree):
             doc = ast.get_docstring(fn) or ""
@@ -158,16 +113,11 @@ def test_contracted_modules_document_args_and_returns():
     assert not bad, "Incomplete Google docstrings:\n  " + "\n  ".join(bad)
 
 
-def test_contracted_modules_are_clean_comments_and_width():
-    """Contracted modules: <=80 cols, no trailing comments, no ticket-number refs."""
+def test_comments_are_clean():
+    """No trailing comments and no ticket-number comments (rules 2, 5)."""
     bad: list[str] = []
-    for rel in CONTRACTED:
-        f = PKG / rel
+    for f in _modules():
         src = f.read_text(encoding="utf-8")
-        if rel not in WIDTH_EXEMPT:
-            for i, line in enumerate(src.splitlines(), 1):
-                if len(line) > MAX_LINE:
-                    bad.append(f"{f.name}:{i} line {len(line)} > {MAX_LINE}")
         tokens = tokenize.generate_tokens(io.StringIO(src).readline)
         code_rows: set[int] = set()
         for tok in tokens:
@@ -181,4 +131,4 @@ def test_contracted_modules_are_clean_comments_and_width():
             elif tok.type not in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
                                   tokenize.DEDENT, tokenize.ENCODING):
                 code_rows.add(tok.start[0])
-    assert not bad, "Readability violations:\n  " + "\n  ".join(bad)
+    assert not bad, "Comment-rule violations:\n  " + "\n  ".join(bad)

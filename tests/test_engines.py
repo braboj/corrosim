@@ -6,7 +6,11 @@ orchestration loop and the DFT calls around them do.
 """
 import numpy as np
 
-from corrosim.qm.engines import displace_along_mode, imaginary_mode, min_check_fields
+from corrosim.qm.engines import (
+    displace_along_mode,
+    imaginary_mode,
+    min_check_fields,
+)
 
 
 def test_imaginary_mode_returns_none_at_a_minimum():

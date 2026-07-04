@@ -26,7 +26,15 @@ def test_drivers_share_the_preset_list():
     # shared _cli helper, not re-declare the list (issues #64 single-sourcing)
     import argparse
 
-    from corrosim.runs import _cli, make_report, run_dft, run_fukui, run_mc, run_md, run_pka
+    from corrosim.runs import (
+        _cli,
+        make_report,
+        run_dft,
+        run_fukui,
+        run_mc,
+        run_md,
+        run_pka,
+    )
 
     # the shared --molecules argument defaults to exactly the preset list
     p = argparse.ArgumentParser()

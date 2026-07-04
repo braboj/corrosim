@@ -105,33 +105,45 @@ follow_imports = "skip"
 follow_imports_for_stubs = true
 
 [tool.ruff]
-line-length = 100
+# 80-col readability standard (ADR 0012 / issue #52).
+line-length = 80
 target-version = "py310"
 extend-exclude = ["docs/solid-ai-templates"]
 
 [tool.ruff.lint]
-# pyflakes + pycodestyle + import sorting + Google-style docstrings (D).
-select = ["E", "F", "I", "W", "D"]
+# pyflakes + pycodestyle + imports + Google docstrings (D, incl. D417) +
+# mccabe cyclomatic complexity (C90). The full public API contract (ADR 0012 /
+# issue #51) — all public params/returns typed — is enforced by
+# tests/test_docstrings.py, not ruff `ANN`, so private QM helpers that take
+# un-stubbed pyscf objects stay annotation-free.
+select = ["E", "F", "I", "W", "D", "C90"]
+extend-select = ["D417"]
 # corrosim keeps a deliberately compact scientific style; accept it:
 #   E741 single-letter math names (l, O, N); E702 `a; b` step chains;
 #   E731 `log = lambda ...` driver shorthands; E401 grouped stdlib imports.
 #   D205 blank-line-after-summary: corrosim docstrings lead with a long,
 #     formula-bearing sentence that spans lines, so the one-line-summary rule
-#     doesn't fit; the rest of the Google convention is enforced (deferred like
-#     ruff-format — see CLAUDE.md §3).
+#     doesn't fit; the rest of the Google convention is enforced.
 ignore = ["E741", "E702", "E731", "E401", "D205"]
+
+[tool.ruff.lint.mccabe]
+# Cyclomatic-complexity gate (ADR 0012). 15 = the quality.md target; the one
+# linear section-by-section report builder above it carries a documented
+# `# noqa: C901`.
+max-complexity = 15
 
 [tool.ruff.lint.pydocstyle]
 # Public-symbol docstrings follow the Google convention (python-lib stack, #31).
-# The "docstrings exist" acceptance criterion is additionally pinned by
-# tests/test_docstrings.py (issue #6); the D rules add format enforcement.
+# The "docstrings exist" + full Args/Returns contract is additionally pinned by
+# tests/test_docstrings.py (issues #6, #51); the D rules add format enforcement.
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # report.py embeds long single-line CSS rules inside HTML string literals.
 "src/corrosim/report/report.py" = ["E501"]
-# Tests are not public API — docstrings there are optional (D off).
-"tests/**" = ["D"]
+# Tests are not public API — docstrings (D), line length and complexity there
+# are not held to the package standard.
+"tests/**" = ["D", "E501", "C901"]
 
 [tool.bandit]
 # Security SAST (issue #31 / ADR 0007). The runtime security surface is the two
