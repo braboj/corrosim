@@ -3,7 +3,8 @@
 Shared Stage-2/3 substrate + van-der-Waals primitives, single-sourced so that
 adsorption / mc / md all agree on the metal surface and the UFF field:
 
-  * METAL_LATTICE / SURFACE_FACET — crystal + conventional inhibitor facet per metal,
+  * METAL_LATTICE / SURFACE_FACET — crystal + conventional inhibitor facet
+    per metal,
   * build_slab — the periodic ASE slab,
   * UFF / KCAL_TO_EV / EV_TO_KJMOL — UFF nonbonded parameters and the energy
     unit conversions,
@@ -13,9 +14,9 @@ adsorption / mc / md all agree on the metal surface and the UFF field:
     (flat orientation, rotation, the standard starting pose above the slab).
 
 These were previously underscore-private in adsorption/mc with cross-module
-imports; promoted to public here (issue #4) since they are de-facto shared API.
-The vdW energy/forces, combining rules and starting pose were de-duplicated out
-of adsorption / mc / md in issue #57.
+imports; promoted to public here since they are de-facto shared API. The vdW
+energy/forces, combining rules and starting pose were de-duplicated out of
+adsorption / mc / md into this module.
 """
 from __future__ import annotations
 
@@ -34,10 +35,11 @@ METAL_LATTICE = {
     "Al": ("fcc", 4.0495),
 }
 
-# Conventional inhibitor-study facet per metal (the surface build_slab produces).
+# Conventional inhibitor-study facet per metal (what build_slab produces).
 SURFACE_FACET = {"Fe": "(110)", "Cu": "(111)", "Al": "(111)"}
 
-# UFF nonbonded parameters (Rappe et al. 1992): element -> (x_vdw [A], D [kcal/mol]).
+# UFF nonbonded parameters (Rappe et al. 1992):
+# element -> (x_vdw [A], D [kcal/mol]).
 UFF = {
     "H": (2.886, 0.044), "C": (3.851, 0.105), "N": (3.660, 0.069),
     "O": (3.500, 0.060), "S": (4.035, 0.274), "F": (3.364, 0.050),
@@ -47,44 +49,78 @@ UFF = {
 KCAL_TO_EV = 0.0433641
 
 # eV -> kJ/mol. Single source for every reported adsorption energy
-# (e_ads_kjmol, e_mean_kjmol) and the report's unit-conversion equation (#57).
+# (e_ads_kjmol, e_mean_kjmol) and the report's unit-conversion equation.
 EV_TO_KJMOL = 96.485
 
-# Close-contact floor (Å) for the UFF pair distance: caps the r -> 0 Lennard-Jones
-# singularity so a transient overlap can't blow up the energy. Defensive only — the
-# adsorbate is confined well above the slab (min_height >= 1.6 Å), so in practice the
-# molecule–slab separation never approaches this floor. Shared by mc / md / adsorption.
+# Close-contact floor (Å) for the UFF pair distance: caps the r -> 0
+# Lennard-Jones singularity so a transient overlap can't blow up the energy.
+# Defensive only — the adsorbate is confined well above the slab
+# (min_height >= 1.6 Å), so the molecule–slab separation never approaches this
+# floor in practice. Shared by mc / md / adsorption.
 MIN_PAIR_DISTANCE_A = 0.3
 
 
-def build_slab(metal: str = "Fe", size=(6, 6, 4), vacuum: float = 15.0) -> Atoms:
-    """Build a periodic metal slab with the conventional inhibitor facet."""
+def build_slab(metal: str = "Fe",
+               size: tuple[int, int, int] = (6, 6, 4),
+               vacuum: float = 15.0) -> Atoms:
+    """Build a periodic metal slab with the conventional inhibitor facet.
+
+    Args:
+        metal: Metal symbol; one of :data:`METAL_LATTICE` (Fe/Cu/Al).
+        size: Slab repetitions ``(nx, ny, layers)``.
+        vacuum: Vacuum padding added along z (Å).
+
+    Returns:
+        The periodic ASE slab — bcc(110) for Fe, fcc(111) for Cu/Al.
+
+    Raises:
+        ValueError: If ``metal`` has no lattice entry.
+    """
     if metal not in METAL_LATTICE:
-        raise ValueError(f"Unknown metal '{metal}'. Known: {list(METAL_LATTICE)}")
+        raise ValueError(
+            f"Unknown metal '{metal}'. Known: {list(METAL_LATTICE)}")
     crystal, a = METAL_LATTICE[metal]
-    if crystal == "bcc":      # Fe -> (110)
+    if crystal == "bcc":
+        # Fe -> (110)
         slab = bcc110(metal, size=size, a=a, vacuum=vacuum)
-    else:                     # Cu, Al -> (111)
+    else:
+        # Cu, Al -> (111)
         slab = fcc111(metal, size=size, a=a, vacuum=vacuum)
     return slab
 
 
-def orient_flat(coords):
-    """Rotate the molecule so its largest plane lies parallel to xy (max contact)."""
+def orient_flat(coords: npt.ArrayLike) -> np.ndarray:
+    """Rotate a molecule so its largest plane lies parallel to xy (max contact).
+
+    Args:
+        coords: Molecule coordinates, (n, 3) (Å; any array-like).
+
+    Returns:
+        The centred, rotated (n, 3) coordinates with the molecular plane in xy.
+    """
     c = np.asarray(coords, float)
     c = c - c.mean(axis=0)
     # SVD rows come in descending spread, so vt[2] is the least-spread axis;
-    # R's columns are the principal axes, mapping that axis onto z (plane -> xy).
+    # R's columns are the principal axes, mapping it onto z (plane -> xy).
     _, _, vt = np.linalg.svd(c, full_matrices=False)
     R = vt.T
     out = c @ R
-    if np.linalg.det(R) < 0:     # keep right-handed
+    if np.linalg.det(R) < 0:
+        # keep the frame right-handed
         out[:, 0] *= -1
     return out
 
 
-def rot(axis, angle):
-    """Axis-angle (Rodrigues) rotation matrix for a 3-vector axis and angle (rad)."""
+def rot(axis: npt.ArrayLike, angle: float) -> np.ndarray:
+    """Axis-angle (Rodrigues) rotation matrix.
+
+    Args:
+        axis: A 3-vector rotation axis (need not be normalised).
+        angle: Rotation angle (radians).
+
+    Returns:
+        The (3, 3) rotation matrix.
+    """
     axis = axis / (np.linalg.norm(axis) + 1e-12)
     x, y, z = axis
     c, s = np.cos(angle), np.sin(angle)
@@ -118,7 +154,9 @@ def uff_mixing(mol_symbols: Iterable[str],
     m_D = np.array([UFF[s][1] for s in mol_symbols])
     s_x = np.array([UFF[s][0] for s in slab_symbols])
     s_D = np.array([UFF[s][1] for s in slab_symbols])
-    return np.sqrt(m_x[:, None] * s_x[None, :]), np.sqrt(m_D[:, None] * s_D[None, :])
+    x_mix = np.sqrt(m_x[:, None] * s_x[None, :])
+    D_mix = np.sqrt(m_D[:, None] * s_D[None, :])
+    return x_mix, D_mix
 
 
 def uff_vdw_energy(mol_pos: np.ndarray, slab_pos: np.ndarray,
@@ -137,14 +175,18 @@ def uff_vdw_energy(mol_pos: np.ndarray, slab_pos: np.ndarray,
     Returns:
         The interaction energy in eV (negative = attractive).
     """
-    d = np.maximum(np.linalg.norm(mol_pos[:, None, :] - slab_pos[None, :, :], axis=2),
-                   MIN_PAIR_DISTANCE_A)
+    diff = mol_pos[:, None, :] - slab_pos[None, :, :]
+    d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
     t6 = (x_mix / d) ** 6
     return float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
 
 
-def uff_vdw_forces(mol_pos: np.ndarray, slab_pos: np.ndarray,
-                   x_mix: np.ndarray, D_mix: np.ndarray) -> tuple[float, np.ndarray]:
+def uff_vdw_forces(
+    mol_pos: np.ndarray,
+    slab_pos: np.ndarray,
+    x_mix: np.ndarray,
+    D_mix: np.ndarray,
+) -> tuple[float, np.ndarray]:
     """UFF Lennard-Jones 12-6 energy plus per-molecule-atom forces (for MD).
 
     Same potential as :func:`uff_vdw_energy`; a separate function rather than
@@ -160,11 +202,13 @@ def uff_vdw_forces(mol_pos: np.ndarray, slab_pos: np.ndarray,
         ``(energy, forces)``: the energy in eV and the (n, 3) forces on the
         molecule atoms in eV/Å (f = -dE/dr).
     """
-    diff = mol_pos[:, None, :] - slab_pos[None, :, :]      # (n, m, 3)
+    # pairwise displacement (n, m, 3) and floored distance
+    diff = mol_pos[:, None, :] - slab_pos[None, :, :]
     d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
     t6 = (x_mix / d) ** 6
     e = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
-    dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)               # kcal/mol/Å
+    # dE/dr (kcal/mol/Å) projected onto the pair unit vectors -> forces (eV/Å)
+    dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)
     f = -(dEdr[:, :, None] * (diff / d[:, :, None])).sum(axis=1) * KCAL_TO_EV
     return e, f
 

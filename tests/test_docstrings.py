@@ -29,6 +29,11 @@ PKG = pathlib.Path(__file__).resolve().parent.parent / "src" / "corrosim"
 CONTRACTED = [
     "presets.py",
     "runs/_cli.py",
+    "adsorption/__init__.py",
+    "adsorption/surface.py",
+    "adsorption/adsorption.py",
+    "adsorption/mc.py",
+    "adsorption/md.py",
 ]
 
 MAX_LINE = 80
