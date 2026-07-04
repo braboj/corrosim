@@ -1,30 +1,33 @@
 """corrosim.runs.run_pka.
 
-Estimate each inhibitor's conjugate-acid pKa (pKaH) from a DFT thermodynamic cycle
-on the aqueous neutral and protonated total energies — the quantity the speciation
-layer (ADR 0004) leaves as a free parameter. Runs in the QM container (PySCF).
+Estimate each inhibitor's conjugate-acid pKa (pKaH) from a DFT thermodynamic
+cycle on the aqueous neutral and protonated total energies — the quantity the
+speciation layer (ADR 0004) leaves as a free parameter. Runs in the QM
+container (PySCF).
 
-ELECTRONIC-ENERGY APPROXIMATION (see corrosim.pka / ADR 0005): by default this uses
-ddCOSMO single points on the force-field geometries with no frequency calculation —
-the absolute pKaH carries a few-units uncertainty, so the result locates the
-*regime*, not a calibrated value.
+ELECTRONIC-ENERGY APPROXIMATION (see corrosim.pka / ADR 0005): by default this
+uses ddCOSMO single points on the force-field geometries with no frequency
+calculation — the absolute pKaH carries a few-units uncertainty, so the result
+locates the *regime*, not a calibrated value.
 
     docker compose run --rm qm python -m corrosim.runs.run_pka \
         --out-json results/pka.json
 
-Pass --freq (issue #18) to add the ZPE/thermal/entropy correction: each species is
-gas-phase optimised + a Hessian gives G_corr, and the production single point runs
-on the relaxed geometry. Slow (frequency calcs on ~40-atom molecules) — run detached:
+Pass --freq (issue #18) to add the ZPE/thermal/entropy correction: each species
+is gas-phase optimised + a Hessian gives G_corr, and the production single
+point runs on the relaxed geometry. Slow (frequency calcs on ~40-atom
+molecules) — run detached:
 
-    docker compose run -d --name corrosim_pka qm python -m corrosim.runs.run_pka \
-        --freq --out-json results/pka.json
+    docker compose run -d --name corrosim_pka qm \
+        python -m corrosim.runs.run_pka --freq --out-json results/pka.json
 
-Add --tight (issue #34) to drive a floppy rotor to a true minimum — finer DFT grid
-(level 4) + imaginary-mode restarts — e.g. to clear the lone imaginary frequency on
-the isorhamnetin cation:
+Add --tight (issue #34) to drive a floppy rotor to a true minimum — finer DFT
+grid (level 4) + imaginary-mode restarts — e.g. to clear the lone imaginary
+frequency on the isorhamnetin cation:
 
-    docker compose run -d --name corrosim_pka qm python -m corrosim.runs.run_pka \
-        --freq --tight --molecules isorhamnetin --out-json results/pka_isorhamnetin.json
+    docker compose run -d --name corrosim_pka qm \
+        python -m corrosim.runs.run_pka --freq --tight \
+        --molecules isorhamnetin --out-json results/pka_isorhamnetin.json
 """
 from __future__ import annotations
 
@@ -47,35 +50,50 @@ from corrosim.runs.run_dft import _best_protonation_site
 
 def _relax_and_thermo(symbols, coords, charge, opt_basis, opt_xc, temperature,
                       tight) -> tuple[list[str], Coords, dict]:
-    """Gas-phase geometry + Gibbs correction for one species. Default path is a single
-    opt + Hessian; ``tight=True`` uses :func:`relax_to_minimum` (finer grid, tight
-    convergence, imaginary-mode restarts) to drive a floppy rotor to a true minimum
-    (issue #34).
+    """Gas-phase geometry + Gibbs correction for one species.
+
+    The default path is a single opt + Hessian; ``tight=True`` uses
+    :func:`relax_to_minimum` (finer grid, tight convergence, imaginary-mode
+    restarts) to drive a floppy rotor to a true minimum.
     """
     if tight:
         return relax_to_minimum(symbols, coords, basis=opt_basis, xc=opt_xc,
                                 charge=charge, temperature=temperature)
     sym, xyz = optimize_geometry(symbols, coords, basis=opt_basis, xc=opt_xc,
                                  charge=charge)
-    info = thermo_correction(sym, xyz, basis=opt_basis, xc=opt_xc, charge=charge,
-                             temperature=temperature)
+    info = thermo_correction(sym, xyz, basis=opt_basis, xc=opt_xc,
+                             charge=charge, temperature=temperature)
     return sym, xyz, info
 
 
-def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
-                     select_engine="xtb", freq=False, opt_basis="6-31G(d)",
-                     opt_xc="b3lyp", temperature=298.15, tight=False) -> list[dict]:
-    """Aqueous DFT energies for the neutral (B) + best-protonated cation (BH⁺) of
-    each molecule, and the resulting pKaH.
+def compute_pka_rows(molecules: Sequence[str], basis: str = "6-311++G(d,p)",
+                     xc: str = "b3lyp", select_engine: str = "xtb",
+                     freq: bool = False, opt_basis: str = "6-31G(d)",
+                     opt_xc: str = "b3lyp", temperature: float = 298.15,
+                     tight: bool = False) -> list[dict]:
+    """Aqueous pKaH rows for the neutral (B) + best cation (BH⁺) per molecule.
 
-    With ``freq=True`` (ADR 0005 refinement, issue #18): each species is first
-    gas-phase geometry-optimised at ``opt_basis``/``opt_xc``, a Hessian gives the
-    Gibbs correction G_corr = ZPE + H_thermal − T·S, and the production aqueous
-    single point runs on the relaxed geometry — so the row carries a
-    frequency-corrected pKaH alongside the electronic-only one. ``tight=True`` (issue
-    #34) drives each species to a true minimum (finer grid + imaginary-mode restarts)
-    — for the isorhamnetin cation, whose flat methoxy torsion tips imaginary under the
-    default grid. Returns a row per molecule.
+    With ``freq=True`` each species is first gas-phase geometry-optimised at
+    ``opt_basis``/``opt_xc``, a Hessian gives the Gibbs correction
+    G_corr = ZPE + H_thermal − T·S, and the production aqueous single point runs
+    on the relaxed geometry — so the row carries a frequency-corrected pKaH
+    alongside the electronic-only one. ``tight=True`` drives each species to a
+    true minimum (finer grid + imaginary-mode restarts) — for the isorhamnetin
+    cation, whose flat methoxy torsion tips imaginary under the default grid.
+
+    Args:
+        molecules: Library names or SMILES to process.
+        basis: Production AO basis for the aqueous single points.
+        xc: Exchange-correlation functional.
+        select_engine: Fast engine for protonation-site selection.
+        freq: Add the frequency (Gibbs) correction.
+        opt_basis: Basis for the ``freq`` gas opt+frequency step.
+        opt_xc: Functional for the ``freq`` step.
+        temperature: Temperature (K).
+        tight: Drive each ``freq`` geometry to a verified true minimum.
+
+    Returns:
+        One row dict per molecule with the pKaH and its provenance.
     """
     rows = []
     for name in molecules:
@@ -96,10 +114,12 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
         if freq:
             print("  opt+freq neutral (gas) ...", file=sys.stderr)
             nb_sym, nb_xyz, tb = _relax_and_thermo(
-                neutral.symbols, neutral.coords, 0, opt_basis, opt_xc, temperature, tight)
+                neutral.symbols, neutral.coords, 0, opt_basis, opt_xc,
+                temperature, tight)
             print("  opt+freq cation (gas) ...", file=sys.stderr)
             cb_sym, cb_xyz, tbh = _relax_and_thermo(
-                cation.symbols, cation.coords, 1, opt_basis, opt_xc, temperature, tight)
+                cation.symbols, cation.coords, 1, opt_basis, opt_xc,
+                temperature, tight)
             g_corr_b, g_corr_bh = tb["g_corr_ev"], tbh["g_corr_ev"]
 
         print("  DFT neutral/aqueous ...", file=sys.stderr)
@@ -114,17 +134,20 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
             "name": name,
             "e_neutral_aq_ev": round(e_b, 4),
             "e_cation_aq_ev": round(e_bh, 4),
-            "proton_affinity_aq_ev": round(e_b - e_bh, 4),   # ddCOSMO, electronic
+            # ddCOSMO, electronic
+            "proton_affinity_aq_ev": round(e_b - e_bh, 4),
             "g_aq_proton_ev": round(G_AQ_PROTON_EV, 4),
             "pkah_electronic": round(pkah_elec, 2),
             "level": f"{xc.upper()}/{basis} (ddCOSMO:water), electronic-only",
         }
         if freq:
-            pkah_corr = estimate_pka(e_b, e_bh, g_corr_b, g_corr_bh, temperature)
+            pkah_corr = estimate_pka(e_b, e_bh, g_corr_b, g_corr_bh,
+                                     temperature)
             row.update({
                 "g_corr_neutral_ev": round(g_corr_b, 4),
                 "g_corr_cation_ev": round(g_corr_bh, 4),
-                "pkah": round(pkah_corr, 2),                  # frequency-corrected
+                # frequency-corrected
+                "pkah": round(pkah_corr, 2),
                 "n_imag_neutral": tb["n_imag"],
                 "n_imag_cation": tbh["n_imag"],
                 "temperature_k": temperature,
@@ -135,33 +158,43 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
             })
             imag = tb["n_imag"] + tbh["n_imag"]
             if imag:
-                print(f"  WARNING: {imag} imaginary frequency(ies) — not a clean "
-                      "minimum; correction unreliable.", file=sys.stderr)
+                print(f"  WARNING: {imag} imaginary frequency(ies) — not a "
+                      "clean minimum; correction unreliable.", file=sys.stderr)
             print(f"  pKaH ≈ {pkah_corr:.2f} (freq-corrected; electronic-only "
                   f"was {pkah_elec:.2f})", file=sys.stderr)
         else:
-            print(f"  pKaH ≈ {pkah_elec:.2f} (electronic-only estimate)", file=sys.stderr)
+            print(f"  pKaH ≈ {pkah_elec:.2f} (electronic-only estimate)",
+                  file=sys.stderr)
         rows.append(row)
     return rows
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: estimate pKaH from a DFT deprotonation cycle (QM container)."""
+    """CLI entry point: estimate pKaH from a DFT deprotonation cycle.
+
+    Runs in the QM container (PySCF).
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
     p = argparse.ArgumentParser(prog="corrosim-run-pka")
     add_molecules_arg(p)
     p.add_argument("--basis", default="6-311++G(d,p)")
     p.add_argument("--xc", default="b3lyp")
     p.add_argument("--select-engine", default="xtb")
     p.add_argument("--freq", action="store_true",
-                   help="Add the ZPE/thermal/entropy correction from a gas-phase "
-                        "opt+frequency calc (slow; QM container). Issue #18 / ADR 0005.")
+                   help="Add the ZPE/thermal/entropy correction from a "
+                        "gas-phase opt+frequency calc (slow; QM container).")
     p.add_argument("--opt-basis", default="6-31G(d)",
                    help="Basis for the --freq gas opt+frequency step.")
     p.add_argument("--opt-xc", default="b3lyp")
     p.add_argument("--tight", action="store_true",
-                   help="Drive each --freq geometry to a true minimum: finer DFT grid "
-                        "(level 4) + imaginary-mode restarts. Clears a floppy-rotor "
-                        "imaginary mode (issue #34).")
+                   help="Drive each --freq geometry to a true minimum: finer "
+                        "DFT grid (level 4) + imaginary-mode restarts. Clears "
+                        "a floppy-rotor imaginary mode.")
     p.add_argument("--temperature", type=float, default=298.15)
     p.add_argument("--out-json", default=None)
     args = p.parse_args(argv)
@@ -180,7 +213,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("\nname            pKaH(corr)  pKaH(elec)   PA_aq(eV)")
         for r in rows:
             print(f"{r['name']:<15} {r.get('pkah', '—'):>9}   "
-                  f"{r['pkah_electronic']:>9}   {r['proton_affinity_aq_ev']:>9}")
+                  f"{r['pkah_electronic']:>9}   "
+                  f"{r['proton_affinity_aq_ev']:>9}")
     else:
         print("\nname            pKaH(elec)   PA_aq(eV)")
         for r in rows:

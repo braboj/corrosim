@@ -27,15 +27,25 @@ from corrosim.runs._cli import (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: compute condensed Fukui / dual descriptors per molecule (M2)."""
-    p = argparse.ArgumentParser(prog="corrosim-run-fukui",
-                                description="Condensed Fukui / dual descriptor (M2).")
+    """CLI entry point: compute condensed Fukui / dual descriptors (M2).
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
+    p = argparse.ArgumentParser(
+        prog="corrosim-run-fukui",
+        description="Condensed Fukui / dual descriptor (M2).")
     add_molecules_arg(p)
     p.add_argument("--basis", default="6-31G(d)",
-                   help="Valence basis; diffuse sets break Mulliken-condensed Fukui.")
+                   help="Valence basis; diffuse sets break Mulliken-condensed "
+                        "Fukui.")
     p.add_argument("--xc", default="b3lyp")
     p.add_argument("--method", default="fmo", choices=["fmo", "fd"],
-                   help="fmo = fast one-SCF frontier-orbital; fd = finite difference.")
+                   help="fmo = fast one-SCF frontier-orbital; fd = finite "
+                        "difference.")
     p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
     os.makedirs(args.outdir, exist_ok=True)

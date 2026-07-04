@@ -29,37 +29,57 @@ LIBRARY = {
 }
 
 # Single-molecule synonyms (name -> library key). "arghel"/"argel" is NOT here:
-# Arghel is a *set* of flavonoids, not one molecule — see corrosim.presets.ARGHEL.
+# Arghel is a *set* of flavonoids, not one molecule — see
+# corrosim.presets.ARGHEL.
 ALIASES: dict[str, str] = {}
 
 
 @dataclass
 class Molecule:
     """A prepared inhibitor: identity + 3D geometry."""
+
     name: str
     smiles: str
     symbols: list[str]
-    coords: list[tuple[float, float, float]]   # Angstrom
-    charge: int = 0                            # net charge (+1 = protonated cation)
+    # Angstrom
+    coords: list[tuple[float, float, float]]
+    # net charge (+1 = protonated cation)
+    charge: int = 0
     rdkit_mol: Chem.Mol | None = field(repr=False, default=None)
 
     @property
     def n_atoms(self) -> int:
-        """Number of atoms in the prepared geometry (explicit Hs included)."""
+        """Number of atoms in the prepared geometry.
+
+        Returns:
+            The atom count (explicit Hs included).
+        """
         return len(self.symbols)
 
     @property
     def formula(self) -> str:
-        """Molecular formula (Hill notation), computed from ``rdkit_mol``."""
+        """Molecular formula (Hill notation), from ``rdkit_mol``.
+
+        Returns:
+            The Hill-notation formula.
+        """
         from rdkit.Chem import rdMolDescriptors
         return rdMolDescriptors.CalcMolFormula(self.rdkit_mol)
 
     def atoms_for_pyscf(self) -> list:
-        """Geometry as ``[[symbol, (x, y, z)], ...]`` — the layout pyscf.gto.M expects."""
+        """Geometry in the layout ``pyscf.gto.M`` expects.
+
+        Returns:
+            ``[[symbol, (x, y, z)], ...]``.
+        """
         return [[s, c] for s, c in zip(self.symbols, self.coords)]
 
     def to_xyz(self) -> str:
-        """Serialise to a standard XYZ block (coordinates in Å)."""
+        """Serialise to a standard XYZ block (coordinates in Å).
+
+        Returns:
+            The XYZ block as text.
+        """
         lines = [str(self.n_atoms), self.name]
         for s, (x, y, z) in zip(self.symbols, self.coords):
             lines.append(f"{s:2s} {x:14.8f} {y:14.8f} {z:14.8f}")
@@ -67,11 +87,18 @@ class Molecule:
 
 
 def write_xyz(mol: Molecule, path: str) -> str:
-    """Write ``mol`` to ``path`` as a standard XYZ file (coordinates in Å) and
-    return ``path``, creating the parent directory if needed.
+    """Write ``mol`` to ``path`` as a standard XYZ file (coordinates in Å).
 
-    The file-name convention is the caller's concern: the DFT driver persists each
-    optimised geometry as ``<molecule>_opt.xyz`` (``run_dft --optimize``, issue #36).
+    Creates the parent directory if needed. The file-name convention is the
+    caller's concern (the DFT driver persists each optimised geometry as
+    ``<molecule>_opt.xyz``).
+
+    Args:
+        mol: The molecule to serialise.
+        path: Destination .xyz path.
+
+    Returns:
+        The written ``path``.
     """
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -80,7 +107,17 @@ def write_xyz(mol: Molecule, path: str) -> str:
 
 
 def resolve_smiles(name_or_smiles: str) -> tuple[str, str]:
-    """Return (display_name, smiles) for a library name, alias, or raw SMILES."""
+    """Resolve a library name, alias, or raw SMILES to ``(name, smiles)``.
+
+    Args:
+        name_or_smiles: A library name, alias, or SMILES string.
+
+    Returns:
+        ``(display_name, smiles)``.
+
+    Raises:
+        ValueError: If the input is neither a known name nor a valid SMILES.
+    """
     key = name_or_smiles.strip().lower()
     if key in ALIASES:
         key = ALIASES[key]
@@ -95,7 +132,8 @@ def resolve_smiles(name_or_smiles: str) -> tuple[str, str]:
     )
 
 
-def _embed_and_relax(mol, name: str, charge: int, seed: int, ff: str) -> Molecule:
+def _embed_and_relax(mol, name: str, charge: int, seed: int,
+                     ff: str) -> Molecule:
     """Add Hs, ETKDG-embed, force-field relax, and pack into a Molecule.
 
     ff: 'MMFF' or 'UFF' (geometry pre-optimisation before any QM step).
@@ -124,7 +162,16 @@ def build_molecule(name_or_smiles: str, seed: int = 42,
                    ff: str = "MMFF") -> Molecule:
     """Build a 3D-embedded, force-field-relaxed molecule from a name or SMILES.
 
-    ff: 'MMFF' or 'UFF' (geometry pre-optimisation before any QM step).
+    Args:
+        name_or_smiles: A library name, alias, or SMILES string.
+        seed: RNG seed for the ETKDG embedding.
+        ff: Force field for the geometry pre-optimisation ('MMFF' or 'UFF').
+
+    Returns:
+        The prepared :class:`Molecule`.
+
+    Raises:
+        ValueError: If the SMILES cannot be parsed.
     """
     name, smiles = resolve_smiles(name_or_smiles)
     mol = Chem.MolFromSmiles(smiles)
@@ -134,9 +181,20 @@ def build_molecule(name_or_smiles: str, seed: int = 42,
 
 
 def enumerate_protonation_sites(name_or_smiles: str) -> list[int]:
-    """Heavy-atom indices of candidate protonation sites (neutral O / N lone-pair
-    bearers) in the canonical (no-H) structure. Indices are stable under AddHs,
-    so they can be passed straight to ``build_protonated``.
+    """Heavy-atom indices of candidate protonation sites.
+
+    The neutral O / N lone-pair bearers in the canonical (no-H) structure.
+    Indices are stable under AddHs, so they can be passed straight to
+    ``build_protonated``.
+
+    Args:
+        name_or_smiles: A library name, alias, or SMILES string.
+
+    Returns:
+        The candidate O/N atom indices.
+
+    Raises:
+        ValueError: If the SMILES cannot be parsed.
     """
     _, smiles = resolve_smiles(name_or_smiles)
     mol = Chem.MolFromSmiles(smiles)
@@ -148,9 +206,23 @@ def enumerate_protonation_sites(name_or_smiles: str) -> list[int]:
 
 def build_protonated(name_or_smiles: str, site_idx: int, seed: int = 42,
                      ff: str = "MMFF") -> Molecule:
-    """Protonate a neutral O/N site (add H+), returning a +1 cation Molecule — the
-    species relevant in acidic media (1 M HCl). Pick ``site_idx`` from
-    ``enumerate_protonation_sites``; the DFT driver selects the lowest-energy site.
+    """Protonate a neutral O/N site (add H+), returning a +1 cation Molecule.
+
+    The species relevant in acidic media (1 M HCl). Pick ``site_idx`` from
+    ``enumerate_protonation_sites``; the DFT driver selects the lowest-energy
+    site.
+
+    Args:
+        name_or_smiles: A library name, alias, or SMILES string.
+        site_idx: The O/N atom index to protonate.
+        seed: RNG seed for the ETKDG embedding.
+        ff: Force field for the geometry pre-optimisation ('MMFF' or 'UFF').
+
+    Returns:
+        The +1 cation :class:`Molecule`.
+
+    Raises:
+        ValueError: If the SMILES cannot be parsed or ``site_idx`` is not O/N.
     """
     name, smiles = resolve_smiles(name_or_smiles)
     base = Chem.MolFromSmiles(smiles)

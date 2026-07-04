@@ -2,12 +2,13 @@
 
 Quantify how the DFT geometry optimisation (run_dft --optimize) changes the
 descriptors relative to the force-field geometry, and check that the inhibitor
-ranking is preserved. Reads the two descriptor matrices, writes a tidy comparison
-CSV and a grouped-bar figure, and prints a summary.
+ranking is preserved. Reads the two descriptor matrices, writes a tidy
+comparison CSV and a grouped-bar figure, and prints a summary.
 
 Runs in the venv (no QM container):
     python -m corrosim.runs.compare_geometry \
-        --ff results/dft_descriptors_ff.csv --opt results/dft_descriptors_opt.csv \
+        --ff results/dft_descriptors_ff.csv \
+        --opt results/dft_descriptors_opt.csv \
         --out-csv results/geometry_comparison.csv \
         --out-fig report/figures/fig8_geometry_comparison.png
 """
@@ -42,9 +43,9 @@ def _select(df, order, form, phase):
 
 
 def _compare_form(ff_full, opt_full, form, phase):
-    """Build the FF-vs-opt delta table and gap/ΔN ranking check for one ``form``.
-    Returns (comp_rows, order, ranking_summary_str) or (None, [], msg) if the form
-    is absent from either matrix.
+    """Build the FF-vs-opt delta table and gap/ΔN ranking check for a ``form``.
+    Returns (comp_rows, order, ranking_summary_str) or (None, [], msg) if the
+    form is absent from either matrix.
     """
     f = _select(ff_full, ORDER, form, phase)
     o = _select(opt_full, ORDER, form, phase)
@@ -57,8 +58,9 @@ def _compare_form(ff_full, opt_full, form, phase):
     for n in order:
         for k in KEYS:
             a, b = float(f.loc[n, k]), float(o.loc[n, k])
-            comp_rows.append(dict(form=form, name=n, descriptor=k, ff=round(a, 3),
-                                  dft_opt=round(b, 3), delta=round(b - a, 3)))
+            comp_rows.append(dict(form=form, name=n, descriptor=k,
+                                  ff=round(a, 3), dft_opt=round(b, 3),
+                                  delta=round(b - a, 3)))
 
     rank_ff_gap = list(f.sort_values("gap_ev").index)
     rank_op_gap = list(o.sort_values("gap_ev").index)
@@ -78,7 +80,16 @@ def _compare_form(ff_full, opt_full, form, phase):
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: compare FF vs DFT-optimised descriptors and check ranking robustness."""
+    """CLI entry point: compare FF vs DFT-optimised descriptors.
+
+    Also checks that the inhibitor ranking is preserved.
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
     p.add_argument("--ff", default="results/dft_descriptors_ff.csv",
                    help="Force-field-geometry descriptor matrix.")
@@ -86,14 +97,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                    help="DFT-optimised-geometry descriptor matrix.")
     p.add_argument("--phase", default="aqueous", choices=["gas", "aqueous"])
     p.add_argument("--out-csv", default="results/geometry_comparison.csv")
-    p.add_argument("--out-fig", default="report/figures/fig8_geometry_comparison.png")
+    p.add_argument("--out-fig",
+                   default="report/figures/fig8_geometry_comparison.png")
     args = p.parse_args(argv)
 
     ff_full, opt_full = pd.read_csv(args.ff), pd.read_csv(args.opt)
 
     all_rows, neutral_order = [], []
     for form in ("neutral", "protonated"):
-        comp_rows, order, summary = _compare_form(ff_full, opt_full, form, args.phase)
+        comp_rows, order, summary = _compare_form(
+            ff_full, opt_full, form, args.phase)
         print(summary)
         if comp_rows:
             all_rows += comp_rows
