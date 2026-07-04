@@ -19,14 +19,18 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .surface import (
-    KCAL_TO_EV,
-    MIN_PAIR_DISTANCE_A,
+    EV_TO_KJMOL,
     SURFACE_FACET,
-    UFF,
     build_slab,
-    orient_flat,
+    initial_adsorption_pose,
     rot,
+    uff_mixing,
+    uff_vdw_energy,
 )
+
+# Starting gap (Å) between the slab top and the molecule's lowest atom; the
+# annealing then samples heights in [min_height, max_height].
+MC_START_HEIGHT_A = 3.0
 
 
 @dataclass
@@ -66,36 +70,17 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     kT in eV; annealed geometrically from kT_hi to kT_lo. Returns the best pose and
     the accepted-energy trace.
     """
-    missing = set(molecule.symbols) - set(UFF)
-    if missing:
-        raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
     rng = np.random.default_rng(seed)
     slab = build_slab(metal, size=size, vacuum=vacuum)
     s_pos = slab.get_positions()
-    s_sym = slab.get_chemical_symbols()
-    s_x = np.array([UFF[s][0] for s in s_sym])
-    s_D = np.array([UFF[s][1] for s in s_sym])
     cell = slab.get_cell()
-    cx, cy = cell[0, 0] / 2.0, cell[1, 1] / 2.0
     top = s_pos[:, 2].max()
 
     m_sym = list(molecule.symbols)
-    m_x = np.array([UFF[s][0] for s in m_sym])
-    m_D = np.array([UFF[s][1] for s in m_sym])
-    x_mix = np.sqrt(m_x[:, None] * s_x[None, :])
-    D_mix = np.sqrt(m_D[:, None] * s_D[None, :])
+    x_mix, D_mix = uff_mixing(m_sym, slab.get_chemical_symbols())
 
-    def energy(p):
-        d = np.linalg.norm(p[:, None, :] - s_pos[None, :, :], axis=2)
-        d = np.maximum(d, MIN_PAIR_DISTANCE_A)
-        t = (x_mix / d) ** 6
-        return float((D_mix * (t * t - 2.0 * t)).sum()) * KCAL_TO_EV
-
-    pos = orient_flat(molecule.coords)
-    pos[:, 0] += cx
-    pos[:, 1] += cy
-    pos[:, 2] += top + 3.0 - pos[:, 2].min()
-    e = energy(pos)
+    pos = initial_adsorption_pose(molecule.coords, cell, top, MC_START_HEIGHT_A)
+    e = uff_vdw_energy(pos, s_pos, x_mix, D_mix)
     best_e, best_pos = e, pos.copy()
     energies = [e]
     n_accept = 0
@@ -112,7 +97,7 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         c2 = trial.mean(0)
         trial[:, 0] += np.clip(c2[0], 0, cell[0, 0]) - c2[0]
         trial[:, 1] += np.clip(c2[1], 0, cell[1, 1]) - c2[1]
-        et = energy(trial)
+        et = uff_vdw_energy(trial, s_pos, x_mix, D_mix)
         if et < e or rng.random() < np.exp(-(et - e) / kT):
             pos, e, com = trial, et, trial.mean(0)
             n_accept += 1
@@ -121,7 +106,7 @@ def run_mc(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
         energies.append(e)
 
     return MCResult(metal=metal, surface=SURFACE_FACET.get(metal, ""),
-                    e_ads_ev=round(best_e, 4), e_ads_kjmol=round(best_e * 96.485, 2),
+                    e_ads_ev=round(best_e, 4), e_ads_kjmol=round(best_e * EV_TO_KJMOL, 2),
                     best_height_A=round(float(best_pos[:, 2].min() - top), 2),
                     mol_symbols=m_sym, best_positions=best_pos, slab=slab,
                     energies=energies, n_accept=n_accept, n_steps=n_steps)

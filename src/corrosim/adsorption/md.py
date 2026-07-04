@@ -19,16 +19,19 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .surface import (
-    KCAL_TO_EV,
-    MIN_PAIR_DISTANCE_A,
+    EV_TO_KJMOL,
     SURFACE_FACET,
-    UFF,
     build_slab,
-    orient_flat,
+    initial_adsorption_pose,
     rot,
+    uff_mixing,
+    uff_vdw_forces,
 )
 
 KB_EV = 8.617333262e-5   # Boltzmann constant, eV/K
+# Starting gap (Å) between the slab top and the molecule's lowest atom; the
+# confinement window [min_height, max_height] takes over from the first step.
+MD_START_HEIGHT_A = 2.5
 # First-shell search window (Å) for the metal–donor RDF peak = the physisorption
 # adsorption distance. Lower bound clears the unphysical close-contact spike; upper
 # bound stays within the first coordination shell (peak observed ~3.5 Å).
@@ -87,17 +90,6 @@ class MDResult:
         return self.first_peak_metal_N
 
 
-def _forces_energy(p, s_pos, x_mix, D_mix):
-    """UFF vdW energy (eV) and per-molecule-atom forces (eV/A)."""
-    diff = p[:, None, :] - s_pos[None, :, :]      # (n, m, 3)
-    d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
-    t6 = (x_mix / d) ** 6
-    E = float((D_mix * (t6 * t6 - 2.0 * t6)).sum()) * KCAL_TO_EV
-    dEdr = 12.0 * D_mix / d * (t6 - t6 * t6)       # kcal/mol/A
-    f = -(dEdr[:, :, None] * (diff / d[:, :, None])).sum(axis=1) * KCAL_TO_EV
-    return E, f
-
-
 def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
            n_steps: int = 4000, equil: int = 1000, temperature: float = 298.0,
            seed: int = 0, D_t: float = 0.004, D_r: float = 0.004,
@@ -109,9 +101,6 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     state* (vdW physisorption is weak vs kT at 298 K, so an unconfined molecule
     thermally desorbs). Records the metal-X RDF after `equil` steps.
     """
-    missing = set(molecule.symbols) - set(UFF)
-    if missing:
-        raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
     kT = KB_EV * temperature
     rng = np.random.default_rng(seed)
     slab = build_slab(metal, size=size, vacuum=vacuum)
@@ -122,18 +111,14 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     top = s_pos[:, 2].max()
 
     m_sym = list(molecule.symbols)
-    m_x = np.array([UFF[s][0] for s in m_sym]); m_D = np.array([UFF[s][1] for s in m_sym])
-    s_x = np.array([UFF[s][0] for s in s_sym]); s_D = np.array([UFF[s][1] for s in s_sym])
-    x_mix = np.sqrt(m_x[:, None] * s_x[None, :]); D_mix = np.sqrt(m_D[:, None] * s_D[None, :])
+    x_mix, D_mix = uff_mixing(m_sym, s_sym)
     o_idx = [i for i, s in enumerate(m_sym) if s == "O"]
     n_idx = [i for i, s in enumerate(m_sym) if s == "N"]
 
     if start_positions is not None:
         p = np.array(start_positions, float).copy()
     else:
-        p = orient_flat(molecule.coords)
-        p[:, 0] += cell[0, 0] / 2.0; p[:, 1] += cell[1, 1] / 2.0
-        p[:, 2] += top + 2.5 - p[:, 2].min()
+        p = initial_adsorption_pose(molecule.coords, cell, top, MD_START_HEIGHT_A)
 
     edges = np.arange(0.0, 6.01, 0.1)
     r = 0.5 * (edges[:-1] + edges[1:])
@@ -141,7 +126,7 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
     energies = []
 
     for step in range(n_steps):
-        E, f = _forces_energy(p, s_pos, x_mix, D_mix)
+        E, f = uff_vdw_forces(p, s_pos, x_mix, D_mix)
         energies.append(E)
         com = p.mean(0)
         F = f.sum(0)
@@ -179,7 +164,8 @@ def run_md(molecule, metal: str = "Fe", size=(5, 5, 3), vacuum: float = 10.0,
 
     e_mean = float(np.mean(energies[equil:])) if len(energies) > equil else float(np.mean(energies))
     return MDResult(metal=metal, surface=SURFACE_FACET.get(metal, ""), temperature=temperature,
-                    e_mean_ev=round(e_mean, 4), e_mean_kjmol=round(e_mean * 96.485, 2),
+                    e_mean_ev=round(e_mean, 4),
+                    e_mean_kjmol=round(e_mean * EV_TO_KJMOL, 2),
                     rdf_r=r.tolist(), rdf_metal_O=g_mO.tolist(), rdf_metal_N=g_mN.tolist(),
                     first_peak_metal_O=_peak(g_mO), first_peak_metal_N=_peak(g_mN),
                     energies=energies, final_positions=p, mol_symbols=m_sym, slab=slab)

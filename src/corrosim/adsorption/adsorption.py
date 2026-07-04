@@ -23,12 +23,12 @@ from ase import Atoms
 from ase.io import write
 
 from .surface import (
-    KCAL_TO_EV,
-    MIN_PAIR_DISTANCE_A,
+    EV_TO_KJMOL,
     SURFACE_FACET,
-    UFF,
     build_slab,
-    orient_flat,
+    initial_adsorption_pose,
+    uff_mixing,
+    uff_vdw_energy,
 )
 
 
@@ -94,41 +94,23 @@ def estimate_adsorption_energy(molecule, metal: str = "Fe",
     """
     if heights is None:
         heights = np.arange(2.0, 4.01, 0.25)
-    missing = set(molecule.symbols) - set(UFF)
-    if missing:
-        raise ValueError(f"No UFF vdW params for elements: {sorted(missing)}")
 
     slab = build_slab(metal, size=size, vacuum=vacuum)
-    sym_s = slab.get_chemical_symbols()
     pos_s = slab.get_positions()
     cell = slab.get_cell()
-    cx, cy = cell[0, 0] / 2.0, cell[1, 1] / 2.0
     top = pos_s[:, 2].max()
+    x_mix, D_mix = uff_mixing(molecule.symbols, slab.get_chemical_symbols())
 
-    base = orient_flat(molecule.coords)
     best_e, best_h = float("inf"), None
     for h in heights:
-        p = base.copy()
-        p[:, 2] += top + h - p[:, 2].min()
-        p[:, 0] += cx
-        p[:, 1] += cy
-        e = 0.0
-        for sa, pa in zip(molecule.symbols, p):
-            xa, Da = UFF[sa]
-            for sb, pb in zip(sym_s, pos_s):
-                xb, Db = UFF[sb]
-                r = float(np.linalg.norm(pa - pb))
-                if r < MIN_PAIR_DISTANCE_A:        # close-contact guard (never fires in practice)
-                    continue
-                t = (np.sqrt(xa * xb) / r) ** 6
-                e += np.sqrt(Da * Db) * (t * t - 2 * t)
-        e *= KCAL_TO_EV
+        p = initial_adsorption_pose(molecule.coords, cell, top, float(h))
+        e = uff_vdw_energy(p, pos_s, x_mix, D_mix)
         if e < best_e:
             best_e, best_h = e, float(h)
 
     return {"metal": metal, "method": "UFF-vdW (rigid physisorption estimate)",
             "e_ads_ev": round(best_e, 4),
-            "e_ads_kjmol": round(best_e * 96.485, 2),
+            "e_ads_kjmol": round(best_e * EV_TO_KJMOL, 2),
             "best_height_A": best_h}
 
 

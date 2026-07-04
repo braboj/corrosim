@@ -8,7 +8,20 @@ from __future__ import annotations
 from .adsorption import LAMMPS_HANDOFF_NOTE, build_adsorption_system, estimate_adsorption_energy
 from .mc import run_mc
 from .md import run_md
-from .surface import SURFACE_FACET, UFF, build_slab, orient_flat, rot
+from .surface import (
+    EV_TO_KJMOL,
+    SURFACE_FACET,
+    UFF,
+    build_slab,
+    initial_adsorption_pose,
+    orient_flat,
+    rot,
+    uff_mixing,
+    uff_vdw_energy,
+    uff_vdw_forces,
+)
 
 __all__ = ["LAMMPS_HANDOFF_NOTE", "build_adsorption_system", "estimate_adsorption_energy",
-           "run_mc", "run_md", "SURFACE_FACET", "UFF", "build_slab", "orient_flat", "rot"]
+           "run_mc", "run_md", "EV_TO_KJMOL", "SURFACE_FACET", "UFF", "build_slab",
+           "initial_adsorption_pose", "orient_flat", "rot",
+           "uff_mixing", "uff_vdw_energy", "uff_vdw_forces"]
