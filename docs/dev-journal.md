@@ -585,4 +585,61 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **#40** (E_ads). First release tag still deferred to post-#67. Cosmetic loose
   end: **#66–#68** cite the retired epic #65.
 
+## 2026-07-04 — #51/#52 standards sweep begun: ADR 0012 + 4 module batches
+
+- **Tool:** Claude Code (Fable 5).
+- **Scope:** the last two epic **#69** tickets — **#51** (full public API
+  contract) + **#52** (readability standard). Being run **together, module by
+  module** (both rewrite the same functions), each a green PR, with enforcement
+  staged so CI never half-breaks.
+- **Enforcement mechanism (key design):** a **`CONTRACTED` allowlist** in
+  `tests/test_docstrings.py` — for the listed modules it asserts full public
+  annotations, Google `Args:`/`Returns:` completeness, ≤80 cols, no trailing
+  comments (tokenize; `# noqa`/`# nosec` exempt) and no ticket-number comments.
+  The list grows one batch per PR; a final PR flips the global ruff gate and
+  retires it. **Decision: NOT ruff `ANN`** — #51 is the *public* contract, so
+  the allowlist test enforces public-def annotation (private pyscf-object
+  helpers stay un-annotated, avoiding `Any`/`attr-defined` friction); the flip
+  adds only `line-length=80` + `D417` + `C901`. Also fixed a real bug:
+  `test_docstrings.py`'s package path still pointed at the pre-#78 `corrosim/`,
+  so the docstring-presence gate had silently been a **no-op** since the `src/`
+  move — re-pointed at `src/corrosim`.
+- **Landed (all squash-merged, 8/8 checks each, main green):** **PR #86**
+  foundation (ADR 0012 amending ADR 0007; CLAUDE.md §2.2 — line length 100→80,
+  scientific-comment clause now names the *source* not an ADR number, block/no-
+  trailing conventions; the contract tests; `presets.py` + `runs/_cli.py`
+  cleaned). **PR #87** `adsorption/` (surface/adsorption/mc/md/__init__) — mc/md
+  are numeric, so verified **bit-identical** via a full-precision golden
+  (`scratchpad/golden_57.py`: sha256 of seeded run_mc/run_md + estimate over 3
+  flavonoids). **PR #88** `qm/` (engines/fukui/pka/speciation/descriptors/
+  __init__). **PR #89** `report/` part 1 (report_layout/equations/report_docx).
+- **Rules that bit / conventions:** string *content* is never changed — long
+  strings reflow only as value-preserving adjacent literals (a caption edit was
+  reverted); rule 5 (no ticket numbers) is **comments only**, not docstrings or
+  rendered strings; tool directives stay inline; the mc rotation-step and md
+  trans/dphi splits preserve RNG draw order exactly.
+- **Pending — resume the #51/#52 sweep at `report/` remainder:**
+  - **`figures.py`** (~14 public fns): full param annotations (duck-typed
+    render inputs `system`/`result`/`fukui`/`molecule` → `Any`; heterogeneous
+    returns → `object` with a Returns note) + Args/Returns; 37 ruff line-length.
+  - **`report.py`**: 8 public fns need Args/Returns + return types. **Caveat:**
+    it has an `E501` per-file-ignore for embedded CSS — when it joins
+    `CONTRACTED`, the contract test's width check must skip report.py (or its
+    CSS lines) to match, else the CSS lines fail. Mostly private helpers (out of
+    the public contract).
+  - **`report_content.py`** (~116): almost all E501 in narrative strings —
+    reflow as adjacent literals, value-preserving; regenerate + diff the report
+    bundle to confirm no drift.
+  - Then **`runs/`** drivers + top-level (`cli` 11, `molecules` 11, `medium` 9,
+    `__init__` 11). C901 offenders at threshold 15: `run_dft.main` (17) and
+    `report_docx.build_docx_report` (16) — split them, or set max-complexity ≥17
+    at the flip (decide then; they are linear section-emitters).
+  - **Final PR F:** flip global ruff (`line-length=80`, `select+=C90` with the
+    chosen `max-complexity`, `extend-select=D417`), drop the staging, update ADR
+    0012 to record the enforcement mechanism actually used (test-based public
+    annotation; no `ANN`). Keep the `report.py` CSS `E501` ignore.
+  - `CONTRACTED` so far: presets, runs/_cli, adsorption/* (5), qm/* (6),
+    report/{report_layout,equations,report_docx}. Working tree clean, only
+    `main` local.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
