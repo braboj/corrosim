@@ -41,19 +41,31 @@ not raw line count; (5) comments are self-sufficient — no ticket/PR/ADR
 1992 — stay); (6) one parameter per line for wrapped signatures, with a
 trailing comma.
 
-**Enforcement, staged so CI never half-breaks.** The sweep runs module by
+**Enforcement, staged so CI never half-breaks.** The sweep ran module by
 module (types + docstrings + readability in one pass per file, since both
-standards rewrite the same functions). Enforcement grows with it:
+standards rewrite the same functions), and enforcement grew with it via a
+`CONTRACTED` allowlist in `tests/test_docstrings.py`. Once every module was in,
+the final PR flipped the **global** gate and retired the allowlist. The end
+state:
 
-- `tests/test_docstrings.py` carries a `CONTRACTED` allowlist of swept modules
-  and asserts, over them, full annotations, `Args:`/`Returns:` completeness,
-  ≤80 columns, no trailing comments, and no ticket-number comments. The list
-  grows one entry per sweep PR. (This file's package path was also corrected —
-  it pointed at the pre-`src/` `corrosim/` and had silently become a no-op.)
-- Once every module is in the allowlist, a final PR flips the global ruff gate
-  — `line-length = 80`, `select += ["ANN", "C90"]`, `extend-select = ["D417"]`,
-  `[tool.ruff.lint.mccabe] max-complexity` — and the allowlist checks retire in
-  favour of it. `D205` stays relaxed; `ANN401` stays on with justified `noqa`s.
+- **ruff** (whole package): `line-length = 80`, `extend-select = ["D417"]`
+  (documented args complete), `select += ["C90"]` with
+  `[tool.ruff.lint.mccabe] max-complexity = 15`. `D205` stays relaxed. The
+  `report.py` embedded-CSS `E501` per-file-ignore stays; `tests/**` are exempt
+  from `E501`/`C901`/`D` (not public API). One linear section-by-section report
+  builder carries a documented `# noqa: C901` (high cyclomatic, low cognitive).
+- **`tests/test_docstrings.py`** (whole package) owns what ruff has no rule
+  for: every public def is fully type-annotated (params + return), public defs
+  with params carry `Args:` and non-None returns carry `Returns:`, and comments
+  neither trail code nor cite ticket/ADR numbers (tool directives exempted).
+- **No ruff `ANN`.** #51 is the *public* contract, so annotation completeness
+  is enforced by the test (public-only). This keeps private QM helpers that
+  take un-stubbed pyscf objects annotation-free rather than forcing
+  `Any`/`attr-defined` friction — a deliberate narrowing of the `mypy --strict`
+  path ADR 0007 deferred.
+- The `test_docstrings.py` package path was also corrected en route — it
+  pointed at the pre-`src/` `corrosim/` and had silently become a no-op since
+  the layout move.
 
 ## Alternatives considered
 
@@ -69,13 +81,14 @@ standards rewrite the same functions). Enforcement grows with it:
 
 ## Consequences
 
-- The full contract + readability standard is the corrosim baseline; CLAUDE.md
-  §2.2 states it, and new/edited code is held to it immediately (ahead of the
-  sweep reaching its module).
-- Enforcement is incremental and always-green: the `CONTRACTED` allowlist is the
-  live contract until the global ruff gate replaces it.
+- The full contract + readability standard is the corrosim baseline, enforced
+  package-wide by ruff (line-length 80 + D417 + C90) and `test_docstrings.py`
+  (public annotations + Args/Returns + comment rules). CLAUDE.md §2.2 states it;
+  new/edited code is held to it by CI.
 - ADR 0007's `D205` relaxation and scoped coverage stand; its `mypy --strict`
   deferral is partially advanced — the "public defs annotated" subset is
-  enforced now (via the allowlist, then ruff `ANN`), short of full `--strict`.
-- The staged rollout is tracked by the #51/#52 checklists; the first increment
-  (this ADR + `presets.py` + `runs/_cli.py`) proves the enforcement pipeline.
+  enforced now (via `test_docstrings.py`), short of full `--strict`.
+- The rollout landed as eight PRs (foundation + one per subsystem/batch + the
+  gate flip), each behaviour-preserving and green; the numeric mc/md modules
+  were verified bit-identical by a full-precision golden and the report/
+  narrative by a string-value golden, so no results/report artifacts changed.

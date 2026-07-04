@@ -120,11 +120,11 @@ duplicate.
 
 - `from __future__ import annotations`; type-hint public functions.
 - Full public API contract (ADR 0012): every public function/method carries
-  complete type hints (all params + return; `collections.abc` types; no `Any`
-  in the public API bar a justified `# noqa: ANN401` case) AND a Google
-  docstring with `Args:`/`Returns:`/`Raises:` where applicable. The sweep is
-  staged (issues #51/#52) via `tests/test_docstrings.py`'s `CONTRACTED`
-  allowlist; hold any new/edited public code to the full contract now.
+  complete type hints (all params + return; `collections.abc` types) AND a
+  Google docstring with `Args:`/`Returns:`/`Raises:` where applicable. Enforced
+  package-wide by `tests/test_docstrings.py` (public annotations + Args/Returns,
+  since ruff `ANN` is deliberately NOT used — private QM helpers that take
+  un-stubbed pyscf objects stay annotation-free).
 - Keep `mypy` clean — it is a CI gate. Run `ruff check`, `mypy`, and `pytest`
   before pushing (ruff alone is not enough).
 - Units are part of the contract: energies in eV, distances in Å, adsorption

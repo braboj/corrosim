@@ -1,6 +1,10 @@
 import pytest
 
-from corrosim.molecules import build_molecule, build_protonated, enumerate_protonation_sites
+from corrosim.molecules import (
+    build_molecule,
+    build_protonated,
+    enumerate_protonation_sites,
+)
 from corrosim.qm.descriptors import total_negative_charge
 
 
