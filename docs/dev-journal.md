@@ -475,12 +475,23 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   before #70); pointed CLAUDE.md §1.2 at ADR 0011 (supersedes the "flat is
   deliberate" note). Spike **#73 closes** when this ADR merges.
 - **Verification:** doc-only change; `ruff check .`, `mypy`, `pytest -q` re-run as
-  a no-op sanity check (see commit).
-- **Pending:** ADR 0011 branch `docs/adr-0011-src-layout` committed locally, not
-  pushed (awaiting the go-ahead). Backlog resumes: land the **#78** migration PR,
+  a no-op sanity check.
+- **Shipped:** **PR #79** squash-merged to `main` (`d6647b1`), all 8 checks green;
+  spike **#73 auto-closed**; migration **#78** open (gated before #70). Epic **#69**
+  checklist ticks #73; epic **#70** gating note updated to "spike resolved → do #78
+  first". Post-merge CI on `main` green (CI + CodeQL).
+- **Tagging decision:** owner asked whether to tag before continuing → **no**. No
+  tags exist, `version = 0.1.0` static, and release-on-tag automation (#67) does
+  not exist yet, so a tag today is a no-op; the whole point of the `src/` move is
+  packaging correctness, so the **first tag should be the post-#78 layout**
+  (ideally after #67 wires GHCR/PyPI). A pre-migration bookmark tag is redundant
+  with the commit SHA + reviewed PRs.
+- **Pending:** working tree clean, only `main` local. Backlog resumes: land the
+  **#78** migration PR (mechanical `src/` + sub-package move — do it before #70),
   then **#69** standards + de-dup (start #57 shared UFF vdW → surface.py, then
   #64 `runs/_cli.py`, then stage #51/#52 gates) → **#70** per-module refactors →
-  **#72** generalization → **#71** deployment → **#40** (E_ads). Cosmetic loose
-  end still open: deployment tickets **#66–#68** cite the retired epic #65.
+  **#72** generalization → **#71** deployment → **#40** (E_ads). First release
+  tag deferred to post-#78/#67. Cosmetic loose end still open: deployment tickets
+  **#66–#68** cite the retired epic #65.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
