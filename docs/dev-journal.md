@@ -642,4 +642,48 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
     report/{report_layout,equations,report_docx}. Working tree clean, only
     `main` local.
 
+## 2026-07-04 — #51/#52 sweep COMPLETE: epic #69 closed
+
+- **Tool:** Claude Code (Fable 5). Continues the same-day checkpoint above.
+- **Scope:** finish the #51 (full public API contract) + #52 (readability)
+  sweep begun earlier, then flip the global gate.
+- **Landed (all squash-merged, 8/8 checks each, `main` green after each):**
+  **PR #91** report/ part 2 (figures + report — figures' 14 public fns typed,
+  duck-typed render inputs → `Any`, heterogeneous returns → `object`; report.py
+  E501-exempt for CSS so the contract test skips its width check via
+  `WIDTH_EXEMPT`). **PR #92** report_content.py — the ~116-line narrative reflow,
+  proven **byte-identical** by a string-value golden (sha256 over every exported
+  string + function output; a space-only splitter guaranteed value-preservation).
+  **PR #93** the nine runs/ drivers + top-level (`__init__`/`cli`/`molecules`/
+  `medium`) — `analyse_matrix` fully typed across 15 params, `compute_pka_rows`
+  typed; two latent mypy gaps that typing surfaced fixed narrowly (optimiser
+  `Coords`→`Molecule.coords` cast; pyscf `**kw` → `dict[str, Any]`). **PR #94**
+  the global gate flip.
+- **The gate (PR #94):** `pyproject` ruff `line-length` 100→**80**,
+  `extend-select D417`, `select += C90` with `max-complexity 15`; `tests/**`
+  exempt from E501/C901; `report.py` keeps its CSS E501 ignore; one linear docx
+  builder (`build_docx_report`, cyclomatic 16) carries a documented
+  `# noqa: C901`. **No ruff `ANN`** — the public annotation contract is enforced
+  by `tests/test_docstrings.py` (now scanning the whole package, allowlist
+  retired), which also owns the no-trailing / no-ticket-number comment rules
+  ruff has no rule for. **#51 + #52 auto-closed; epic #69 COMPLETE** (all five
+  tickets #73/#57/#64/#51/#52).
+- **Decisions:** **ADR 0012** finalised to the actual enforcement (test-based
+  public annotation, ruff for width/D417/C901, no ANN); CLAUDE.md §2.2 updated.
+  Key call recorded: #51 is the *public* contract, so ruff `ANN` (which flags
+  every arg) was rejected in favour of the public-only test — keeps private QM
+  helpers taking un-stubbed pyscf objects annotation-free.
+- **Verification:** every sweep PR behaviour-preserving — mc/md **bit-identical**
+  (full-precision golden), report narrative **byte-identical** (string golden),
+  so `results/` and the `report/` bundle are untouched; the venv drivers still
+  pass `test_pipeline_drivers` end-to-end. ruff + mypy + pytest green throughout
+  (108 passed, 1 skip); C901 gate confirmed live.
+- **Pending:** working tree clean, only `main` local. Epic **#69 done**;
+  backlog resumes at **#70** per-module refactors (now fully unblocked — but #48
+  surface / #56 mc / #55 md / #61 engines etc. are largely *already applied* by
+  this sweep + #57, so re-scope #70 against the swept tree before starting) →
+  **#72** generalization → **#71** deployment → **#40** (E_ads). First release
+  tag still deferred to post-#67. Cosmetic loose end: **#66–#68** cite the
+  retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
