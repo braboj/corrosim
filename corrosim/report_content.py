@@ -244,7 +244,7 @@ SCIENTIFIC_BASIS: list[tuple[str, object]] = [
     ("p",
      "corrosim's Stage-2 adsorption energies (−16.0 / −16.6 / −16.7 kJ/mol for "
      "quercetin / kaempferol / isorhamnetin) and Stage-3 Fe-O RDF first peaks "
-     "(3.65 / 3.35 / 3.75 Å) agree with an independent black-tea-extract DFT study "
+     "(3.25 / 3.15 / 3.75 Å) agree with an independent black-tea-extract DFT study "
      "on Fe(110) (ΔGads ≈ −20 kJ/mol, quercetin strongest) and a lady's-mantle "
      "study (kaempferol reference) — same regime, same order."),
 
