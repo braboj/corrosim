@@ -402,4 +402,45 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (`orient_flat`) early — it regenerates MC/MD artifacts. Cosmetic loose end: deployment
   tickets #66–#68 still cite the retired epic #65.
 
+## 2026-07-04 — #47 orient_flat fix + MC/MD/report regen; n_imag provenance backfill
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** resume from the prior wrap's Pending — (1) close out the kaempferol
+  minimum-check QM job, (2) fix bug **#47** (`orient_flat`), (3) fold the existing
+  frequency provenance into the opt descriptor matrix. Two focused PRs, both merged.
+- **Prior Pending resolved:** the detached `run_dft --check-minimum` job on kaempferol
+  neutral finished — **`neutral: true minimum verified (n_imag=0)`**; a background wrapper
+  captured the result and `docker rm`'d the container. Its descriptors (gap **3.72** gas /
+  **3.69** aqueous) match the committed `dft_descriptors_opt.csv` exactly, so the committed
+  opt geometry already sits on the verified minimum. Also removed a stray `C:` phantom
+  directory (a Windows-absolute-path-as-relative artifact from the QM job's temp write).
+- **#47 (PR #75, merged → `56a6301`, `Closes #47`):** `orient_flat` used `R = vt[::-1].T`;
+  since `np.linalg.svd` returns rows in descending spread, the reversal mapped the
+  **largest**-spread axis onto `z` (molecule stood vertical). Fix `R = vt.T` → least-spread
+  axis on `z`, plane flat on `xy`. Added an orientation-asserting test (the prior isometry
+  test can't catch a wrong rotation — any rotation is an isometry; verified it fails on the
+  old code). Regenerated dependents in the same change: `md_rdf.json` (Fe–O peaks shift —
+  kaempferol 3.35→3.15, quercetin 3.65→3.25, isorhamnetin 3.75; **ranking preserved**,
+  kaempferol still closest), 9 MC/MD figures, and the report bundle; corrected a **stale
+  hardcoded** RDF-peak value in the cross-check prose (`report_content.py`,
+  3.65/3.35/3.75 → 3.25/3.15/3.75).
+- **n_imag backfill (PR #76, merged → `3785d2d`):** the opt descriptor matrix predated the
+  #41 minimum-check feature, so it carried no `n_imag` column. Folded in the
+  already-computed imaginary-mode counts from the pKa opt+freq run (#34/#45, in
+  `results/pka.json`) — all 6 species (3 neutral + 3 cations) are true minima (`n_imag=0`),
+  covering all 12 rows. **No QM re-run** (a full `--check-minimum` pass ≈ a day for data
+  that already exists). CRLF-preserving append via the `csv` module — no existing float
+  reformatted (word-diff confirmed additive-only). Report intentionally **not** regenerated:
+  its descriptor table uses a fixed column list that excludes `n_imag`, and the prose
+  already asserts all six species are clean minima.
+- **Verification:** `ruff check .` clean; `mypy` clean (31 files); `pytest` 94 passed / 1
+  skip. Both PRs green pre-merge; main CI green post-merge (`#75`, `#76`).
+- **Decisions:** no ADR — a bug fix plus a one-off provenance backfill, no structural or
+  architectural change, no new directory, no content moved between docs.
+- **Pending:** working tree clean, only `main` local. Backlog (all validated open) resumes
+  in order: **spike #73** (`src/` layout) → **#69** standards + de-dup → **#70** per-module
+  refactors → **#72** generalization → **#71** deployment → **#40** (E_ads). Cosmetic loose
+  end still open: deployment tickets **#66–#68** cite the retired epic #65. Submodule
+  `docs/solid-ai-templates` not bumped this session (no template work).
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
