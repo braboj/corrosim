@@ -34,6 +34,12 @@ CONTRACTED = [
     "adsorption/adsorption.py",
     "adsorption/mc.py",
     "adsorption/md.py",
+    "qm/__init__.py",
+    "qm/descriptors.py",
+    "qm/engines.py",
+    "qm/fukui.py",
+    "qm/pka.py",
+    "qm/speciation.py",
 ]
 
 MAX_LINE = 80

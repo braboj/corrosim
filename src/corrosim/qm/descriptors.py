@@ -13,7 +13,7 @@ All energies in eV. Definitions (Koopmans' theorem):
     sigma = 1/eta                chemical softness
     mu    = -chi                 chemical potential
     omega = mu^2 / (2 eta)       electrophilicity index
-    dN    = (phi_metal - chi) / [2 (eta_metal + eta)]   fraction of e- transferred
+    dN    = (phi_metal - chi) / [2 (eta_metal + eta)]   fraction transferred
     dE_back = -eta/4             back-donation energy
 
 For dN the metal is described by its work function phi_metal (eV) with hardness
@@ -23,6 +23,7 @@ uses chi_Fe = 7.0 eV instead of the work function).
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 
 # Metal work functions (eV) for the common inhibitor substrates.
@@ -34,39 +35,58 @@ METAL_WORK_FUNCTION = {
     "Al(111)": 4.26,
     "Al": 4.26,
 }
-METAL_HARDNESS = 0.0   # eta_metal ~ 0, standard assumption
+# eta_metal ~ 0, standard assumption.
+METAL_HARDNESS = 0.0
 
 
 @dataclass
 class Descriptors:
-    """Global reactivity descriptors for one molecule (all energies in eV). See the
-    module docstring for the Koopmans definitions of each field.
+    """Global reactivity descriptors for one molecule (all energies in eV). See
+    the module docstring for the Koopmans definitions of each field.
     """
+
     homo_ev: float
     lumo_ev: float
     gap_ev: float
     ip_ev: float
     ea_ev: float
-    electronegativity_ev: float        # chi
-    hardness_ev: float                 # eta
-    softness_inv_ev: float             # sigma
-    chemical_potential_ev: float       # mu
-    electrophilicity_ev: float         # omega
-    delta_n: float                     # fraction of electrons transferred
-    back_donation_ev: float            # dE_back
+    # chi
+    electronegativity_ev: float
+    # eta
+    hardness_ev: float
+    # sigma
+    softness_inv_ev: float
+    # mu
+    chemical_potential_ev: float
+    # omega
+    electrophilicity_ev: float
+    # fraction of electrons transferred
+    delta_n: float
+    # dE_back
+    back_donation_ev: float
     metal: str
     phi_metal_ev: float
 
     def as_dict(self) -> dict:
-        """Return the descriptor fields as a plain dict."""
+        """Return the descriptor fields as a plain dict.
+
+        Returns:
+            The dataclass fields as a plain ``dict``.
+        """
         return asdict(self)
 
 
-def total_negative_charge(charges) -> float | None:
-    """TNC = sum of the negative atomic partial charges (Mulliken). A proxy for the
-    molecule's electron-rich / nucleophilic character; reported by the methodology
-    template (ADR 0002) alongside the global descriptors. Returns None if no
-    charges are available.
+def total_negative_charge(charges: Sequence[float] | None) -> float | None:
+    """Total negative charge = sum of the negative Mulliken partial charges.
+
+    A proxy for the molecule's electron-rich / nucleophilic character; reported
+    by the methodology template alongside the global descriptors.
+
+    Args:
+        charges: Per-atom Mulliken partial charges, or None if unavailable.
+
+    Returns:
+        The summed negative charge (rounded), or None when ``charges`` is None.
     """
     if charges is None:
         return None
@@ -76,11 +96,21 @@ def total_negative_charge(charges) -> float | None:
 def compute_descriptors(homo_ev: float, lumo_ev: float,
                         metal: str = "Fe(110)",
                         phi_metal_ev: float | None = None) -> Descriptors:
-    """Compute the global reactivity descriptors from the frontier-orbital energies.
+    """Compute the global reactivity descriptors from the frontier energies.
 
-    ``homo_ev`` / ``lumo_ev`` in eV. ``metal`` selects the work function Φ used for
-    ΔN; pass ``phi_metal_ev`` to override it for an unknown substrate. Returns a
-    :class:`Descriptors`. See the module docstring for the Koopmans definitions.
+    See the module docstring for the Koopmans definitions.
+
+    Args:
+        homo_ev: HOMO energy (eV).
+        lumo_ev: LUMO energy (eV).
+        metal: Substrate label selecting the work function Φ used for ΔN.
+        phi_metal_ev: Override for Φ (eV) when ``metal`` is unknown.
+
+    Returns:
+        The computed :class:`Descriptors`.
+
+    Raises:
+        ValueError: If ``metal`` is unknown and ``phi_metal_ev`` is not given.
     """
     if phi_metal_ev is None:
         if metal not in METAL_WORK_FUNCTION:

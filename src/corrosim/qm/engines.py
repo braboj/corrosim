@@ -6,17 +6,18 @@ Uniform wrappers around the two quantum engines used by the tool.
   * 'pyscf' -> real DFT (default B3LYP). Minutes per molecule; use for the
               final, publication-grade descriptors.
 
-Both return the same EngineResult so the rest of the pipeline is engine-agnostic.
-Energies in the result are reported in eV.
+Both return the same EngineResult so the rest of the pipeline is
+engine-agnostic. Energies in the result are reported in eV.
 """
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
-# A molecular geometry: a sequence of (x, y, z) triples in Angstrom (or an ndarray).
+# A molecular geometry: (x, y, z) triples in Angstrom (or an ndarray).
 Coords = Sequence[Sequence[float]]
 
 HARTREE_TO_EV = 27.211386245988
@@ -26,21 +27,38 @@ ANG_TO_BOHR = 1.8897259886
 @dataclass
 class EngineResult:
     """Engine-agnostic single-point result (all energies in eV)."""
+
     engine: str
-    level: str               # e.g. "GFN2-xTB" or "B3LYP/6-31G"
+    # e.g. "GFN2-xTB" or "B3LYP/6-31G"
+    level: str
     e_total_ev: float
     homo_ev: float
     lumo_ev: float
-    charges: list | None = None   # per-atom partial charges (Mulliken), if available
+    # per-atom partial charges (Mulliken), if available
+    charges: list[float] | None = None
 
     @property
     def gap_ev(self) -> float:
-        """HOMO–LUMO gap (eV)."""
+        """HOMO–LUMO gap.
+
+        Returns:
+            The HOMO–LUMO gap (eV).
+        """
         return self.lumo_ev - self.homo_ev
 
 
-def run_xtb(symbols: Sequence[str], coords: Coords, charge: int = 0) -> EngineResult:
-    """GFN2-xTB single point. coords in Angstrom. charge: net molecular charge."""
+def run_xtb(symbols: Sequence[str], coords: Coords,
+            charge: int = 0) -> EngineResult:
+    """GFN2-xTB single point.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        charge: Net molecular charge.
+
+    Returns:
+        The single-point :class:`EngineResult`.
+    """
     from ase.data import atomic_numbers
     from tblite.interface import Calculator
     Z = np.array([atomic_numbers[s] for s in symbols])
@@ -48,16 +66,17 @@ def run_xtb(symbols: Sequence[str], coords: Coords, charge: int = 0) -> EngineRe
     calc = Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
     calc.set("verbosity", 0)
     res = calc.singlepoint()
-    orb = np.asarray(res.get("orbital-energies"))      # Hartree
+    # orbital energies (Hartree) + occupations
+    orb = np.asarray(res.get("orbital-energies"))
     occ = np.asarray(res.get("orbital-occupations"))
     e_total = float(res.get("energy"))
     homo_i = np.where(occ > 0.5)[0].max()
     homo = orb[homo_i]
     lumo = orb[homo_i + 1]
     # tblite exposes Mulliken charges for GFN2-xTB; guard only the narrow case
-    # where the property is absent (older tblite yields None -> a 0-d array that
-    # won't iterate), so a real coding error here surfaces instead of silently
-    # dropping the TNC.
+    # where the property is absent (older tblite yields None -> a 0-d array
+    # that won't iterate), so a real coding error here surfaces instead of
+    # silently dropping the TNC.
     try:
         charges = [float(q) for q in np.asarray(res.get("charges"))]
     except (KeyError, TypeError, ValueError):
@@ -69,18 +88,29 @@ def run_xtb(symbols: Sequence[str], coords: Coords, charge: int = 0) -> EngineRe
                         charges=charges)
 
 
-def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p)",
-              xc: str = "b3lyp", solvent: str | None = "water",
+def run_pyscf(symbols: Sequence[str], coords: Coords,
+              basis: str = "6-311++G(d,p)", xc: str = "b3lyp",
+              solvent: str | None = "water",
               charge: int = 0) -> EngineResult:
-    """DFT single point with PySCF. coords in Angstrom.
+    """DFT single point with PySCF.
 
-    Default level B3LYP/6-311++G(d,p) + ddCOSMO(water): corrosim's adopted
-    production DFT standard, matching the methodology template (see ADR 0002).
-    ('6-311++G(d,p)' is PySCF-equivalent to '6-311++g**'; use '6-31g' for quick
-    checks.)
+    The default level B3LYP/6-311++G(d,p) + ddCOSMO(water) is corrosim's
+    adopted production DFT standard, matching the methodology template.
+    ('6-311++G(d,p)' is PySCF-equivalent to '6-311++g**'; use '6-31g' for
+    quick checks.)
 
-    solvent: None for gas phase, or a solvent name to switch on the ddCOSMO
-             implicit-solvation model (mirrors the PCM/COSMO used in the papers).
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        basis: The AO basis set.
+        xc: The exchange-correlation functional.
+        solvent: None for gas phase, or a solvent name to switch on the
+            ddCOSMO implicit-solvation model (mirrors the PCM/COSMO used in
+            the papers).
+        charge: Net molecular charge.
+
+    Returns:
+        The single-point :class:`EngineResult`.
     """
     from pyscf import dft, gto
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
@@ -90,21 +120,22 @@ def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p
     if solvent:
         from pyscf import solvent as pyscf_solvent  # noqa: F401
         mf = mf.ddCOSMO()
-        # dielectric for water; ddCOSMO default eps is water already, set explicitly
+        # ddCOSMO default eps is water already; set it explicitly
         mf.with_solvent.eps = 78.3553
     e_total = mf.kernel()
     occ = mf.mo_occ
     mo = mf.mo_energy
     homo = mo[occ > 0].max()
     lumo = mo[occ == 0].min()
-    # mulliken_pop returns (pop, charges); guard only the narrow Mulliken failure
-    # (missing/short result) so a real bug, e.g. an API change, surfaces instead
-    # of silently dropping the TNC.
+    # mulliken_pop returns (pop, charges); guard only the narrow Mulliken
+    # failure (missing/short result) so a real bug, e.g. an API change,
+    # surfaces instead of silently dropping the TNC.
     try:
         charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
     except (IndexError, TypeError, ValueError):
         charges = None
-    level = f"{xc.upper()}/{basis}" + (f" (ddCOSMO:{solvent})" if solvent else " (gas)")
+    level = (f"{xc.upper()}/{basis}"
+             + (f" (ddCOSMO:{solvent})" if solvent else " (gas)"))
     return EngineResult("pyscf", level,
                         float(e_total) * HARTREE_TO_EV,
                         float(homo) * HARTREE_TO_EV,
@@ -112,24 +143,36 @@ def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p
                         charges=charges)
 
 
-def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
-                      xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+def optimize_geometry(symbols: Sequence[str], coords: Coords,
+                      basis: str = "6-31G(d)", xc: str = "b3lyp",
+                      charge: int = 0, solvent: str | None = None,
                       maxsteps: int = 100, grid_level: int | None = None,
                       convergence_set: str | None = None
                       ) -> tuple[list[str], list[tuple[float, ...]]]:
-    """DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
+    """DFT geometry optimisation with PySCF (geomeTRIC backend).
 
-    Returns (symbols, coords_angstrom) for the relaxed structure — atom order is
-    preserved. The intended protocol is *optimise at a modest level, then run the
-    production single point* on the relaxed geometry: orbital energies are far more
-    sensitive to geometry than to the opt basis, so B3LYP/6-31G(d) gas-phase relaxation
-    is a good, cheap default. Pass solvent='water' to relax in implicit solvent
-    (slower; gas-phase opt → solvated single point is the standard, robust choice).
+    The intended protocol is *optimise at a modest level, then run the
+    production single point* on the relaxed geometry: orbital energies are far
+    more sensitive to geometry than to the opt basis, so B3LYP/6-31G(d)
+    gas-phase relaxation is a good, cheap default. A finer ``grid_level`` (e.g.
+    5) suppresses grid noise on a nearly-flat torsion; ``convergence_set``
+    selects a geomeTRIC criteria preset (e.g. 'GAU_TIGHT') — both are the knobs
+    for clearing a spurious low-frequency imaginary mode.
 
-    ``grid_level`` overrides the DFT integration grid (PySCF default 3); a finer grid
-    (e.g. 5) suppresses grid noise on a nearly-flat torsion. ``convergence_set`` selects
-    a geomeTRIC criteria preset (e.g. 'GAU_TIGHT') for a tighter stop — both are the
-    knobs for clearing a spurious low-frequency imaginary mode (issue #34).
+    Args:
+        symbols: Element symbols.
+        coords: Starting geometry in Angstrom.
+        basis: The AO basis for the optimisation.
+        xc: The exchange-correlation functional.
+        charge: Net molecular charge.
+        solvent: Relax in implicit solvent ('water') or gas phase (None).
+        maxsteps: Maximum optimisation steps.
+        grid_level: Override for the DFT integration grid (PySCF default 3).
+        convergence_set: geomeTRIC convergence-criteria preset name.
+
+    Returns:
+        ``(symbols, coords_angstrom)`` for the relaxed structure; atom order
+        is preserved.
     """
     from pyscf import dft, gto
     from pyscf.geomopt.geometric_solver import optimize
@@ -138,7 +181,8 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     mf = dft.RKS(mol)
     mf.xc = xc
     if grid_level is not None:
-        mf.grids.level = grid_level            # set on the base RKS, before any solvent wrap
+        # set on the base RKS, before any solvent wrap
+        mf.grids.level = grid_level
     if solvent:
         from pyscf import solvent as pyscf_solvent  # noqa: F401
         mf = mf.ddCOSMO()
@@ -151,29 +195,38 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     return opt_symbols, opt_coords
 
 
-def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
-                      xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+def thermo_correction(symbols: Sequence[str], coords: Coords,
+                      basis: str = "6-31G(d)", xc: str = "b3lyp",
+                      charge: int = 0, solvent: str | None = None,
                       temperature: float = 298.15, pressure: float = 101325.0,
                       grid_level: int | None = None) -> dict:
-    """Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV) at a *stationary*
-    geometry, from an analytic Hessian + ideal-gas rigid-rotor/harmonic-oscillator
-    thermochemistry (PySCF). This is the ZPE + thermal-enthalpy − T·S term that the
-    electronic-only pKaH (ADR 0005) omits.
+    """Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV).
 
-    coords in Angstrom and MUST already be optimised at the same (basis, xc, solvent)
-    level — harmonic frequencies (hence G_corr) are only meaningful at a minimum.
-    Add the returned ``g_corr_ev`` to the electronic energy to get G, or feed it to
-    ``corrosim.pka.estimate_pka(g_corr_*_ev=...)`` for a frequency-corrected pKaH. The
-    standard protocol is a modest gas-phase level (B3LYP/6-31G(d)) for the correction
-    on top of the production single point. ``grid_level`` overrides the DFT integration
-    grid (PySCF default 3); match it to the optimisation so the Hessian sees the same
-    surface (issue #34).
+    Computed at a *stationary* geometry from an analytic Hessian + ideal-gas
+    rigid-rotor/harmonic-oscillator thermochemistry (PySCF) — the ZPE +
+    thermal-enthalpy − T·S term the electronic-only pKaH omits. ``coords`` MUST
+    already be optimised at the same (basis, xc, solvent) level: harmonic
+    frequencies (hence G_corr) are only meaningful at a minimum. Add the
+    returned ``g_corr_ev`` to the electronic energy to get G. Match
+    ``grid_level`` to the optimisation so the Hessian sees the same surface.
 
-    Returns ``{g_corr_ev, zpe_ev, temperature, n_imag, level, freq_cm, norm_mode}``.
-    ``n_imag`` > 0 flags a non-minimum (transition state / unconverged geometry) — the
-    correction is then unreliable and the caller should re-optimise. ``freq_cm`` and
-    ``norm_mode`` (shape ``(nmode, natom, 3)``) let a caller step off a saddle via
-    :func:`imaginary_mode` + :func:`displace_along_mode`.
+    Args:
+        symbols: Element symbols.
+        coords: Optimised geometry in Angstrom (a stationary point).
+        basis: The AO basis set.
+        xc: The exchange-correlation functional.
+        charge: Net molecular charge.
+        solvent: Implicit solvent ('water') or gas phase (None).
+        temperature: Temperature (K).
+        pressure: Pressure (Pa).
+        grid_level: Override for the DFT integration grid (PySCF default 3).
+
+    Returns:
+        A dict with ``g_corr_ev``, ``zpe_ev``, ``temperature``, ``n_imag``,
+        ``level``, ``freq_cm`` (signed cm⁻¹; imaginary < 0) and ``norm_mode``
+        (shape ``(nmode, natom, 3)``). ``n_imag`` > 0 flags a non-minimum, so
+        the correction is unreliable and the caller should re-optimise;
+        ``freq_cm`` / ``norm_mode`` let a caller step off a saddle.
     """
     from pyscf import dft, gto
     from pyscf.hessian import thermo
@@ -182,7 +235,8 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     mf = dft.RKS(mol)
     mf.xc = xc
     if grid_level is not None:
-        mf.grids.level = grid_level            # set on the base RKS, before any solvent wrap
+        # set on the base RKS, before any solvent wrap
+        mf.grids.level = grid_level
     if solvent:
         from pyscf import solvent as pyscf_solvent  # noqa: F401
         mf = mf.ddCOSMO()
@@ -191,46 +245,68 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     hess = mf.Hessian().kernel()
     ha = thermo.harmonic_analysis(mol, hess)
     fw = np.asarray(ha["freq_wavenumber"])
-    # imaginary modes surface as a negative real part or a non-zero imaginary part
+    # imaginary modes surface as a negative real part or a non-zero imaginary
     n_imag = int(np.sum((fw.real < 0) | (np.abs(fw.imag) > 1e-6)))
     info = thermo.thermo(mf, ha["freq_au"], temperature, pressure)
-    g_tot = float(info["G_tot"][0])                  # total Gibbs (Hartree), incl. E_elec
+    # total Gibbs (Hartree), incl. E_elec
+    g_tot = float(info["G_tot"][0])
     zpe = float(info["ZPE"][0])
-    level = f"{xc.upper()}/{basis}" + (f" (ddCOSMO:{solvent})" if solvent else " (gas)")
+    level = (f"{xc.upper()}/{basis}"
+             + (f" (ddCOSMO:{solvent})" if solvent else " (gas)"))
     return {
         "g_corr_ev": (g_tot - float(e_elec)) * HARTREE_TO_EV,
         "zpe_ev": zpe * HARTREE_TO_EV,
         "temperature": temperature,
         "n_imag": n_imag,
         "level": level,
-        "freq_cm": fw,                               # harmonic frequencies (cm⁻¹); imag < 0
-        "norm_mode": np.asarray(ha["norm_mode"]),    # (nmode, natom, 3) Cartesian modes
+        # harmonic frequencies (cm⁻¹); imaginary < 0
+        "freq_cm": fw,
+        # (nmode, natom, 3) Cartesian modes
+        "norm_mode": np.asarray(ha["norm_mode"]),
     }
 
 
-def imaginary_mode(freq_cm, norm_mode) -> np.ndarray | None:
-    """Cartesian displacement of the softest (most-negative) imaginary vibrational
-    mode, or ``None`` when the geometry is already a minimum.
+def imaginary_mode(freq_cm: np.ndarray,
+                   norm_mode: np.ndarray) -> np.ndarray | None:
+    """Cartesian displacement of the softest imaginary vibrational mode.
 
-    ``freq_cm`` and ``norm_mode`` come straight from :func:`thermo_correction`; an
-    imaginary mode surfaces as a negative real part or a non-zero imaginary part. The
-    returned ``(natom, 3)`` array is the direction to step along to leave a first-order
-    saddle (feed it to :func:`displace_along_mode`).
+    ``freq_cm`` and ``norm_mode`` come straight from
+    :func:`thermo_correction`; an imaginary mode surfaces as a negative real
+    part or a non-zero imaginary part.
+
+    Args:
+        freq_cm: Harmonic frequencies (cm⁻¹; imaginary < 0).
+        norm_mode: Cartesian normal modes, shape ``(nmode, natom, 3)``.
+
+    Returns:
+        The ``(natom, 3)`` direction to step along to leave a first-order
+        saddle (feed to :func:`displace_along_mode`), or None at a minimum.
     """
     fw = np.asarray(freq_cm)
     nm = np.asarray(norm_mode)
     imag = np.where((fw.real < 0) | (np.abs(fw.imag) > 1e-6))[0]
     if imag.size == 0:
         return None
-    idx = int(imag[np.argmin(fw.real[imag])])        # softest = most-negative frequency
+    # softest = most-negative frequency
+    idx = int(imag[np.argmin(fw.real[imag])])
     return nm[idx]
 
 
-def displace_along_mode(coords: Coords, mode, amplitude_ang: float = 0.3
+def displace_along_mode(coords: Coords, mode: np.ndarray,
+                        amplitude_ang: float = 0.3
                         ) -> list[tuple[float, ...]]:
-    """Step a geometry along a normal mode, scaled so the largest atomic move is
-    ``amplitude_ang`` Angstrom — nudges a saddle point off its imaginary mode before a
-    fresh optimisation. Returns coords in Angstrom (atom order preserved).
+    """Step a geometry along a normal mode.
+
+    Scaled so the largest atomic move is ``amplitude_ang`` Angstrom — nudges a
+    saddle point off its imaginary mode before a fresh optimisation.
+
+    Args:
+        coords: Geometry in Angstrom.
+        mode: The normal-mode displacement, shape ``(natom, 3)``.
+        amplitude_ang: Largest atomic step (Å).
+
+    Returns:
+        The displaced coords in Angstrom (atom order preserved).
     """
     xyz = np.asarray(coords, dtype=float)
     step = np.asarray(mode, dtype=float).reshape(xyz.shape)
@@ -240,32 +316,51 @@ def displace_along_mode(coords: Coords, mode, amplitude_ang: float = 0.3
     return [tuple(float(x) for x in row) for row in xyz + step]
 
 
-def relax_to_minimum(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
-                     xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+def relax_to_minimum(symbols: Sequence[str], coords: Coords,
+                     basis: str = "6-31G(d)", xc: str = "b3lyp",
+                     charge: int = 0, solvent: str | None = None,
                      temperature: float = 298.15, grid_level: int = 4,
                      convergence_set: str = "GAU", maxsteps: int = 200,
                      max_restarts: int = 3, amplitude_ang: float = 0.3
                      ) -> tuple[list[str], Coords, dict]:
-    """Optimise to a *true* minimum: relax, run frequencies, and while an imaginary
-    mode survives, step along it (:func:`displace_along_mode`) and re-optimise — up to
-    ``max_restarts`` times. The recipe for a floppy rotor whose flat torsion tips
-    imaginary (issue #34): the **finer DFT grid** (``grid_level`` 4 vs the default 3)
-    is the actual fix — it removes the integration noise that flipped the mode — while
-    the displace-loop steps off any genuine saddle. Ordinary ``convergence_set`` ('GAU')
-    suffices; a tighter set (e.g. 'GAU_TIGHT') chases flat modes for many extra steps
-    with a collapsing trust radius, so it is far slower for no gain here.
+    """Optimise to a *true* minimum.
 
-    Returns ``(symbols, coords, thermo)`` — ``thermo`` is the final
-    :func:`thermo_correction` dict; ``thermo["n_imag"] == 0`` on success, else the best
-    geometry reached within the restart budget.
+    Relax, run frequencies, and while an imaginary mode survives step along it
+    (:func:`displace_along_mode`) and re-optimise — up to ``max_restarts``
+    times. The recipe for a floppy rotor whose flat torsion tips imaginary: the
+    **finer DFT grid** (``grid_level`` 4 vs the default 3) is the actual fix —
+    it removes the integration noise that flipped the mode — while the
+    displace-loop steps off any genuine saddle. Ordinary ``convergence_set``
+    ('GAU') suffices; a tighter set (e.g. 'GAU_TIGHT') chases flat modes for
+    many extra steps with a collapsing trust radius, far slower for no gain.
+
+    Args:
+        symbols: Element symbols.
+        coords: Starting geometry in Angstrom.
+        basis: The AO basis for each optimisation.
+        xc: The exchange-correlation functional.
+        charge: Net molecular charge.
+        solvent: Implicit solvent ('water') or gas phase (None).
+        temperature: Temperature (K) for the frequency thermochemistry.
+        grid_level: DFT integration grid (finer than the default to kill
+            grid-noise imaginary modes).
+        convergence_set: geomeTRIC convergence-criteria preset name.
+        maxsteps: Maximum steps per optimisation.
+        max_restarts: Maximum imaginary-mode step-and-reoptimise restarts.
+        amplitude_ang: Largest atomic step off a saddle (Å).
+
+    Returns:
+        ``(symbols, coords, thermo)`` — ``thermo`` is the final
+        :func:`thermo_correction` dict; ``thermo["n_imag"] == 0`` on success,
+        else the best geometry reached within the restart budget.
     """
     sym: list[str] = list(symbols)
     xyz: Coords = coords
     info: dict = {}
     for _ in range(max_restarts + 1):
-        sym, xyz = optimize_geometry(sym, xyz, basis=basis, xc=xc, charge=charge,
-                                     solvent=solvent, maxsteps=maxsteps,
-                                     grid_level=grid_level,
+        sym, xyz = optimize_geometry(sym, xyz, basis=basis, xc=xc,
+                                     charge=charge, solvent=solvent,
+                                     maxsteps=maxsteps, grid_level=grid_level,
                                      convergence_set=convergence_set)
         info = thermo_correction(sym, xyz, basis=basis, xc=xc, charge=charge,
                                  solvent=solvent, temperature=temperature,
@@ -280,20 +375,28 @@ def relax_to_minimum(symbols: Sequence[str], coords: Coords, basis: str = "6-31G
 
 
 def min_check_fields(thermo: dict | None) -> dict:
-    """Provenance for the true-minimum (frequency) check (issue #41).
+    """Provenance for the true-minimum (frequency) check.
 
-    Condense a :func:`thermo_correction` / :func:`relax_to_minimum` result into the two
-    fields a descriptor row carries so a saddle never silently feeds Stage-1: ``n_imag``
-    (imaginary-mode count; 0 ⇒ a verified minimum) and ``lowest_freq_cm`` (the softest
-    harmonic frequency in cm⁻¹; negative ⇒ imaginary). Returns ``{}`` when no check ran
-    (``thermo`` falsy), leaving a plain ``--optimize`` row untouched.
+    Condense a :func:`thermo_correction` / :func:`relax_to_minimum` result into
+    the two fields a descriptor row carries so a saddle never silently feeds
+    Stage-1: ``n_imag`` (imaginary-mode count; 0 ⇒ a verified minimum) and
+    ``lowest_freq_cm`` (the softest harmonic frequency in cm⁻¹; negative ⇒
+    imaginary).
+
+    Args:
+        thermo: A :func:`thermo_correction` result, or None if no check ran.
+
+    Returns:
+        ``{"n_imag": ..., "lowest_freq_cm": ...}``, or ``{}`` when ``thermo``
+        is falsy (leaving a plain ``--optimize`` row untouched).
     """
     if not thermo:
         return {}
     fw = np.asarray(thermo["freq_cm"])
-    # PySCF encodes an imaginary mode as a negative real OR a non-zero imaginary part;
-    # report a signed wavenumber (negative = imaginary) so the softest mode ranks
-    # correctly and agrees with n_imag, matching the convention in imaginary_mode().
+    # PySCF encodes an imaginary mode as a negative real OR a non-zero
+    # imaginary part; report a signed wavenumber (negative = imaginary) so the
+    # softest mode ranks correctly and agrees with n_imag, matching the
+    # convention in imaginary_mode().
     imag = (fw.real < 0) | (np.abs(fw.imag) > 1e-6)
     signed = np.where(imag, -np.abs(fw), fw.real)
     return {
@@ -302,10 +405,22 @@ def min_check_fields(thermo: dict | None) -> dict:
     }
 
 
-def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,
-               **kwargs) -> EngineResult:
-    """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a
-    protonated inhibitor in acid).
+def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb",
+               charge: int = 0, **kwargs: Any) -> EngineResult:
+    """Dispatch to the chosen engine.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        engine: 'xtb', 'pyscf', 'orca' or 'gaussian'.
+        charge: Net molecular charge (e.g. +1 for a protonated inhibitor).
+        **kwargs: Extra keyword arguments forwarded to the chosen engine.
+
+    Returns:
+        The single-point :class:`EngineResult`.
+
+    Raises:
+        ValueError: If ``engine`` is not a known engine name.
     """
     engine = engine.lower()
     if engine == "xtb":
@@ -323,11 +438,26 @@ def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", char
 # --- Production engines: ORCA / Gaussian ----------------------------------
 # These shell out to a locally installed binary (not bundled). The input
 # writers and output parsers below are the automated part; point them at your
-# executable via orca_cmd / gaussian_cmd or the ORCA_CMD / GAUSSIAN_CMD env vars.
+# executable via orca_cmd / gaussian_cmd or the ORCA_CMD / GAUSSIAN_CMD env
+# vars.
 
-def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str, charge=0, mult=1,
+def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str,
+                     charge: int = 0, mult: int = 1,
                      solvent: str | None = "water", nprocs: int = 4) -> str:
-    """Build an ORCA input deck (keywords + optional CPCM solvent + xyz block)."""
+    """Build an ORCA input deck (keywords + optional CPCM solvent + xyz block).
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        keywords: The ORCA keyword line (without the leading '!').
+        charge: Net molecular charge.
+        mult: Spin multiplicity.
+        solvent: CPCM solvent name, or None for gas phase.
+        nprocs: Number of parallel processes.
+
+    Returns:
+        The ORCA input deck as text.
+    """
     lines = [f"! {keywords}"]
     if solvent:
         lines.append(f"! CPCM({solvent})")
@@ -341,7 +471,17 @@ def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str, char
 
 
 def parse_orca_output(text: str) -> tuple[float, float]:
-    """Return (homo_ev, lumo_ev) from an ORCA output's ORBITAL ENERGIES block."""
+    """Parse HOMO/LUMO from an ORCA output's ORBITAL ENERGIES block.
+
+    Args:
+        text: The ORCA output text.
+
+    Returns:
+        ``(homo_ev, lumo_ev)`` in eV.
+
+    Raises:
+        ValueError: If the orbital-energies block is missing or unparsable.
+    """
     lines = text.splitlines()
     try:
         i = next(k for k, l in enumerate(lines) if "ORBITAL ENERGIES" in l)
@@ -352,7 +492,9 @@ def parse_orca_output(text: str) -> tuple[float, float]:
         p = l.split()
         if len(p) >= 4 and p[0].isdigit():
             try:
-                occ.append(float(p[1])); ev.append(float(p[3]))  # E(eV) is col 4
+                # occupation in col 2, E(eV) in col 4
+                occ.append(float(p[1]))
+                ev.append(float(p[3]))
             except ValueError:
                 continue
         elif ev and not p:
@@ -363,10 +505,27 @@ def parse_orca_output(text: str) -> tuple[float, float]:
     return ev[homo_i], ev[homo_i + 1]
 
 
-def run_orca(symbols: Sequence[str], coords: Coords, keywords: str = "B3LYP def2-TZVP",
-             solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
-             orca_cmd: str | None = None, workdir: str | None = None) -> EngineResult:
-    """Run an ORCA single point via the local ``orca`` binary and parse HOMO/LUMO."""
+def run_orca(symbols: Sequence[str], coords: Coords,
+             keywords: str = "B3LYP def2-TZVP",
+             solvent: str | None = "water", charge: int = 0, mult: int = 1,
+             nprocs: int = 4, orca_cmd: str | None = None,
+             workdir: str | None = None) -> EngineResult:
+    """Run an ORCA single point via the local ``orca`` binary.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        keywords: The ORCA keyword line.
+        solvent: CPCM solvent name, or None for gas phase.
+        charge: Net molecular charge.
+        mult: Spin multiplicity.
+        nprocs: Number of parallel processes.
+        orca_cmd: Path to the orca binary (else $ORCA_CMD, else 'orca').
+        workdir: Scratch directory (a temp dir by default).
+
+    Returns:
+        The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
+    """
     import os
     import subprocess  # nosec B404
     import tempfile
@@ -375,30 +534,58 @@ def run_orca(symbols: Sequence[str], coords: Coords, keywords: str = "B3LYP def2
     inp = os.path.join(workdir, "job.inp")
     out = os.path.join(workdir, "job.out")
     with open(inp, "w") as f:
-        f.write(write_orca_input(symbols, coords, keywords, charge, mult, solvent, nprocs))
+        f.write(write_orca_input(symbols, coords, keywords, charge, mult,
+                                 solvent, nprocs))
     with open(out, "w") as f:
-        # fixed argv (QM binary + generated input file); no shell, no untrusted input
-        subprocess.run([orca_cmd, inp], stdout=f, stderr=subprocess.STDOUT, check=True)  # nosec B603
+        # fixed argv (QM binary + generated input); no shell, no untrusted input
+        subprocess.run([orca_cmd, inp], stdout=f,  # nosec B603
+                       stderr=subprocess.STDOUT, check=True)
     homo, lumo = parse_orca_output(open(out).read())
     level = f"{keywords}" + (f" CPCM({solvent})" if solvent else "")
     return EngineResult("orca", level, float("nan"), homo, lumo)
 
 
-def write_gaussian_input(symbols: Sequence[str], coords: Coords, route: str, charge=0, mult=1,
-                         solvent: str | None = "water",
-                         nprocs: int = 4, mem: str = "2GB") -> str:
-    """Build a Gaussian input deck (route + optional PCM solvent + xyz block)."""
+def write_gaussian_input(symbols: Sequence[str], coords: Coords, route: str,
+                         charge: int = 0, mult: int = 1,
+                         solvent: str | None = "water", nprocs: int = 4,
+                         mem: str = "2GB") -> str:
+    """Build a Gaussian input deck (route + optional PCM solvent + xyz block).
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        route: The Gaussian route line (without the leading '#').
+        charge: Net molecular charge.
+        mult: Spin multiplicity.
+        solvent: PCM solvent name, or None for gas phase.
+        nprocs: Number of shared processors.
+        mem: Memory request (e.g. '2GB').
+
+    Returns:
+        The Gaussian input deck as text.
+    """
     r = route
     if solvent and "scrf" not in route.lower():
         r += f" SCRF=(PCM,solvent={solvent})"
     head = [f"%nprocshared={nprocs}", f"%mem={mem}", f"# {r}", "",
             "corrosim job", "", f"{charge} {mult}"]
-    body = [f" {s:2s} {x:16.8f} {y:16.8f} {z:16.8f}" for s, (x, y, z) in zip(symbols, coords)]
+    body = [f" {s:2s} {x:16.8f} {y:16.8f} {z:16.8f}"
+            for s, (x, y, z) in zip(symbols, coords)]
     return "\n".join(head + body) + "\n\n"
 
 
 def parse_gaussian_output(text: str) -> tuple[float, float]:
-    """Return (homo_ev, lumo_ev) from a Gaussian log's eigenvalue lines (Hartree->eV)."""
+    """Parse HOMO/LUMO from a Gaussian log's eigenvalue lines.
+
+    Args:
+        text: The Gaussian log text.
+
+    Returns:
+        ``(homo_ev, lumo_ev)`` in eV (converted from Hartree).
+
+    Raises:
+        ValueError: If the Alpha occ./virt. eigenvalue lines are missing.
+    """
     occ, virt = [], []
     for l in text.splitlines():
         if "Alpha  occ. eigenvalues" in l:
@@ -406,15 +593,34 @@ def parse_gaussian_output(text: str) -> tuple[float, float]:
         elif "Alpha virt. eigenvalues" in l:
             virt += [float(v) for v in l.split("--")[1].split()]
     if not occ or not virt:
-        raise ValueError("Could not find Alpha occ./virt. eigenvalues in Gaussian log.")
+        raise ValueError(
+            "Could not find Alpha occ./virt. eigenvalues in Gaussian log.")
     return occ[-1] * HARTREE_TO_EV, virt[0] * HARTREE_TO_EV
 
 
-def run_gaussian(symbols: Sequence[str], coords: Coords, route: str = "B3LYP/6-311++G(d,p)",
-                 solvent: str | None = "water", charge=0, mult=1, nprocs: int = 4,
-                 mem: str = "2GB", gaussian_cmd: str | None = None,
+def run_gaussian(symbols: Sequence[str], coords: Coords,
+                 route: str = "B3LYP/6-311++G(d,p)",
+                 solvent: str | None = "water", charge: int = 0, mult: int = 1,
+                 nprocs: int = 4, mem: str = "2GB",
+                 gaussian_cmd: str | None = None,
                  workdir: str | None = None) -> EngineResult:
-    """Run a Gaussian single point via the local ``g16`` binary and parse HOMO/LUMO."""
+    """Run a Gaussian single point via the local ``g16`` binary.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        route: The Gaussian route line.
+        solvent: PCM solvent name, or None for gas phase.
+        charge: Net molecular charge.
+        mult: Spin multiplicity.
+        nprocs: Number of shared processors.
+        mem: Memory request (e.g. '2GB').
+        gaussian_cmd: Path to g16 (else $GAUSSIAN_CMD, else 'g16').
+        workdir: Scratch directory (a temp dir by default).
+
+    Returns:
+        The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
+    """
     import os
     import subprocess  # nosec B404
     import tempfile
@@ -423,10 +629,12 @@ def run_gaussian(symbols: Sequence[str], coords: Coords, route: str = "B3LYP/6-3
     gjf = os.path.join(workdir, "job.gjf")
     log = os.path.join(workdir, "job.log")
     with open(gjf, "w") as f:
-        f.write(write_gaussian_input(symbols, coords, route, charge, mult, solvent, nprocs, mem))
+        f.write(write_gaussian_input(symbols, coords, route, charge, mult,
+                                     solvent, nprocs, mem))
     with open(log, "w") as f:
-        # fixed argv (QM binary + generated input file); no shell, no untrusted input
-        subprocess.run([gaussian_cmd, gjf], stdout=f, stderr=subprocess.STDOUT, check=True)  # nosec B603
+        # fixed argv (QM binary + generated input); no shell, no untrusted input
+        subprocess.run([gaussian_cmd, gjf], stdout=f,  # nosec B603
+                       stderr=subprocess.STDOUT, check=True)
     homo, lumo = parse_gaussian_output(open(log).read())
     level = route + (f" PCM({solvent})" if solvent else "")
     return EngineResult("gaussian", level, float("nan"), homo, lumo)
