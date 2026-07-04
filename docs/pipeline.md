@@ -60,6 +60,11 @@ The screening steps are really chasing one thing: **how strongly the molecule
 sticks to the metal** (its *adsorption*). The better it sticks and shields the
 surface, the better it fights corrosion.
 
+One clarification that the rest of this page builds on: **the DFT reactivity
+descriptors are what produce the ranking**; the Monte Carlo and molecular-dynamics
+stages *validate* that the top-ranked molecules really do adsorb as predicted — they
+are reported alongside the score, not folded into it (see [Ranking](#ranking--ordering-the-candidates) below).
+
 ## 3D geometry
 
 | | |
@@ -168,6 +173,17 @@ onto the molecule's surface).
 | **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (free, GPL; recipe in `LAMMPS_HANDOFF_NOTE`; free GAFF/OPLS + EAM force fields, explicit water) — compute-heavy, so deliberately left outside the package (no licence cost, just runtime). |
 | **Input** | The same **force-field geometry** as the Monte Carlo step, rebuilt from SMILES (Note 2). |
 | **Output** | `results/md_rdf.json`. |
+
+## Ranking — ordering the candidates
+
+| | |
+| --- | --- |
+| **Why** | The stages above each answer a different question; the ranking condenses the electronic evidence into one order, so a user sees which candidate to take to the bench first. |
+| **What it does** | Orders the molecules by a **composite electronic score** built from the DFT *global* descriptors most tied to electron-sharing — a smaller HOMO–LUMO **gap**, lower **hardness** η, and higher **softness** σ. Each is turned into a z-score (how many standard deviations it lies from this set's mean), sign-aligned so "more reactive" counts as positive, and the three are averaged. Higher = stronger predicted reactivity, computed **on the neutral form** — the species that dominates in 1 M HCl (ADR 0003/0005). |
+| **What does *not* enter the score** | The Monte Carlo **E_ads** and the molecular-dynamics **metal–O distance** are reported *beside* the score, **not folded into it**: they **validate** the ranking — confirming the top candidates physisorb flat, at the expected strength (≈ −16 kJ/mol) and distance (≈ 3.5 Å) — rather than set it. The geometry (FF-vs-DFT), speciation/pKaH, and Fukui/ESP results are likewise robustness and localisation evidence, not score inputs. ΔN and the total negative charge are tabulated and discussed (the Lukovits-window donation argument) but, like E_ads and the RDF, are shown, not scored. |
+| **How** | `corrosim/report.py` — `rank_inhibitors` z-scores gap/hardness/softness and averages them; the MC/MD columns are joined onto the summary table for display only. |
+| **Input** | The neutral global descriptors (`results/dft_descriptors_ff.{csv,json}`); E_ads and the metal–O distance joined in for display. |
+| **Output** | The best-first ranking table in the report (`report/report.html`, `report.docx`). |
 
 ## Notes
 

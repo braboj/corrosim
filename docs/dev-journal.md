@@ -247,4 +247,57 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   both need the `corrosim-qm` Docker image; **#36** would unblock the optional MC/MD
   DFT-geometry sharing flagged in ADR 0009.
 
+## 2026-07-03 — #34 isorhamnetin imaginary freq cleared + ranking-vs-validation docs
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** two threads. (1) Resolved the last open QM ticket, **#34** — clear the
+  lone imaginary frequency on the isorhamnetin cation. (2) A user-requested docs
+  clarification: make explicit that **DFT descriptors drive the ranking; MC/MD only
+  validate it**.
+- **#34 — engine machinery (`corrosim/engines.py`):** `optimize_geometry` and
+  `thermo_correction` gained `grid_level` (finer DFT integration grid) + the optimiser
+  a `convergence_set`; `thermo_correction` now also returns `freq_cm` + `norm_mode`.
+  New helpers: `imaginary_mode` (pick the softest imaginary mode), `displace_along_mode`
+  (step off a saddle by a scaled amplitude), and `relax_to_minimum` (opt → freq →
+  displace-if-imaginary → re-opt loop). `run_pka` gained `--tight` (routes each `--freq`
+  species through `relax_to_minimum`; default path byte-identical). 6 QM-light tests in
+  new `tests/test_engines.py` for the two pure helpers.
+- **#34 — the QM run (detached, `corrosim-qm`):** the recipe that worked is **finer
+  grid (level 4) + GAU convergence + imaginary-mode displacement**, seeded from the
+  persisted `results/isorhamnetin_opt.xyz` / `_+H+_opt.xyz` minima. Two false starts
+  first, both wall-clock traps and *both my misjudgement*: grid 5 (~8 min/step) and
+  GAU_TIGHT (18 micro-steps on flat torsions). Lesson folded back into the code — the
+  `relax_to_minimum` defaults are now grid 4 / GAU (not 5 / GAU_TIGHT), and `--tight`
+  help/level strings match. A throwaway `_refine_iso.py` (seeded, not committed) drove
+  the actual run; `run_pka --freq --tight --molecules isorhamnetin` reproduces it from
+  scratch (slower, FF start).
+- **#34 — result + narrative correction:** the cation reaches a true minimum
+  (`n_imag_cation = 0`); **all six species are now clean minima**. The pKaH refines
+  **−5.12 → −3.92** — importantly *less* negative, the **opposite** of ADR 0005's old
+  "would only make it more negative" guess: the old value sat on a saddle whose
+  inflated cation `g_corr` (6.14 → 6.07 eV at the minimum) understated the cation's
+  basicity. Conclusion **unchanged** — still ~0.01 % protonated at pH 0, far below the
+  −1.2 crossover, still not the lead, ranking untouched (ranking is neutral-DFT only).
+  Spliced the new row into `results/pka.json` (+ bundled `report/tables/pka/pka.json`
+  via `make_report`); dropped the caveat and fixed the direction claim in
+  `docs/validation.md`, **ADR 0005**, and `corrosim/report_content.py`.
+- **Ranking-vs-validation docs:** `docs/pipeline.md` gained a **Ranking** section (the
+  composite = z-scored gap/hardness/softness, neutral form; MC E_ads and MD metal–O
+  distance are validation, not score inputs) + an overview pointer. The report says it
+  too — strengthened `score_explanation` ("the ranking is these electronic descriptors
+  alone … E_ads and the Fe–O distance … validate … not inputs") and short clauses in
+  the MC/MD stage intros. Report bundle regenerated.
+- **PRs merged:** none (nothing committed — awaiting the go-ahead).
+- **Issues closed/created:** resolves **#34** (do NOT auto-close until the commit/PR).
+- **Decisions:** no new ADR; **ADR 0005 updated** (2026-07-03 note + Finding row +
+  caveat-turned-resolution). The grid-4/GAU recipe lives in `relax_to_minimum`'s
+  docstring, not a separate ADR (implementation detail, not a cross-cutting decision).
+- **Verification:** `ruff check .` clean; `mypy` clean (31 files); `pytest -q` green
+  (1 skip, the xTB smoke test). Report regenerated and spot-checked: `−3.9` present,
+  old `−5.1` + caveat gone, bundled `pka.json` shows −3.92.
+- **Pending:** **nothing committed** — working tree holds two logically-separable
+  concerns (the #34 close-out; the ranking/validation docs) that should land as two
+  commits/PRs when asked. Housekeeping: **#42 and #43 have no dev-journal entries**
+  (made in prior sessions); backfill is optional.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
