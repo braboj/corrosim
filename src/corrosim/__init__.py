@@ -11,7 +11,14 @@ Quick use:
 """
 from __future__ import annotations
 
-from .adsorption import LAMMPS_HANDOFF_NOTE, build_adsorption_system, estimate_adsorption_energy
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
+
+from .adsorption import (
+    LAMMPS_HANDOFF_NOTE,
+    build_adsorption_system,
+    estimate_adsorption_energy,
+)
 from .molecules import (
     LIBRARY,
     Molecule,
@@ -31,6 +38,9 @@ from .qm import (
 )
 from .report import build_html_report, rank_inhibitors, results_dataframe
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
            "build_protonated", "enumerate_protonation_sites", "Molecule",
            "LIBRARY", "run_engine", "EngineResult", "compute_descriptors",
@@ -43,12 +53,21 @@ __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
 
 def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
                      engine: str = "xtb", adsorption: bool = False,
-                     **engine_kwargs) -> dict:
-    """Full Stage-1 analysis of a pre-built Molecule. Returns a flat row dict.
+                     **engine_kwargs: Any) -> dict:
+    """Full Stage-1 analysis of a pre-built Molecule.
 
-    Respects mol.charge (e.g. +1 for a protonated inhibitor in acid) and records
-    TNC when the engine returns atomic charges. adsorption=True also adds the fast
-    UFF vdW physisorption estimate (Stage 2).
+    Respects mol.charge (e.g. +1 for a protonated inhibitor in acid) and
+    records TNC when the engine returns atomic charges.
+
+    Args:
+        mol: The pre-built molecule.
+        metal: Substrate label for ΔN.
+        engine: Engine name ('xtb'/'pyscf'/...).
+        adsorption: If True, also add the fast UFF vdW physisorption estimate.
+        **engine_kwargs: Extra keyword arguments forwarded to the engine.
+
+    Returns:
+        A flat row dict of descriptors + provenance.
     """
     res = run_engine(mol.symbols, mol.coords, engine=engine, charge=mol.charge,
                      **engine_kwargs)
@@ -56,7 +75,8 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
     row = {"name": mol.name, "formula": mol.formula, "n_atoms": mol.n_atoms,
            "smiles": mol.smiles, "charge": mol.charge, "level": res.level}
     row.update(desc.as_dict())
-    row["e_total_ev"] = res.e_total_ev          # total SCF energy (for pKa cycles)
+    # total SCF energy (for pKa cycles)
+    row["e_total_ev"] = res.e_total_ev
     row["tnc"] = total_negative_charge(res.charges)
     if adsorption:
         metal_symbol = metal.split("(")[0]
@@ -72,18 +92,45 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
 
 def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
                 engine: str = "xtb", ff: str = "MMFF",
-                adsorption: bool = False, **engine_kwargs) -> dict:
-    """Build a single inhibitor from a name/SMILES, then analyse it (Stage 1)."""
+                adsorption: bool = False, **engine_kwargs: Any) -> dict:
+    """Build a single inhibitor from a name/SMILES, then analyse it (Stage 1).
+
+    Args:
+        name_or_smiles: Library name or SMILES.
+        metal: Substrate label for ΔN.
+        engine: Engine name ('xtb'/'pyscf'/...).
+        ff: Force field for the initial 3D embedding.
+        adsorption: If True, also add the UFF vdW physisorption estimate.
+        **engine_kwargs: Extra keyword arguments forwarded to the engine.
+
+    Returns:
+        A flat row dict of descriptors + provenance.
+    """
     mol = build_molecule(name_or_smiles, ff=ff)
     return analyse_molecule(mol, metal=metal, engine=engine,
                             adsorption=adsorption, **engine_kwargs)
 
 
-def screen(inhibitors, metal: str = "Fe(110)", medium: str = "1 M HCl",
-           engine: str = "xtb", ff: str = "MMFF", adsorption: bool = False,
-           out_html: str | None = None, progress=print, **engine_kwargs):
-    """Screen a list of inhibitors. Returns (DataFrame, html_path_or_None).
-    Set adsorption=True to add the Stage-2 UFF vdW physisorption estimate.
+def screen(inhibitors: Sequence[str], metal: str = "Fe(110)",
+           medium: str = "1 M HCl", engine: str = "xtb", ff: str = "MMFF",
+           adsorption: bool = False, out_html: str | None = None,
+           progress: Callable[[str], object] | None = print,
+           **engine_kwargs: Any) -> tuple[pd.DataFrame, str | None]:
+    """Screen a list of inhibitors (Stage 1, optionally the Stage-2 estimate).
+
+    Args:
+        inhibitors: Library names or SMILES to screen.
+        metal: Substrate label for ΔN.
+        medium: Corrosive medium label (report header only).
+        engine: Engine name ('xtb'/'pyscf'/...).
+        ff: Force field for the initial 3D embedding.
+        adsorption: If True, add the Stage-2 UFF vdW physisorption estimate.
+        out_html: Optional path; writes a self-contained HTML report there.
+        progress: Callback for progress messages, or None to stay quiet.
+        **engine_kwargs: Extra keyword arguments forwarded to the engine.
+
+    Returns:
+        ``(DataFrame, html_path_or_None)``.
     """
     rows = []
     for inh in inhibitors:

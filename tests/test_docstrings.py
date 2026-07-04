@@ -46,6 +46,10 @@ CONTRACTED = [
     "report/figures.py",
     "report/report.py",
     "report/report_content.py",
+    "__init__.py",
+    "cli.py",
+    "medium.py",
+    "molecules.py",
 ]
 
 MAX_LINE = 80
