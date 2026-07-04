@@ -247,39 +247,6 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   both need the `corrosim-qm` Docker image; **#36** would unblock the optional MC/MD
   DFT-geometry sharing flagged in ADR 0009.
 
-## 2026-07-03 — #42 persist DFT-optimised geometries + #43 report clarity (backfilled)
-
-*Entry reconstructed retroactively (2026-07-03) — both PRs below merged without a
-dev-journal entry at the time; details taken from the commits.*
-
-- **Tool:** Claude Code (Opus 4.8). Two non-QM tickets, each its own branch off `main`,
-  both merged same-day.
-- **#42 (feat) — persist DFT-optimised geometries (closes #36):** `run_dft --optimize`
-  computed the DFT-relaxed geometry, read descriptors off it, then discarded it. Now a
-  new `molecules.write_xyz(mol, path)` serialises a `Molecule` to a standard XYZ
-  (creating the parent dir), and `run_dft` threads a `--opt-xyz-dir` (defaults to the
-  `--out-csv/--out-json` dir, else `results/`) so each optimised species is written as
-  `results/<molecule>_opt.xyz` (neutral + `+H+` cation). Committed the six Arghel
-  geometries; re-optimising reproduced the tracked descriptor matrix to ~12 sig figs
-  (ranking robust). Test: `write_xyz` writes a valid named XYZ block + creates a missing
-  parent (venv, no QM). Plus a `pipeline.md` clarity pass (per-Output paragraphs,
-  alphabetised glossary, a numbered "Notes" section, Materials-Studio module names, the
-  #36 output line) and a README **Limitations/Roadmap split** (roadmap items → new issues
-  #40, #41). **Merged via PR #42.** (These persisted geometries are exactly what the #34
-  refinement later seeded from — see the next entry.)
-- **#43 (docs) — report clarity (client review):** the report didn't explain its own
-  terms or show the calculation chain. Added plain-language explanations shared by the
-  HTML + Word renderers via `report_content.py` (what the z-score means, a data-derived
-  **"Bottom line"** naming the lead read from the ranking, the DFT level, and
-  2D-structure / frontier-orbital / ESP-vs-Fukui / geometry-refinement / protonation /
-  Monte-Carlo-methodology notes); **dropped the "Stage 1/2/3" labels** from headers,
-  overview, scientific basis and equation groups (the pipeline has more than three steps,
-  so the numbers mislabel it — descriptive names only); pretty-labelled the summary
-  table. The z-score + bottom-line are now shared functions (removed the two-renderer
-  duplication). Report bundle regenerated. **Merged via PR #43.**
-- **Decisions:** no new ADR. **Verification:** ruff/mypy/pytest green per PR.
-- **Pending (at the time):** only **#34** remained — addressed in the next entry.
-
 ## 2026-07-03 — #34 isorhamnetin imaginary freq cleared + ranking-vs-validation docs
 
 - **Tool:** Claude Code (Opus 4.8).
@@ -320,8 +287,10 @@ dev-journal entry at the time; details taken from the commits.*
   too — strengthened `score_explanation` ("the ranking is these electronic descriptors
   alone … E_ads and the Fe–O distance … validate … not inputs") and short clauses in
   the MC/MD stage intros. Report bundle regenerated.
-- **PRs merged:** none yet — **PR #45 opened** (branch `fix/isorhamnetin-imag-freq`,
-  3 commits: #34 fix + ranking-vs-validation docs + #42/#43 journal backfill).
+- **PRs merged:** none yet — **PR #45 opened** (branch `fix/isorhamnetin-imag-freq`):
+  #34 fix + ranking-vs-validation docs. (I first added a #42/#43 journal backfill here,
+  then reverted it on discovering the wrap-up audit found **open PR #44** already carries
+  the authentic #42/#43 entry + **ADR 0010** — see Pending.)
 - **Issues closed/created:** PR #45 carries `Closes #34` (auto-closes #34 on merge).
 - **Decisions:** no new ADR; **ADR 0005 updated** (2026-07-03 note + Finding row +
   caveat-turned-resolution). The grid-4/GAU recipe lives in `relax_to_minimum`'s
@@ -330,8 +299,13 @@ dev-journal entry at the time; details taken from the commits.*
   (1 skip, the xTB smoke test); **all PR #45 CI checks green** (lint, test 3.10–3.12,
   CodeQL, Bandit, gitleaks). Report spot-checked: `−3.9` present, old `−5.1` + caveat
   gone, bundled `pka.json` shows −3.92.
-- **Pending:** **PR #45 open and mergeable, awaiting review/merge** — on merge #34
-  auto-closes. After that the open issues are **#40** (LAMMPS/periodic-DFT E_ads) and
-  **#41** (routine true-minimum/frequency check), both QM/compute-heavy and unstarted.
+- **Pending:** **Two open PRs to land, in order.** (1) **PR #44** — a *prior* session's
+  wrap-up (`chore/session-wrapup-journal-adr`) that was never merged: it adds **ADR 0010**
+  (AI-authored report narrative — currently referenced but MISSING from `main`) and the
+  authentic #36/#42/#43 dev-journal entry. Merge it first. (2) **PR #45** (this session) —
+  #34 fix + ranking docs; mergeable, CI green, `Closes #34`. Both append to
+  `docs/dev-journal.md`, so the second to merge needs a trivial append-order rebase.
+  After both land, open issues are **#40** (LAMMPS/periodic-DFT E_ads) and **#41**
+  (routine true-minimum/frequency check), both QM/compute-heavy and unstarted.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
