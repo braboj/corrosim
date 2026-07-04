@@ -320,17 +320,18 @@ dev-journal entry at the time; details taken from the commits.*
   too — strengthened `score_explanation` ("the ranking is these electronic descriptors
   alone … E_ads and the Fe–O distance … validate … not inputs") and short clauses in
   the MC/MD stage intros. Report bundle regenerated.
-- **PRs merged:** none (nothing committed — awaiting the go-ahead).
-- **Issues closed/created:** resolves **#34** (do NOT auto-close until the commit/PR).
+- **PRs merged:** none yet — **PR #45 opened** (branch `fix/isorhamnetin-imag-freq`,
+  3 commits: #34 fix + ranking-vs-validation docs + #42/#43 journal backfill).
+- **Issues closed/created:** PR #45 carries `Closes #34` (auto-closes #34 on merge).
 - **Decisions:** no new ADR; **ADR 0005 updated** (2026-07-03 note + Finding row +
   caveat-turned-resolution). The grid-4/GAU recipe lives in `relax_to_minimum`'s
   docstring, not a separate ADR (implementation detail, not a cross-cutting decision).
 - **Verification:** `ruff check .` clean; `mypy` clean (31 files); `pytest -q` green
-  (1 skip, the xTB smoke test). Report regenerated and spot-checked: `−3.9` present,
-  old `−5.1` + caveat gone, bundled `pka.json` shows −3.92.
-- **Pending:** **nothing committed** — working tree holds two logically-separable
-  concerns (the #34 close-out; the ranking/validation docs) that should land as two
-  commits/PRs when asked. Housekeeping: **#42 and #43 have no dev-journal entries**
-  (made in prior sessions); backfill is optional.
+  (1 skip, the xTB smoke test); **all PR #45 CI checks green** (lint, test 3.10–3.12,
+  CodeQL, Bandit, gitleaks). Report spot-checked: `−3.9` present, old `−5.1` + caveat
+  gone, bundled `pka.json` shows −3.92.
+- **Pending:** **PR #45 open and mergeable, awaiting review/merge** — on merge #34
+  auto-closes. After that the open issues are **#40** (LAMMPS/periodic-DFT E_ads) and
+  **#41** (routine true-minimum/frequency check), both QM/compute-heavy and unstarted.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
