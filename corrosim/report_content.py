@@ -228,17 +228,14 @@ SCIENTIFIC_BASIS: list[tuple[str, object]] = [
      "The most basic site is the 4-oxo carbonyl, a very weak base. A "
      "frequency-corrected DFT deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO "
      "on gas opt+freq geometries) gives pKaH ≈ **−13.3** (quercetin), −12.9 "
-     "(kaempferol) and −5.1 (isorhamnetin) — all far below the 5–7% crossover — so "
+     "(kaempferol) and −3.9 (isorhamnetin) — all far below the 5–7% crossover — so "
      "every flavonoid is under 0.1% protonated in 1 M HCl. The neutral form is "
      "physically dominant, so the neutral-basis ranking is robust, not merely "
      "conventional; the ZPE/thermal/entropy correction moved every value more "
      "negative (more neutral) than the uncorrected cycle."),
     ("p",
-     "*Caveat:* quercetin and kaempferol are clean minima (no imaginary "
-     "frequencies); the isorhamnetin cation retained one small imaginary mode (a "
-     "methoxy/hydroxyl torsion), so its value is less tightly determined — but it "
-     "stays neutral and is not the lead. The lead (quercetin) rests on a clean, "
-     "imaginary-frequency-free calculation."),
+     "All six species (each neutral and its cation) are clean minima with no "
+     "imaginary frequencies, so every pKaH rests on a true stationary point."),
 
     ("h3", "Cross-check against published Fe(110) studies"),
     ("p",

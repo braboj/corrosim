@@ -60,22 +60,24 @@ case (more than geometry or level of theory).
 **Computed pKaH resolves it (ADR 0005; frequency-corrected, issue #18).** A DFT
 deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO on B3LYP/6-31G(d) gas
 opt+frequency geometries; `results/pka.json`, `run_pka --freq`) gives
-**pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −5.12** — all far below
+**pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −3.92** — all far below
 the crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The
 neutral form is therefore the physically dominant species, not just the
 conventional choice, and the **quercetin lead is robust**. The ZPE/thermal/entropy
 correction pushes every value *more* negative (more neutral) than the
 electronic-only estimate, deepening the conclusion.
 
-*Caveat (issue #18).* The quercetin and kaempferol optimisations are clean minima
-(no imaginary frequencies for either the neutral or the cation). The **isorhamnetin
-cation retained one imaginary frequency** (a low-frequency methoxy/hydroxyl torsion
-that did not fully converge to a minimum), so its corrected pKaH (−5.12) is less
-tightly determined — and isorhamnetin is the most geometry-sensitive of the three
-(its electronic-only pKaH on the DFT-optimised geometry is +1.7, pulled firmly
-neutral only by the correction). This does **not** affect the conclusion: even at
-its flagged value isorhamnetin stays < 0.1 % protonated, and it is not the lead —
-the lead (quercetin) rests on a clean, imaginary-frequency-free calculation.
+*Clean minima (issue #34, resolved).* All six species (each neutral and its cation)
+are clean minima with no imaginary frequencies. The isorhamnetin cation had earlier
+kept one imaginary mode — its nearly-flat 3'-OMe torsion tips slightly negative under
+the default integration grid — so it was re-optimised at a **finer grid (level 4)**
+with an **imaginary-mode displacement** (`run_pka --tight`) to a true minimum
+(`n_imag = 0`). That refines its pKaH −5.12 → **−3.92** (*less* negative: the old
+saddle inflated the cation's Gibbs correction, and stabilising the cation raises its
+basicity). The conclusion is unchanged — isorhamnetin is still ~0.01 % protonated and
+is not the lead — and it remains the most geometry-sensitive of the three (its
+electronic-only pKaH on the DFT-optimised geometry is +1.7, pulled firmly neutral
+only by the correction).
 
 ### Geometry refinement (FF vs DFT-optimised)
 
