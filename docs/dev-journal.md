@@ -247,6 +247,39 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   both need the `corrosim-qm` Docker image; **#36** would unblock the optional MC/MD
   DFT-geometry sharing flagged in ADR 0009.
 
+## 2026-07-03 — #42 persist DFT-optimised geometries + #43 report clarity (backfilled)
+
+*Entry reconstructed retroactively (2026-07-03) — both PRs below merged without a
+dev-journal entry at the time; details taken from the commits.*
+
+- **Tool:** Claude Code (Opus 4.8). Two non-QM tickets, each its own branch off `main`,
+  both merged same-day.
+- **#42 (feat) — persist DFT-optimised geometries (closes #36):** `run_dft --optimize`
+  computed the DFT-relaxed geometry, read descriptors off it, then discarded it. Now a
+  new `molecules.write_xyz(mol, path)` serialises a `Molecule` to a standard XYZ
+  (creating the parent dir), and `run_dft` threads a `--opt-xyz-dir` (defaults to the
+  `--out-csv/--out-json` dir, else `results/`) so each optimised species is written as
+  `results/<molecule>_opt.xyz` (neutral + `+H+` cation). Committed the six Arghel
+  geometries; re-optimising reproduced the tracked descriptor matrix to ~12 sig figs
+  (ranking robust). Test: `write_xyz` writes a valid named XYZ block + creates a missing
+  parent (venv, no QM). Plus a `pipeline.md` clarity pass (per-Output paragraphs,
+  alphabetised glossary, a numbered "Notes" section, Materials-Studio module names, the
+  #36 output line) and a README **Limitations/Roadmap split** (roadmap items → new issues
+  #40, #41). **Merged via PR #42.** (These persisted geometries are exactly what the #34
+  refinement later seeded from — see the next entry.)
+- **#43 (docs) — report clarity (client review):** the report didn't explain its own
+  terms or show the calculation chain. Added plain-language explanations shared by the
+  HTML + Word renderers via `report_content.py` (what the z-score means, a data-derived
+  **"Bottom line"** naming the lead read from the ranking, the DFT level, and
+  2D-structure / frontier-orbital / ESP-vs-Fukui / geometry-refinement / protonation /
+  Monte-Carlo-methodology notes); **dropped the "Stage 1/2/3" labels** from headers,
+  overview, scientific basis and equation groups (the pipeline has more than three steps,
+  so the numbers mislabel it — descriptive names only); pretty-labelled the summary
+  table. The z-score + bottom-line are now shared functions (removed the two-renderer
+  duplication). Report bundle regenerated. **Merged via PR #43.**
+- **Decisions:** no new ADR. **Verification:** ruff/mypy/pytest green per PR.
+- **Pending (at the time):** only **#34** remained — addressed in the next entry.
+
 ## 2026-07-03 — #34 isorhamnetin imaginary freq cleared + ranking-vs-validation docs
 
 - **Tool:** Claude Code (Opus 4.8).
