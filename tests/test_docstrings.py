@@ -43,9 +43,15 @@ CONTRACTED = [
     "report/report_layout.py",
     "report/equations.py",
     "report/report_docx.py",
+    "report/figures.py",
+    "report/report.py",
 ]
 
 MAX_LINE = 80
+# Modules exempt from the 80-column check only — they carry unbreakable long
+# tokens (report.py embeds CSS rules in HTML string literals), mirroring the
+# ruff `E501` per-file-ignore. The comment/annotation rules still apply.
+WIDTH_EXEMPT = {"report/report.py"}
 # Ticket/PR/ADR/issue references that rot — banned from comments (rule 5).
 TICKET_RE = re.compile(r"#\d+|\bADR[-\s]?\d+|\bissue[-\s]?#?\d+|\bPR[-\s]?#?\d+", re.IGNORECASE)
 # Tool directives are machine-readable and must sit inline, so they are exempt
@@ -141,11 +147,13 @@ def test_contracted_modules_document_args_and_returns():
 def test_contracted_modules_are_clean_comments_and_width():
     """Contracted modules: <=80 cols, no trailing comments, no ticket-number refs."""
     bad: list[str] = []
-    for f in _contracted_files():
+    for rel in CONTRACTED:
+        f = PKG / rel
         src = f.read_text(encoding="utf-8")
-        for i, line in enumerate(src.splitlines(), 1):
-            if len(line) > MAX_LINE:
-                bad.append(f"{f.name}:{i} line {len(line)} > {MAX_LINE}")
+        if rel not in WIDTH_EXEMPT:
+            for i, line in enumerate(src.splitlines(), 1):
+                if len(line) > MAX_LINE:
+                    bad.append(f"{f.name}:{i} line {len(line)} > {MAX_LINE}")
         tokens = tokenize.generate_tokens(io.StringIO(src).readline)
         code_rows: set[int] = set()
         for tok in tokens:
