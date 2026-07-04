@@ -114,7 +114,9 @@ def run_pyscf(symbols: Sequence[str], coords: Coords, basis: str = "6-311++G(d,p
 
 def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
                       xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
-                      maxsteps: int = 100) -> tuple[list[str], list[tuple[float, ...]]]:
+                      maxsteps: int = 100, grid_level: int | None = None,
+                      convergence_set: str | None = None
+                      ) -> tuple[list[str], list[tuple[float, ...]]]:
     """DFT geometry optimisation with PySCF (geomeTRIC backend). coords in Angstrom.
 
     Returns (symbols, coords_angstrom) for the relaxed structure — atom order is
@@ -123,6 +125,11 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     sensitive to geometry than to the opt basis, so B3LYP/6-31G(d) gas-phase relaxation
     is a good, cheap default. Pass solvent='water' to relax in implicit solvent
     (slower; gas-phase opt → solvated single point is the standard, robust choice).
+
+    ``grid_level`` overrides the DFT integration grid (PySCF default 3); a finer grid
+    (e.g. 5) suppresses grid noise on a nearly-flat torsion. ``convergence_set`` selects
+    a geomeTRIC criteria preset (e.g. 'GAU_TIGHT') for a tighter stop — both are the
+    knobs for clearing a spurious low-frequency imaginary mode (issue #34).
     """
     from pyscf import dft, gto
     from pyscf.geomopt.geometric_solver import optimize
@@ -130,11 +137,14 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
                 basis=basis, charge=charge, verbose=0)
     mf = dft.RKS(mol)
     mf.xc = xc
+    if grid_level is not None:
+        mf.grids.level = grid_level            # set on the base RKS, before any solvent wrap
     if solvent:
         from pyscf import solvent as pyscf_solvent  # noqa: F401
         mf = mf.ddCOSMO()
         mf.with_solvent.eps = 78.3553
-    mol_eq = optimize(mf, maxsteps=maxsteps)
+    conv = {"convergence_set": convergence_set} if convergence_set else {}
+    mol_eq = optimize(mf, maxsteps=maxsteps, **conv)
     opt_symbols = [mol_eq.atom_symbol(i) for i in range(mol_eq.natm)]
     opt_coords = [tuple(float(x) for x in r)
                   for r in mol_eq.atom_coords(unit="Angstrom")]
@@ -143,7 +153,8 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords, basis: str = "6-31
 
 def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
                       xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
-                      temperature: float = 298.15, pressure: float = 101325.0) -> dict:
+                      temperature: float = 298.15, pressure: float = 101325.0,
+                      grid_level: int | None = None) -> dict:
     """Gibbs free-energy correction ``G_corr = G(T) − E_elec`` (eV) at a *stationary*
     geometry, from an analytic Hessian + ideal-gas rigid-rotor/harmonic-oscillator
     thermochemistry (PySCF). This is the ZPE + thermal-enthalpy − T·S term that the
@@ -154,11 +165,15 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
     Add the returned ``g_corr_ev`` to the electronic energy to get G, or feed it to
     ``corrosim.pka.estimate_pka(g_corr_*_ev=...)`` for a frequency-corrected pKaH. The
     standard protocol is a modest gas-phase level (B3LYP/6-31G(d)) for the correction
-    on top of the production single point.
+    on top of the production single point. ``grid_level`` overrides the DFT integration
+    grid (PySCF default 3); match it to the optimisation so the Hessian sees the same
+    surface (issue #34).
 
-    Returns ``{g_corr_ev, zpe_ev, temperature, n_imag, level}``. ``n_imag`` > 0 flags
-    a non-minimum (transition state / unconverged geometry) — the correction is then
-    unreliable and the caller should re-optimise.
+    Returns ``{g_corr_ev, zpe_ev, temperature, n_imag, level, freq_cm, norm_mode}``.
+    ``n_imag`` > 0 flags a non-minimum (transition state / unconverged geometry) — the
+    correction is then unreliable and the caller should re-optimise. ``freq_cm`` and
+    ``norm_mode`` (shape ``(nmode, natom, 3)``) let a caller step off a saddle via
+    :func:`imaginary_mode` + :func:`displace_along_mode`.
     """
     from pyscf import dft, gto
     from pyscf.hessian import thermo
@@ -166,6 +181,8 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
                 basis=basis, charge=charge, verbose=0)
     mf = dft.RKS(mol)
     mf.xc = xc
+    if grid_level is not None:
+        mf.grids.level = grid_level            # set on the base RKS, before any solvent wrap
     if solvent:
         from pyscf import solvent as pyscf_solvent  # noqa: F401
         mf = mf.ddCOSMO()
@@ -186,7 +203,80 @@ def thermo_correction(symbols: Sequence[str], coords: Coords, basis: str = "6-31
         "temperature": temperature,
         "n_imag": n_imag,
         "level": level,
+        "freq_cm": fw,                               # harmonic frequencies (cm⁻¹); imag < 0
+        "norm_mode": np.asarray(ha["norm_mode"]),    # (nmode, natom, 3) Cartesian modes
     }
+
+
+def imaginary_mode(freq_cm, norm_mode) -> np.ndarray | None:
+    """Cartesian displacement of the softest (most-negative) imaginary vibrational
+    mode, or ``None`` when the geometry is already a minimum.
+
+    ``freq_cm`` and ``norm_mode`` come straight from :func:`thermo_correction`; an
+    imaginary mode surfaces as a negative real part or a non-zero imaginary part. The
+    returned ``(natom, 3)`` array is the direction to step along to leave a first-order
+    saddle (feed it to :func:`displace_along_mode`).
+    """
+    fw = np.asarray(freq_cm)
+    nm = np.asarray(norm_mode)
+    imag = np.where((fw.real < 0) | (np.abs(fw.imag) > 1e-6))[0]
+    if imag.size == 0:
+        return None
+    idx = int(imag[np.argmin(fw.real[imag])])        # softest = most-negative frequency
+    return nm[idx]
+
+
+def displace_along_mode(coords: Coords, mode, amplitude_ang: float = 0.3
+                        ) -> list[tuple[float, ...]]:
+    """Step a geometry along a normal mode, scaled so the largest atomic move is
+    ``amplitude_ang`` Angstrom — nudges a saddle point off its imaginary mode before a
+    fresh optimisation. Returns coords in Angstrom (atom order preserved).
+    """
+    xyz = np.asarray(coords, dtype=float)
+    step = np.asarray(mode, dtype=float).reshape(xyz.shape)
+    peak = float(np.abs(step).max())
+    if peak > 0:
+        step = step / peak * amplitude_ang
+    return [tuple(float(x) for x in row) for row in xyz + step]
+
+
+def relax_to_minimum(symbols: Sequence[str], coords: Coords, basis: str = "6-31G(d)",
+                     xc: str = "b3lyp", charge: int = 0, solvent: str | None = None,
+                     temperature: float = 298.15, grid_level: int = 4,
+                     convergence_set: str = "GAU", maxsteps: int = 200,
+                     max_restarts: int = 3, amplitude_ang: float = 0.3
+                     ) -> tuple[list[str], Coords, dict]:
+    """Optimise to a *true* minimum: relax, run frequencies, and while an imaginary
+    mode survives, step along it (:func:`displace_along_mode`) and re-optimise — up to
+    ``max_restarts`` times. The recipe for a floppy rotor whose flat torsion tips
+    imaginary (issue #34): the **finer DFT grid** (``grid_level`` 4 vs the default 3)
+    is the actual fix — it removes the integration noise that flipped the mode — while
+    the displace-loop steps off any genuine saddle. Ordinary ``convergence_set`` ('GAU')
+    suffices; a tighter set (e.g. 'GAU_TIGHT') chases flat modes for many extra steps
+    with a collapsing trust radius, so it is far slower for no gain here.
+
+    Returns ``(symbols, coords, thermo)`` — ``thermo`` is the final
+    :func:`thermo_correction` dict; ``thermo["n_imag"] == 0`` on success, else the best
+    geometry reached within the restart budget.
+    """
+    sym: list[str] = list(symbols)
+    xyz: Coords = coords
+    info: dict = {}
+    for _ in range(max_restarts + 1):
+        sym, xyz = optimize_geometry(sym, xyz, basis=basis, xc=xc, charge=charge,
+                                     solvent=solvent, maxsteps=maxsteps,
+                                     grid_level=grid_level,
+                                     convergence_set=convergence_set)
+        info = thermo_correction(sym, xyz, basis=basis, xc=xc, charge=charge,
+                                 solvent=solvent, temperature=temperature,
+                                 grid_level=grid_level)
+        if info["n_imag"] == 0:
+            break
+        mode = imaginary_mode(info["freq_cm"], info["norm_mode"])
+        if mode is None:
+            break
+        xyz = displace_along_mode(xyz, mode, amplitude_ang=amplitude_ang)
+    return sym, xyz, info
 
 
 def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,

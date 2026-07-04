@@ -81,7 +81,9 @@ STAGE_INTROS = {
         "the rigid molecule thousands of times over an Fe(110) slab to find the "
         "lowest-energy pose, scored with the UFF van-der-Waals interaction. The "
         "flavonoids settle flat/parallel to the surface; the adsorption energy "
-        "E_ads ≈ −16 kJ/mol places them in the physisorption regime. "
+        "E_ads ≈ −16 kJ/mol places them in the physisorption regime. This adsorption "
+        "picture validates the DFT-based ranking; it is reported alongside the score, "
+        "not folded into it. "
         "Software: the periodic metal slab is built with ASE — the standard "
         "Atomic Simulation Environment (its bcc110 builder for Fe(110)) — and the "
         "van-der-Waals parameters are the published UFF set (Rappé et al. 1992); the "
@@ -94,7 +96,8 @@ STAGE_INTROS = {
         "dynamics run lets the molecule jiggle at 298 K. The first peak of the "
         "metal-O radial distribution function g(r) sets the adsorption distance; "
         "a peak near 3.5 Å is physisorption range (a chemisorbed contact would sit "
-        "closer)."
+        "closer). Like the Monte-Carlo E_ads, this distance validates the ranking "
+        "rather than contributing to the score."
     ),
 }
 
@@ -228,17 +231,14 @@ SCIENTIFIC_BASIS: list[tuple[str, object]] = [
      "The most basic site is the 4-oxo carbonyl, a very weak base. A "
      "frequency-corrected DFT deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO "
      "on gas opt+freq geometries) gives pKaH ≈ **−13.3** (quercetin), −12.9 "
-     "(kaempferol) and −5.1 (isorhamnetin) — all far below the 5–7% crossover — so "
+     "(kaempferol) and −3.9 (isorhamnetin) — all far below the 5–7% crossover — so "
      "every flavonoid is under 0.1% protonated in 1 M HCl. The neutral form is "
      "physically dominant, so the neutral-basis ranking is robust, not merely "
      "conventional; the ZPE/thermal/entropy correction moved every value more "
      "negative (more neutral) than the uncorrected cycle."),
     ("p",
-     "*Caveat:* quercetin and kaempferol are clean minima (no imaginary "
-     "frequencies); the isorhamnetin cation retained one small imaginary mode (a "
-     "methoxy/hydroxyl torsion), so its value is less tightly determined — but it "
-     "stays neutral and is not the lead. The lead (quercetin) rests on a clean, "
-     "imaginary-frequency-free calculation."),
+     "All six species (each neutral and its cation) are clean minima with no "
+     "imaginary frequencies, so every pKaH rests on a true stationary point."),
 
     ("h3", "Cross-check against published Fe(110) studies"),
     ("p",
@@ -306,9 +306,11 @@ def score_explanation(metal_element: str) -> str:
         "z-score (how many standard deviations it lies from this set's mean), "
         "sign-flipped so “more reactive” counts as positive, and the three are "
         "averaged. **Higher = stronger predicted reactivity** — a relative ranking "
-        "within these candidates, not an absolute scale. E_ads (from the Monte-Carlo "
-        f"pose search) and the {metal_element}–O distance (from the molecular-dynamics "
-        "run) are shown alongside for the adsorption picture."
+        "within these candidates, not an absolute scale. **The ranking is these "
+        "electronic descriptors alone.** E_ads (from the Monte-Carlo pose search) and "
+        f"the {metal_element}–O distance (from the molecular-dynamics run) are shown "
+        "alongside the score to **validate** that the top candidates actually adsorb "
+        "(flat, in the physisorption range) — they are not inputs to the ranking."
     )
 
 

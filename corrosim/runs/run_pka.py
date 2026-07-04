@@ -18,6 +18,13 @@ on the relaxed geometry. Slow (frequency calcs on ~40-atom molecules) — run de
 
     docker compose run -d --name corrosim_pka qm python -m corrosim.runs.run_pka \
         --freq --out-json results/pka.json
+
+Add --tight (issue #34) to drive a floppy rotor to a true minimum — finer DFT grid
+(level 4) + imaginary-mode restarts — e.g. to clear the lone imaginary frequency on
+the isorhamnetin cation:
+
+    docker compose run -d --name corrosim_pka qm python -m corrosim.runs.run_pka \
+        --freq --tight --molecules isorhamnetin --out-json results/pka_isorhamnetin.json
 """
 from __future__ import annotations
 
@@ -25,16 +32,39 @@ import argparse
 import json
 import sys
 
-from corrosim.engines import Coords, optimize_geometry, run_engine, thermo_correction
+from corrosim.engines import (
+    Coords,
+    optimize_geometry,
+    relax_to_minimum,
+    run_engine,
+    thermo_correction,
+)
 from corrosim.molecules import build_molecule
 from corrosim.pka import G_AQ_PROTON_EV, estimate_pka
 from corrosim.presets import ARGHEL
 from corrosim.runs.run_dft import _best_protonation_site
 
 
+def _relax_and_thermo(symbols, coords, charge, opt_basis, opt_xc, temperature,
+                      tight) -> tuple[list[str], Coords, dict]:
+    """Gas-phase geometry + Gibbs correction for one species. Default path is a single
+    opt + Hessian; ``tight=True`` uses :func:`relax_to_minimum` (finer grid, tight
+    convergence, imaginary-mode restarts) to drive a floppy rotor to a true minimum
+    (issue #34).
+    """
+    if tight:
+        return relax_to_minimum(symbols, coords, basis=opt_basis, xc=opt_xc,
+                                charge=charge, temperature=temperature)
+    sym, xyz = optimize_geometry(symbols, coords, basis=opt_basis, xc=opt_xc,
+                                 charge=charge)
+    info = thermo_correction(sym, xyz, basis=opt_basis, xc=opt_xc, charge=charge,
+                             temperature=temperature)
+    return sym, xyz, info
+
+
 def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
                      select_engine="xtb", freq=False, opt_basis="6-31G(d)",
-                     opt_xc="b3lyp", temperature=298.15) -> list[dict]:
+                     opt_xc="b3lyp", temperature=298.15, tight=False) -> list[dict]:
     """Aqueous DFT energies for the neutral (B) + best-protonated cation (BH⁺) of
     each molecule, and the resulting pKaH.
 
@@ -42,8 +72,10 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
     gas-phase geometry-optimised at ``opt_basis``/``opt_xc``, a Hessian gives the
     Gibbs correction G_corr = ZPE + H_thermal − T·S, and the production aqueous
     single point runs on the relaxed geometry — so the row carries a
-    frequency-corrected pKaH alongside the electronic-only one. Returns a row per
-    molecule.
+    frequency-corrected pKaH alongside the electronic-only one. ``tight=True`` (issue
+    #34) drives each species to a true minimum (finer grid + imaginary-mode restarts)
+    — for the isorhamnetin cation, whose flat methoxy torsion tips imaginary under the
+    default grid. Returns a row per molecule.
     """
     rows = []
     for name in molecules:
@@ -63,15 +95,11 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
         tbh: dict = {}
         if freq:
             print("  opt+freq neutral (gas) ...", file=sys.stderr)
-            nb_sym, nb_xyz = optimize_geometry(neutral.symbols, neutral.coords,
-                                               basis=opt_basis, xc=opt_xc, charge=0)
-            tb = thermo_correction(nb_sym, nb_xyz, basis=opt_basis, xc=opt_xc,
-                                   charge=0, temperature=temperature)
+            nb_sym, nb_xyz, tb = _relax_and_thermo(
+                neutral.symbols, neutral.coords, 0, opt_basis, opt_xc, temperature, tight)
             print("  opt+freq cation (gas) ...", file=sys.stderr)
-            cb_sym, cb_xyz = optimize_geometry(cation.symbols, cation.coords,
-                                               basis=opt_basis, xc=opt_xc, charge=1)
-            tbh = thermo_correction(cb_sym, cb_xyz, basis=opt_basis, xc=opt_xc,
-                                    charge=1, temperature=temperature)
+            cb_sym, cb_xyz, tbh = _relax_and_thermo(
+                cation.symbols, cation.coords, 1, opt_basis, opt_xc, temperature, tight)
             g_corr_b, g_corr_bh = tb["g_corr_ev"], tbh["g_corr_ev"]
 
         print("  DFT neutral/aqueous ...", file=sys.stderr)
@@ -101,8 +129,9 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
                 "n_imag_cation": tbh["n_imag"],
                 "temperature_k": temperature,
                 "level": f"{xc.upper()}/{basis} (ddCOSMO:water) // "
-                         f"{opt_xc.upper()}/{opt_basis} gas opt+freq, "
-                         "frequency-corrected",
+                         f"{opt_xc.upper()}/{opt_basis} gas opt+freq"
+                         + (" (grid 4, imag-mode refined)" if tight else "")
+                         + ", frequency-corrected",
             })
             imag = tb["n_imag"] + tbh["n_imag"]
             if imag:
@@ -130,6 +159,10 @@ def main(argv=None) -> int:
     p.add_argument("--opt-basis", default="6-31G(d)",
                    help="Basis for the --freq gas opt+frequency step.")
     p.add_argument("--opt-xc", default="b3lyp")
+    p.add_argument("--tight", action="store_true",
+                   help="Drive each --freq geometry to a true minimum: finer DFT grid "
+                        "(level 4) + imaginary-mode restarts. Clears a floppy-rotor "
+                        "imaginary mode (issue #34).")
     p.add_argument("--temperature", type=float, default=298.15)
     p.add_argument("--out-json", default=None)
     args = p.parse_args(argv)
@@ -138,7 +171,7 @@ def main(argv=None) -> int:
     rows = compute_pka_rows(molecules, basis=args.basis, xc=args.xc,
                             select_engine=args.select_engine, freq=args.freq,
                             opt_basis=args.opt_basis, opt_xc=args.opt_xc,
-                            temperature=args.temperature)
+                            temperature=args.temperature, tight=args.tight)
 
     if args.out_json:
         with open(args.out_json, "w") as f:

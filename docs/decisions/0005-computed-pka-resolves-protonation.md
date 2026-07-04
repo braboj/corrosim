@@ -4,6 +4,9 @@
 - Date: 2026-07-01
 - Updated: 2026-07-02 — frequency-corrected pKaH folded in, resolving issue #18
   (see Finding); the electronic-only estimate is retained below as the prior step.
+- Updated: 2026-07-03 — issue #34: the isorhamnetin cation's lone imaginary mode is
+  cleared (finer grid + imaginary-mode re-optimisation), so all six species are now
+  clean minima; its pKaH refines −5.12 → −3.92 (see the Caveat-turned-resolution).
 - Extends: ADR 0004 (quantitative pH-speciation)
 
 ## Context
@@ -43,7 +46,7 @@ Frequency-corrected pKaH (issue #18), the canonical result:
 |---|---|---|---|---|
 | quercetin | **−13.3** | −12.1 | ~0 % | yes (n_imag = 0) |
 | kaempferol | **−12.9** | −11.2 | ~0 % | yes (n_imag = 0) |
-| isorhamnetin | **−5.12** | −3.3 | ~0.001 % | cation has 1 imaginary freq |
+| isorhamnetin | **−3.92** | −3.3 | ~0.01 % | yes (n_imag = 0) |
 
 All three sit **well below the −1.2 crossover**: every flavonoid is **< 0.1 %
 protonated in 1 M HCl**, and the frequency correction moved each value *more*
@@ -51,15 +54,21 @@ negative (more neutral) than the electronic-only estimate — deepening, not
 weakening, the conclusion. The methoxy group makes isorhamnetin the most basic (as
 expected), but even it is essentially fully neutral.
 
-**Caveat (issue #18).** Quercetin and kaempferol are clean minima (no imaginary
-frequencies, neutral or cation). The **isorhamnetin cation retained one imaginary
-frequency** — a low-frequency methoxy/hydroxyl torsion that did not converge to a
-true minimum — so its corrected pKaH is less tightly determined, and isorhamnetin
-is the most geometry-sensitive case (electronic-only on the optimised geometry is
-+1.7, pulled firmly neutral only by the correction). It does not change the
-conclusion: isorhamnetin stays < 0.1 % protonated at its flagged value, and it is
-not the lead. A tighter re-optimisation of that one cation could remove the mode
-but would only make it more negative.
+**Clean minima (issue #34, resolved).** All six species (each neutral and its
+cation) are now clean minima with no imaginary frequencies. The isorhamnetin cation
+had previously retained one imaginary mode — its floppy 3'-OMe torsion is nearly
+flat, so the default DFT integration grid's noise tipped that mode slightly negative
+and left the cation on a first-order saddle. Re-optimising at a **finer grid (level
+4)** with an **imaginary-mode displacement + re-optimisation** (`run_pka --tight`;
+`corrosim.engines.relax_to_minimum`) drives it to a true minimum (`n_imag = 0`).
+
+This **refines** the isorhamnetin pKaH from −5.12 to **−3.92** — note it moves *less*
+negative, not more: the old saddle inflated the cation's Gibbs correction (g_corr
+6.14 → 6.07 eV at the minimum), so stabilising the cation raises its basicity. The
+conclusion is unchanged: at −3.92 isorhamnetin is still ~0.01 % protonated in 1 M HCl
+(far below the −1.2 crossover) and is not the lead; isorhamnetin remains the most
+geometry-sensitive of the three (electronic-only on the optimised geometry is +1.7,
+pulled firmly neutral only by the correction).
 
 ## Decision / consequence
 
