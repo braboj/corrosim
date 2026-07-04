@@ -1,8 +1,9 @@
 """corrosim.runs.make_figures  (M5).
 
-Regenerate the full manuscript figure set into report/figures/. Reads the committed data
-(dft_descriptors_ff.csv, *_fukui.json), re-runs the fast classical MC/MD, and renders
-orbital isosurfaces from any *_homo.cube / *_lumo.cube present.
+Regenerate the full manuscript figure set into report/figures/. Reads the
+committed data (dft_descriptors_ff.csv, *_fukui.json), re-runs the fast
+classical MC/MD, and renders orbital isosurfaces from any *_homo.cube /
+*_lumo.cube present.
 
 Runs in the venv (no QM container needed unless you want fresh orbital cubes):
     python -m corrosim.runs.make_figures
@@ -35,7 +36,8 @@ ORDER = ARGHEL.molecule_list()
 def _fukui_from_json(path):
     rows = read_json(path)
     n = max(r["idx"] for r in rows) + 1
-    fr = FukuiResult([None] * n, [0.] * n, [0.] * n, [0.] * n, [0.] * n, [0.] * n)
+    fr = FukuiResult([None] * n, [0.] * n, [0.] * n,
+                     [0.] * n, [0.] * n, [0.] * n)
     for r in rows:
         i = r["idx"]
         fr.symbols[i] = r["symbol"]; fr.f_plus[i] = r["f_plus"]
@@ -44,7 +46,16 @@ def _fukui_from_json(path):
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: regenerate the full manuscript figure set into report/figures/."""
+    """CLI entry point: regenerate the manuscript figure set.
+
+    Writes into ``report/figures/``.
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
     p.add_argument("--outdir", default="report/figures")
     p.add_argument("--datadir", default="results",
@@ -56,7 +67,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = p.parse_args(argv)
     os.makedirs(args.outdir, exist_ok=True)
 
-    def out(f):                                       # place each figure in its stage subfolder
+    def out(f):
+        # place each figure in its stage subfolder
         path = figure_path(args.outdir, f)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         return path
@@ -70,25 +82,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         naq = (df[(df.form == "neutral") & (df.phase == "aqueous")]
                .set_index("name").loc[ORDER].reset_index())
         rows = naq.to_dict("records")
-        figures.plot_mo_energy_diagram(rows, metal=ARGHEL.metal, out=out("fig2_mo_diagram.png"))
-        figures.plot_descriptor_comparison(rows, out=out("fig3_descriptors.png"))
-        # fig3b (protonation effect) prefers the DFT-optimised cations — the more
-        # accurate basis for the speciation/pKa story (#19); FF is the fallback.
+        figures.plot_mo_energy_diagram(rows, metal=ARGHEL.metal,
+                                       out=out("fig2_mo_diagram.png"))
+        figures.plot_descriptor_comparison(rows,
+                                           out=out("fig3_descriptors.png"))
+        # fig3b (protonation effect) prefers the DFT-optimised cations — the
+        # more accurate basis for the speciation/pKa story; FF is the fallback.
         opt_csv = f"{args.datadir}/dft_descriptors_opt.csv"
         if os.path.exists(opt_csv):
             figures.plot_protonation_effect(
                 pd.read_csv(opt_csv), ORDER, out=out("fig3b_protonation.png"),
                 geometry_label="DFT-optimised, B3LYP/6-311++G(d,p)")
         else:
-            figures.plot_protonation_effect(df, ORDER, out=out("fig3b_protonation.png"))
+            figures.plot_protonation_effect(
+                df, ORDER, out=out("fig3b_protonation.png"))
 
     log("Fig 4: Fukui maps")
     for name in ORDER:
         jf = f"{args.datadir}/{name}_fukui.json"
         if os.path.exists(jf):
-            figures.plot_fukui(_fukui_from_json(jf), molecule=build_molecule(name),
-                               out=out(f"fig4_{name}_fukui.png"),
-                               title=f"{name} — condensed Fukui (B3LYP/6-31G(d))")
+            figures.plot_fukui(
+                _fukui_from_json(jf), molecule=build_molecule(name),
+                out=out(f"fig4_{name}_fukui.png"),
+                title=f"{name} — condensed Fukui (B3LYP/6-31G(d))")
 
     log("Fig 5/6: MC pose + annealing, MD RDF (re-running)")
     for name in ORDER:
@@ -105,12 +121,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         for which in ("homo", "lumo"):
             cube = f"{args.cubedir}/{name}_{which}.cube"
             if os.path.exists(cube):
-                figures.render_orbital(cube, out=out(f"fig2b_{name}_{which}.png"),
-                                       title=f"{name} {which.upper()}")
+                figures.render_orbital(
+                    cube, out=out(f"fig2b_{name}_{which}.png"),
+                    title=f"{name} {which.upper()}")
 
     log("Fig 7: ESP / MEP maps (from existing density+esp cubes)")
     for name in ORDER:
-        dens, esp = f"{args.cubedir}/{name}_density.cube", f"{args.cubedir}/{name}_esp.cube"
+        dens = f"{args.cubedir}/{name}_density.cube"
+        esp = f"{args.cubedir}/{name}_esp.cube"
         if os.path.exists(dens) and os.path.exists(esp):
             figures.render_esp(dens, esp, out=out(f"fig7_{name}_esp.png"),
                                title=f"{name} — ESP on density isosurface")

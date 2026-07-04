@@ -50,6 +50,15 @@ CONTRACTED = [
     "cli.py",
     "medium.py",
     "molecules.py",
+    "runs/run_mc.py",
+    "runs/run_md.py",
+    "runs/run_fukui.py",
+    "runs/run_pka.py",
+    "runs/run_dft.py",
+    "runs/make_cubes.py",
+    "runs/make_figures.py",
+    "runs/make_report.py",
+    "runs/compare_geometry.py",
 ]
 
 MAX_LINE = 80

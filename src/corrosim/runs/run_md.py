@@ -1,11 +1,12 @@
 """corrosim.runs.run_md  (M4 driver).
 
-Brownian (overdamped-Langevin) rigid-body MD of the inhibitor over the metal slab
-at 298 K -> metal-X radial distribution (adsorption distance) + thermal-averaged
-interaction energy. Pure classical (numpy + ASE); runs anywhere.
+Brownian (overdamped-Langevin) rigid-body MD of the inhibitor over the metal
+slab at 298 K -> metal-X radial distribution (adsorption distance) +
+thermal-averaged interaction energy. Pure classical (numpy + ASE); runs
+anywhere.
 
-    python -m corrosim.runs.run_md --molecules kaempferol,quercetin,isorhamnetin \
-        --metal Fe --steps 6000
+    python -m corrosim.runs.run_md \
+        --molecules kaempferol,quercetin,isorhamnetin --metal Fe --steps 6000
 """
 from __future__ import annotations
 
@@ -31,7 +32,14 @@ MC_WARMUP_STEPS = 2000
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: run Brownian MD to the metal-X RDF / adsorption distance (M4)."""
+    """CLI entry point: run Brownian MD to the metal-X RDF (M4).
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
     p = argparse.ArgumentParser(prog="corrosim-run-md",
                                 description="Brownian MD -> RDF (M4).")
     add_molecules_arg(p)
@@ -46,13 +54,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     summary = []
     for name in parse_molecules(args.molecules):
-        stderr_log(f"[{name}] MD ({args.steps} steps, {args.temperature:.0f} K) ...")
+        stderr_log(f"[{name}] MD ({args.steps} steps, "
+                   f"{args.temperature:.0f} K) ...")
         m = build_molecule(name)
-        mc = run_mc(m, metal=args.metal, n_steps=MC_WARMUP_STEPS, seed=args.seed)
+        mc = run_mc(m, metal=args.metal, n_steps=MC_WARMUP_STEPS,
+                    seed=args.seed)
         r = run_md(m, metal=args.metal, n_steps=args.steps, equil=args.equil,
                    temperature=args.temperature, seed=args.seed,
                    start_positions=mc.best_positions)
-        summary.append(dict(name=name, metal=r.metal, surface=f"{r.metal}{r.surface}",
+        summary.append(dict(name=name, metal=r.metal,
+                            surface=f"{r.metal}{r.surface}",
                             e_mean_kjmol=r.e_mean_kjmol,
                             metal_O_peak_A=r.first_peak_metal_O,
                             metal_N_peak_A=r.first_peak_metal_N))

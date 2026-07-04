@@ -1,11 +1,12 @@
 """corrosim.runs.run_mc  (M3 driver).
 
-Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on the
-metal slab — Stage-2. Writes a summary JSON to results/; figures are rendered
-separately by make_figures. Pure classical (numpy + ASE); runs anywhere, no QM.
+Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on
+the metal slab — Stage-2. Writes a summary JSON to results/; figures are
+rendered separately by make_figures. Pure classical (numpy + ASE); runs
+anywhere, no QM.
 
-    python -m corrosim.runs.run_mc --molecules kaempferol,quercetin,isorhamnetin \
-        --metal Fe --steps 4000
+    python -m corrosim.runs.run_mc \
+        --molecules kaempferol,quercetin,isorhamnetin --metal Fe --steps 4000
 """
 from __future__ import annotations
 
@@ -26,9 +27,17 @@ from corrosim.runs._cli import (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: run the Monte Carlo adsorption pose search (M3)."""
+    """CLI entry point: run the Monte Carlo adsorption pose search (M3).
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success).
+    """
     p = argparse.ArgumentParser(prog="corrosim-run-mc",
-                                description="Monte Carlo adsorption pose search (M3).")
+                                description="Monte Carlo adsorption pose "
+                                            "search (M3).")
     add_molecules_arg(p)
     p.add_argument("--metal", default=ARGHEL.metal_element, help="Fe | Cu | Al")
     p.add_argument("--steps", type=int, default=4000)
@@ -46,8 +55,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                             e_ads_ev=r.e_ads_ev, e_ads_kjmol=r.e_ads_kjmol,
                             best_height_A=r.best_height_A,
                             accept_ratio=round(r.n_accept / r.n_steps, 3)))
-        stderr_log(f"  E_ads = {r.e_ads_ev:.3f} eV ({r.e_ads_kjmol:.1f} kJ/mol) "
-                   f"at {r.best_height_A} Å")
+        stderr_log(f"  E_ads = {r.e_ads_ev:.3f} eV "
+                   f"({r.e_ads_kjmol:.1f} kJ/mol) at {r.best_height_A} Å")
 
     write_json(f"{args.outdir}/mc_adsorption.json", summary)
     print_table(summary)
