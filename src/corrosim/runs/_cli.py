@@ -9,24 +9,28 @@ file handles via ``with`` (the inline ``open(...)`` calls did not).
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
 from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from corrosim.presets import ARGHEL
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 # Sentinel distinguishing "no default given" (missing file -> raise) from an
 # explicit default of None in :func:`read_json`.
 _REQUIRED = object()
 
 
-def add_molecules_arg(parser: Any) -> None:
+def add_molecules_arg(parser: argparse.ArgumentParser) -> None:
     """Add the shared ``--molecules`` argument (the Arghel set as default).
 
     Args:
-        parser: The argparse parser (or group) to add the argument to.
+        parser: The argparse parser to add the argument to.
     """
     parser.add_argument(
         "--molecules", default=",".join(ARGHEL.molecule_list()),
@@ -54,7 +58,7 @@ def stderr_log(msg: str) -> None:
     print(msg, file=sys.stderr)
 
 
-def write_json(path: str, obj: Any) -> None:
+def write_json(path: str, obj: object) -> None:
     """Write ``obj`` as indented JSON to ``path``, closing the file handle.
 
     Args:
@@ -65,7 +69,9 @@ def write_json(path: str, obj: Any) -> None:
         json.dump(obj, fh, indent=2)
 
 
-def read_json(path: str, default: Any = _REQUIRED) -> Any:
+# ``default``/return are the decoded JSON payload — genuinely dynamic, so the
+# return is the one justified ``Any`` in this module.
+def read_json(path: str, default: object = _REQUIRED) -> Any:  # noqa: ANN401
     """Load JSON from ``path``, closing the file handle.
 
     Args:
@@ -82,7 +88,8 @@ def read_json(path: str, default: Any = _REQUIRED) -> Any:
         return json.load(fh)
 
 
-def print_table(data: Any, columns: Iterable[str] | None = None,
+def print_table(data: pd.DataFrame | list[dict[str, object]],
+                columns: Iterable[str] | None = None,
                 round_to: int | None = None) -> None:
     """Print rows as a plain, index-free table (the drivers' stdout summary).
 
@@ -102,14 +109,16 @@ def print_table(data: Any, columns: Iterable[str] | None = None,
     print(df.to_string(index=False))
 
 
-def strip_protonation_suffix(names: Any) -> Any:
+def strip_protonation_suffix(names: pd.Series) -> pd.Series:
     """Strip the trailing ``+H+`` protonation tag from molecule names.
 
     Args:
-        names: A pandas ``Series`` of molecule names (some tagged ``<name>+H+``).
+        names: A pandas ``Series`` of molecule names (some tagged
+            ``<name>+H+``).
 
     Returns:
-        The Series with the ``+H+`` suffix removed, so cations map to their base.
+        The Series with the ``+H+`` suffix removed, so cations map to their
+        base name.
     """
     return names.str.replace(r"\+H\+$", "", regex=True)
 

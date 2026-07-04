@@ -119,17 +119,30 @@ duplicate.
 ### 2.2 Python
 
 - `from __future__ import annotations`; type-hint public functions.
+- Full public API contract (ADR 0012): every public function/method carries
+  complete type hints (all params + return; `collections.abc` types; no `Any`
+  in the public API bar a justified `# noqa: ANN401` case) AND a Google
+  docstring with `Args:`/`Returns:`/`Raises:` where applicable. The sweep is
+  staged (issues #51/#52) via `tests/test_docstrings.py`'s `CONTRACTED`
+  allowlist; hold any new/edited public code to the full contract now.
 - Keep `mypy` clean — it is a CI gate. Run `ruff check`, `mypy`, and `pytest`
   before pushing (ruff alone is not enough).
 - Units are part of the contract: energies in eV, distances in Å, adsorption
   energies in kJ/mol. Put the unit in the name or docstring (`e_ads_kjmol`,
   `first_peak_metal_O`); never leave a bare number.
-- Scientific-comment exception to "a name that needs a comment is wrong":
-  non-obvious physics or derivations MUST carry a short comment naming the
-  descriptor or source (Koopmans, Lukovits ΔN, the relevant ADR).
+- Readability standard (ADR 0012): organize a function into logical blocks,
+  each with a short comment on the line *above* it; comments never trail code
+  on the right (tool directives like `# noqa` excepted); split by complexity,
+  not line count; one parameter per line for wrapped signatures (trailing
+  comma).
+- Comments are self-sufficient — never cite a ticket/PR/ADR *number* in a
+  comment (those rot). Scientific-comment exception to "a name that needs a
+  comment is wrong": non-obvious physics or derivations MUST carry a short
+  comment naming the descriptor or source (Koopmans, Lukovits ΔN, Rappé 1992) —
+  the source name, not an issue/ADR number.
 - Substrate-agnostic: thread the `metal` parameter through; derive labels and
   output keys from the actual metal, never hardcode "Fe".
-- Linter/formatter: ruff + `ruff format` (line length 100). Keep new and
+- Linter/formatter: ruff + `ruff format` (line length 80). Keep new and
   edited code ruff-clean; do not bulk-reformat untouched files.
 
 ### 2.3 Data, artifacts, and the single source of truth
