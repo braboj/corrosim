@@ -6,7 +6,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-from corrosim import equations as E
+from corrosim.report import equations as E
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 

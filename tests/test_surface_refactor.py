@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from corrosim import build_molecule, surface
-from corrosim.mc import run_mc
-from corrosim.md import run_md
+from corrosim import build_molecule
+from corrosim.adsorption import surface
+from corrosim.adsorption.mc import run_mc
+from corrosim.adsorption.md import run_md
 
 
 def test_surface_constants_and_facet_map_unchanged():
@@ -71,9 +72,9 @@ def test_orient_flat_puts_least_spread_axis_on_z():
 def test_single_source_no_duplicate_definitions():
     """mc/md/adsorption must reference surface's objects, not private copies —
     so there is exactly one facet map / UFF table / rotation helper."""
-    import corrosim.adsorption as ads
-    import corrosim.mc as mc
-    import corrosim.md as md
+    import corrosim.adsorption.adsorption as ads
+    import corrosim.adsorption.mc as mc
+    import corrosim.adsorption.md as md
 
     # the facet map is single-sourced (was duplicated in adsorption + mc._SURFACE)
     assert mc.SURFACE_FACET is surface.SURFACE_FACET

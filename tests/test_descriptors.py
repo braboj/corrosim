@@ -1,6 +1,6 @@
 import math
 
-from corrosim.descriptors import METAL_WORK_FUNCTION, compute_descriptors
+from corrosim.qm.descriptors import METAL_WORK_FUNCTION, compute_descriptors
 
 
 def test_descriptor_values():

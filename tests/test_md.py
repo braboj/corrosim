@@ -1,7 +1,7 @@
 """Substrate-agnostic Stage-3 MD: the metal threads through to the slab and the
 RDF, and the back-compat Fe-named aliases mirror the generic fields."""
 from corrosim import build_molecule
-from corrosim.md import run_md
+from corrosim.adsorption.md import run_md
 
 
 def test_md_metal_threads_to_slab_and_rdf():

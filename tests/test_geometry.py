@@ -5,7 +5,7 @@ matplotlib.use("Agg")
 
 import pandas as pd
 
-from corrosim import figures
+from corrosim.report import figures
 
 
 def _frame(gap_by_name):

@@ -1,7 +1,7 @@
 """DFT-cycle pKa estimator math (corrosim.pka / ADR 0005)."""
 import math
 
-from corrosim.pka import G_AQ_PROTON_EV, estimate_pka, rt_ln10_ev
+from corrosim.qm.pka import G_AQ_PROTON_EV, estimate_pka, rt_ln10_ev
 
 
 def test_rt_ln10_ev_room_temperature():

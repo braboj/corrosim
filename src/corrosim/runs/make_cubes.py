@@ -17,8 +17,9 @@ import argparse
 import os
 import sys
 
-from corrosim import build_molecule, figures
+from corrosim import build_molecule
 from corrosim.presets import ARGHEL
+from corrosim.report import figures
 
 ORDER = ARGHEL.molecule_list()
 

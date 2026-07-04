@@ -20,12 +20,13 @@ matplotlib.use("Agg")
 
 import pandas as pd
 
-from corrosim import build_molecule, figures
-from corrosim.fukui import FukuiResult
-from corrosim.mc import run_mc
-from corrosim.md import run_md
+from corrosim import build_molecule
+from corrosim.adsorption.mc import run_mc
+from corrosim.adsorption.md import run_md
 from corrosim.presets import ARGHEL
-from corrosim.report_layout import figure_path
+from corrosim.qm.fukui import FukuiResult
+from corrosim.report import figures
+from corrosim.report.report_layout import figure_path
 
 ORDER = ARGHEL.molecule_list()
 

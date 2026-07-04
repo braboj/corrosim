@@ -41,13 +41,6 @@ import os
 import sys
 
 import corrosim
-from corrosim.engines import (
-    min_check_fields,
-    optimize_geometry,
-    relax_to_minimum,
-    run_engine,
-    thermo_correction,
-)
 from corrosim.medium import parse_medium, relevant_forms
 from corrosim.molecules import (
     build_molecule,
@@ -56,6 +49,13 @@ from corrosim.molecules import (
     write_xyz,
 )
 from corrosim.presets import ARGHEL
+from corrosim.qm.engines import (
+    min_check_fields,
+    optimize_geometry,
+    relax_to_minimum,
+    run_engine,
+    thermo_correction,
+)
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()
 

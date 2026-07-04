@@ -71,7 +71,7 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 | --- | --- |
 | **Why** | Everything downstream needs a concrete 3D shape to act on; a name or a SMILES string carries no coordinates. |
 | **What it does** | Turns the input into a sensible *starting* geometry — cheap, classical, and approximate, not the final word — and builds the acid-protonated form (the extra-H⁺ cation) the same way. Runs once per molecule; independent of the metal and the medium. |
-| **How** | Makes the SMILES's *implicit* hydrogens explicit (`AddHs` — SMILES leaves H's implied by valence, not as atoms), generates 3D coordinates for every atom (RDKit's ETKDG distance-geometry method), then tidies them with a quick force-field optimisation (MMFF, falling back to UFF). `corrosim/molecules.py` — `build_molecule`, `build_protonated`. |
+| **How** | Makes the SMILES's *implicit* hydrogens explicit (`AddHs` — SMILES leaves H's implied by valence, not as atoms), generates 3D coordinates for every atom (RDKit's ETKDG distance-geometry method), then tidies them with a quick force-field optimisation (MMFF, falling back to UFF). `src/corrosim/molecules.py` — `build_molecule`, `build_protonated`. |
 | **Input** | A molecule as a name (e.g. `quercetin`) or a SMILES string. |
 | **Output** | An in-memory structure passed to the next step; not persisted as a standalone file. |
 
@@ -81,7 +81,7 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 | --- | --- |
 | **Why** | The force-field shape is only a rough draft; every descriptor below is read off this geometry, so it must be a genuine quantum-mechanical minimum before any number is trusted. |
 | **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. Optionally the minimum is *verified*: a vibrational-frequency check confirms it is a true minimum (no imaginary mode), so a first-order saddle never silently feeds the descriptors. |
-| **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. `run_dft --check-minimum` records the imaginary-mode count `n_imag` (0 = a true minimum) in each row's provenance; `run_dft --to-minimum` drives any saddle to a verified minimum (finer grid + imaginary-mode restarts, `relax_to_minimum`). |
+| **How** | `src/corrosim/qm/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `src/corrosim/runs/compare_geometry.py`. `run_dft --check-minimum` records the imaginary-mode count `n_imag` (0 = a true minimum) in each row's provenance; `run_dft --to-minimum` drives any saddle to a verified minimum (finer grid + imaginary-mode restarts, `relax_to_minimum`). |
 | **Input** | The starting 3D geometry from the previous step. |
 | **Output** | The DFT-optimised geometry, persisted as `results/<molecule>_opt.xyz` (each neutral and its `+H+` cation; `run_dft --optimize`), plus the FF-vs-DFT robustness table `results/geometry_comparison.csv`. With `--check-minimum`/`--to-minimum`, each descriptor row also carries `n_imag` + `lowest_freq_cm`. (The descriptors *on* this geometry are written by the next step.) |
 
@@ -127,7 +127,7 @@ Back-donation energy  ΔE_back = − η / 4
 
 The metal enters through its **work function** Φ — essentially how tightly it
 holds its own electrons (Fe ≈ 4.82, Cu ≈ 4.94, Al ≈ 4.26 eV; we treat the metal's
-hardness η_metal ≈ 0). Implemented in `corrosim/descriptors.py`.
+hardness η_metal ≈ 0). Implemented in `src/corrosim/qm/descriptors.py`.
 
 **Output** — the same descriptor table on **two geometries**:
 `results/dft_descriptors_ff.{csv,json}` (the cheap FF geometry, the default
@@ -146,7 +146,7 @@ individual atoms* latch onto the metal. Two tools answer that:
   rich patches are the spots that love metal.
 
 For the Arghel flavonoids both agree: the oxygen atoms on the catechol ring and
-the 3-OH group are the metal-binding sites. Implemented in `corrosim/fukui.py`
+the 3-OH group are the metal-binding sites. Implemented in `src/corrosim/qm/fukui.py`
 (condensed Fukui, by frozen-orbital or finite-difference) and
 `figures.render_esp` (PySCF `cubegen` density + electrostatic potential, painted
 onto the molecule's surface).
@@ -160,7 +160,7 @@ onto the molecule's surface).
 | --- | --- |
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
 | **What it does** | Finds the lowest-energy pose (position + orientation) on the metal surface and reports its **adsorption energy** E_ads (more negative = stronger grip). For the flavonoids on steel they lie **flat** at E_ads ≈ −16 kJ/mol — weak "physical" sticking (*physisorption*), consistent with published plant-inhibitor results. |
-| **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `corrosim/adsorption.py` + `corrosim/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role (Note 1). |
+| **How** | Builds a realistic metal surface (a periodic "slab") with ASE, then runs a Monte Carlo / *simulated-annealing* pose search over a van-der-Waals stickiness model (UFF): randomly nudge and rotate the molecule thousands of times, generally keeping energy-lowering moves but occasionally accepting a worse one to escape a so-so spot. `src/corrosim/adsorption/adsorption.py` + `src/corrosim/adsorption/mc.py`; the literature uses Materials Studio's Adsorption Locator for the same role (Note 1). |
 | **Input** | The molecule's **force-field geometry**, rebuilt from SMILES (`build_molecule`, seed 42) — deliberately *not* the DFT-optimised structure (Note 2). |
 | **Output** | `results/mc_adsorption.json`. |
 
@@ -170,7 +170,7 @@ onto the molecule's surface).
 | --- | --- |
 | **Why** | A single best pose is just a snapshot; real molecules wiggle at temperature, so we check how the molecule actually settles and how far it sits from the metal. |
 | **What it does** | Lets the molecule move over the surface at room temperature (298 K) and reports the **adsorption distance** from the **metal–O radial distribution function (RDF)** — its first peak marks the typical binding distance (closer than ~3.5 Å → *chemisorption*; farther → *physisorption*). For the flavonoids the Fe–O first peak sits at ≈ 3.5 Å, the physisorption range, agreeing with the Monte Carlo step. |
-| **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `corrosim/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (free, GPL; recipe in `LAMMPS_HANDOFF_NOTE`; free GAFF/OPLS + EAM force fields, explicit water) — compute-heavy, so deliberately left outside the package (no licence cost, just runtime). |
+| **How** | Runs a light **Brownian molecular dynamics** under the same van-der-Waals field and reads the metal–O RDF. `src/corrosim/adsorption/md.py`. For a *quantitative, bond-capable* E_ads, corrosim hands off to **LAMMPS** (free, GPL; recipe in `LAMMPS_HANDOFF_NOTE`; free GAFF/OPLS + EAM force fields, explicit water) — compute-heavy, so deliberately left outside the package (no licence cost, just runtime). |
 | **Input** | The same **force-field geometry** as the Monte Carlo step, rebuilt from SMILES (Note 2). |
 | **Output** | `results/md_rdf.json`. |
 
@@ -181,7 +181,7 @@ onto the molecule's surface).
 | **Why** | The stages above each answer a different question; the ranking condenses the electronic evidence into one order, so a user sees which candidate to take to the bench first. |
 | **What it does** | Orders the molecules by a **composite electronic score** built from the DFT *global* descriptors most tied to electron-sharing — a smaller HOMO–LUMO **gap**, lower **hardness** η, and higher **softness** σ. Each is turned into a z-score (how many standard deviations it lies from this set's mean), sign-aligned so "more reactive" counts as positive, and the three are averaged. Higher = stronger predicted reactivity, computed **on the neutral form** — the species that dominates in 1 M HCl (ADR 0003/0005). |
 | **What does *not* enter the score** | The Monte Carlo **E_ads** and the molecular-dynamics **metal–O distance** are reported *beside* the score, **not folded into it**: they **validate** the ranking — confirming the top candidates physisorb flat, at the expected strength (≈ −16 kJ/mol) and distance (≈ 3.5 Å) — rather than set it. The geometry (FF-vs-DFT), speciation/pKaH, and Fukui/ESP results are likewise robustness and localisation evidence, not score inputs. ΔN and the total negative charge are tabulated and discussed (the Lukovits-window donation argument) but, like E_ads and the RDF, are shown, not scored. |
-| **How** | `corrosim/report.py` — `rank_inhibitors` z-scores gap/hardness/softness and averages them; the MC/MD columns are joined onto the summary table for display only. |
+| **How** | `src/corrosim/report/report.py` — `rank_inhibitors` z-scores gap/hardness/softness and averages them; the MC/MD columns are joined onto the summary table for display only. |
 | **Input** | The neutral global descriptors (`results/dft_descriptors_ff.{csv,json}`); E_ads and the metal–O distance joined in for display. |
 | **Output** | The best-first ranking table in the report (`report/report.html`, `report.docx`). |
 
@@ -212,9 +212,9 @@ open-source tools, so it costs **$0 in licences**:
 |---|---|
 | Gaussian; DMol³ (Materials Studio) — DFT | PySCF, xTB (ORCA optional, free for academia) |
 | DMol³ (Materials Studio) — geometry-opt | PySCF + geomeTRIC (`run_dft --optimize`) |
-| Adsorption Locator (Materials Studio) — MC | ASE slab + UFF Monte Carlo pose search (`corrosim/mc.py`) |
-| Forcite (Materials Studio) — MD | Brownian rigid-body MD → metal–O RDF (`corrosim/md.py`); LAMMPS hand-off for quantitative E_ads |
-| Multiwfn — Fukui / ESP | `corrosim/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
+| Adsorption Locator (Materials Studio) — MC | ASE slab + UFF Monte Carlo pose search (`src/corrosim/adsorption/mc.py`) |
+| Forcite (Materials Studio) — MD | Brownian rigid-body MD → metal–O RDF (`src/corrosim/adsorption/md.py`); LAMMPS hand-off for quantitative E_ads |
+| Multiwfn — Fukui / ESP | `src/corrosim/qm/fukui.py` (condensed Fukui) + PySCF cubegen ESP/MEP map |
 
 The takeaway: your compute goes into the **DFT stage** (and the optional LAMMPS
 hand-off for a quantitative E_ads), never into software licences.
@@ -223,16 +223,16 @@ hand-off for a quantitative E_ads), never into software licences.
 
 | Step | Module | Entry points |
 |---|---|---|
-| 3D geometry | `corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF optimise) |
-| DFT geometry optimisation | `corrosim/engines.py` | `optimize_geometry` (PySCF + geomeTRIC) |
-| DFT engines | `corrosim/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian` |
-| DFT — global descriptors | `corrosim/descriptors.py` | `compute_descriptors` |
-| DFT — local descriptors | `corrosim/fukui.py`, `corrosim/figures.py` | `compute_fukui`; `write_density_esp_cubes`, `render_esp`, `render_orbital` |
-| Monte Carlo | `corrosim/adsorption.py`, `corrosim/mc.py` | `build_adsorption_system`, `run_mc` |
-| Molecular dynamics | `corrosim/md.py` | `run_md` |
-| Reporting | `corrosim/report.py` (+ `report_layout`, `report_content`, `report_docx`) | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
-| Drivers | `corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
-| Orchestration | `corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
+| 3D geometry | `src/corrosim/molecules.py` | `build_molecule`, `build_protonated` (SMILES → 3D → FF optimise) |
+| DFT geometry optimisation | `src/corrosim/qm/engines.py` | `optimize_geometry` (PySCF + geomeTRIC) |
+| DFT engines | `src/corrosim/qm/engines.py` | `run_xtb`, `run_pyscf`, `run_orca`, `run_gaussian` |
+| DFT — global descriptors | `src/corrosim/qm/descriptors.py` | `compute_descriptors` |
+| DFT — local descriptors | `src/corrosim/qm/fukui.py`, `src/corrosim/report/figures.py` | `compute_fukui`; `write_density_esp_cubes`, `render_esp`, `render_orbital` |
+| Monte Carlo | `src/corrosim/adsorption/adsorption.py`, `src/corrosim/adsorption/mc.py` | `build_adsorption_system`, `run_mc` |
+| Molecular dynamics | `src/corrosim/adsorption/md.py` | `run_md` |
+| Reporting | `src/corrosim/report/report.py` (+ `report_layout`, `report_content`, `report_docx`) | `rank_inhibitors`, `build_html_report`, `build_pipeline_report` |
+| Drivers | `src/corrosim/runs/*` | `run_dft`, `run_fukui`, `run_mc`, `run_md`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` |
+| Orchestration | `src/corrosim/__init__.py`, `cli.py` | `screen`, `analyse_one` |
 
 ## Glossary
 

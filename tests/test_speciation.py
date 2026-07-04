@@ -2,7 +2,7 @@
 (issue #8 follow-up / ADR 0004)."""
 import math
 
-from corrosim.speciation import (
+from corrosim.qm.speciation import (
     analyse_speciation,
     blend_descriptors,
     pkah_for_fraction,

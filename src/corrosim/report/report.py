@@ -15,9 +15,9 @@ from typing import NamedTuple
 import matplotlib.pyplot as plt  # backend auto-selected: inline in Jupyter, Agg headless
 import pandas as pd
 
+from ..qm.descriptors import DESCRIPTOR_META
 from . import equations as _eq
 from . import report_content as _content
-from .descriptors import DESCRIPTOR_META
 from .report_layout import figure_path
 
 

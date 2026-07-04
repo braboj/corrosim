@@ -15,7 +15,7 @@ import os
 import sys
 
 from corrosim import build_molecule
-from corrosim.mc import run_mc
+from corrosim.adsorption.mc import run_mc
 from corrosim.presets import ARGHEL
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()

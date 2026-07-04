@@ -13,8 +13,9 @@ pytest.importorskip("docx")            # python-docx is the `report`/`dev` extra
 from docx import Document
 from docx.oxml.ns import qn
 
-from corrosim import equations, report, report_docx
-from corrosim.speciation import analyse_speciation, protonation_fraction
+from corrosim import report
+from corrosim.qm.speciation import analyse_speciation, protonation_fraction
+from corrosim.report import equations, report_docx
 
 
 def _native_equation_count(doc) -> int:

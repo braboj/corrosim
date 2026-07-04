@@ -109,7 +109,7 @@ def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
 
 
 def test_pipeline_report_renders_speciation_section(tmp_path):
-    from corrosim.speciation import analyse_speciation
+    from corrosim.qm.speciation import analyse_speciation
     neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
     protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
                   {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]
@@ -127,7 +127,7 @@ def test_pipeline_report_renders_speciation_section(tmp_path):
 
 
 def test_pipeline_report_renders_computed_pka_block(tmp_path):
-    from corrosim.speciation import analyse_speciation, protonation_fraction
+    from corrosim.qm.speciation import analyse_speciation, protonation_fraction
     neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
     protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
                   {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]
@@ -148,7 +148,7 @@ def test_pipeline_report_renders_computed_pka_block(tmp_path):
 
 
 def test_computed_pka_block_frequency_corrected_caption(tmp_path):
-    from corrosim.speciation import analyse_speciation, protonation_fraction
+    from corrosim.qm.speciation import analyse_speciation, protonation_fraction
     neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
     protonated = [{**_descr_row("quercetin+H+", 3.3, 1.6), "delta_n": -0.05},
                   {**_descr_row("kaempferol+H+", 3.6, 1.8), "delta_n": -0.07}]

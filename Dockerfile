@@ -23,7 +23,7 @@ WORKDIR /work
 
 # Copy only what's needed to resolve+install deps first (good layer caching).
 COPY pyproject.toml README.md ./
-COPY corrosim ./corrosim
+COPY src ./src
 RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -e ".[qm,dev]"
 
