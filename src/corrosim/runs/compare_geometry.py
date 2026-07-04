@@ -14,7 +14,7 @@ Runs in the venv (no QM container):
 from __future__ import annotations
 
 import argparse
-import sys
+from collections.abc import Sequence
 
 import matplotlib
 
@@ -23,6 +23,8 @@ import pandas as pd
 
 from corrosim.presets import ARGHEL
 from corrosim.report import figures
+from corrosim.runs._cli import stderr_log as log
+from corrosim.runs._cli import strip_protonation_suffix
 
 ORDER = ARGHEL.molecule_list()
 KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]
@@ -34,7 +36,7 @@ def _select(df, order, form, phase):
     protonated rows.
     """
     sub = df[(df.form == form) & (df.phase == phase)].copy()
-    sub["_base"] = sub["name"].str.replace(r"\+H\+$", "", regex=True)
+    sub["_base"] = strip_protonation_suffix(sub["name"])
     present = [n for n in order if n in set(sub["_base"])]
     return sub.set_index("_base").loc[present]
 
@@ -75,7 +77,7 @@ def _compare_form(ff_full, opt_full, form, phase):
     return comp_rows, order, summary
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: compare FF vs DFT-optimised descriptors and check ranking robustness."""
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
     p.add_argument("--ff", default="results/dft_descriptors_ff.csv",
@@ -86,7 +88,6 @@ def main(argv=None) -> int:
     p.add_argument("--out-csv", default="results/geometry_comparison.csv")
     p.add_argument("--out-fig", default="report/figures/fig8_geometry_comparison.png")
     args = p.parse_args(argv)
-    log = lambda m: print(m, file=sys.stderr)
 
     ff_full, opt_full = pd.read_csv(args.ff), pd.read_csv(args.opt)
 

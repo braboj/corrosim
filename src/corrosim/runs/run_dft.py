@@ -36,9 +36,9 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import json
 import os
 import sys
+from collections.abc import Sequence
 
 import corrosim
 from corrosim.medium import parse_medium, relevant_forms
@@ -56,8 +56,7 @@ from corrosim.qm.engines import (
     run_engine,
     thermo_correction,
 )
-
-DEFAULT_MOLECULES = ARGHEL.molecule_list()
+from corrosim.runs._cli import add_molecules_arg, parse_molecules, print_table, write_json
 
 
 def _best_protonation_site(name: str, select_engine: str = "xtb"):
@@ -176,14 +175,13 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
     return rows
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: compute the production DFT descriptor matrix (M1)."""
     p = argparse.ArgumentParser(
         prog="corrosim-run-dft",
         description="Production DFT descriptor matrix (M1).",
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES),
-                   help="Comma-separated names or SMILES.")
+    add_molecules_arg(p)
     p.add_argument("--engine", default="pyscf",
                    choices=["pyscf", "xtb", "orca", "gaussian"])
     p.add_argument("--metal", default=ARGHEL.metal)
@@ -229,7 +227,7 @@ def main(argv=None) -> int:
     p.add_argument("--out-csv", default=None, help="Also write the table to CSV.")
     args = p.parse_args(argv)
 
-    molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    molecules = parse_molecules(args.molecules)
     forms = "neutral" if args.no_protonated else args.forms
 
     # The frequency check only makes sense on a stationary geometry, so both minimum
@@ -272,8 +270,7 @@ def main(argv=None) -> int:
                           check_minimum=check_minimum, to_minimum=to_minimum)
 
     if args.out_json:
-        with open(args.out_json, "w") as f:
-            json.dump(rows, f, indent=2)
+        write_json(args.out_json, rows)
         print(f"JSON: {args.out_json}", file=sys.stderr)
 
     import pandas as pd
@@ -282,7 +279,8 @@ def main(argv=None) -> int:
                         "gap_ev", "hardness_ev", "softness_inv_ev",
                         "electronegativity_ev", "electrophilicity_ev", "delta_n",
                         "back_donation_ev", "tnc", "n_imag"] if c in df.columns]
-    print("\n" + df[show].round(3).to_string(index=False))
+    print()
+    print_table(df, show, round_to=3)
     if args.out_csv:
         df.to_csv(args.out_csv, index=False)
         print(f"CSV: {args.out_csv}", file=sys.stderr)

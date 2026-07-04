@@ -15,16 +15,15 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
+from collections.abc import Sequence
 
 from corrosim import build_molecule
-from corrosim.presets import ARGHEL
 from corrosim.report import figures
+from corrosim.runs._cli import parse_molecules
+from corrosim.runs._cli import stderr_log as log
 
-ORDER = ARGHEL.molecule_list()
 
-
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: write HOMO/LUMO and density+ESP .cube files (needs PySCF)."""
     p = argparse.ArgumentParser(prog="corrosim-make-cubes")
     p.add_argument("--molecules", default="quercetin",
@@ -39,9 +38,8 @@ def main(argv=None) -> int:
     p.add_argument("--nx", type=int, default=80, help="Grid points per axis.")
     args = p.parse_args(argv)
     what = {w.strip().lower() for w in args.what.split(",") if w.strip()}
-    names = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    names = parse_molecules(args.molecules)
     os.makedirs(args.outdir, exist_ok=True)
-    log = lambda m: print(m, file=sys.stderr)
 
     for name in names:
         m = build_molecule(name)

@@ -10,22 +10,26 @@ separately by make_figures. Pure classical (numpy + ASE); runs anywhere, no QM.
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import sys
+from collections.abc import Sequence
 
 from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.presets import ARGHEL
+from corrosim.runs._cli import (
+    add_molecules_arg,
+    parse_molecules,
+    print_table,
+    stderr_log,
+    write_json,
+)
 
-DEFAULT_MOLECULES = ARGHEL.molecule_list()
 
-
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: run the Monte Carlo adsorption pose search (M3)."""
     p = argparse.ArgumentParser(prog="corrosim-run-mc",
                                 description="Monte Carlo adsorption pose search (M3).")
-    p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES))
+    add_molecules_arg(p)
     p.add_argument("--metal", default=ARGHEL.metal_element, help="Fe | Cu | Al")
     p.add_argument("--steps", type=int, default=4000)
     p.add_argument("--seed", type=int, default=0)
@@ -34,20 +38,19 @@ def main(argv=None) -> int:
     os.makedirs(args.outdir, exist_ok=True)
 
     summary = []
-    for name in [m.strip() for m in args.molecules.split(",") if m.strip()]:
-        print(f"[{name}] MC pose search ({args.steps} steps) ...", file=sys.stderr)
+    for name in parse_molecules(args.molecules):
+        stderr_log(f"[{name}] MC pose search ({args.steps} steps) ...")
         m = build_molecule(name)
         r = run_mc(m, metal=args.metal, n_steps=args.steps, seed=args.seed)
         summary.append(dict(name=name, surface=f"{r.metal}{r.surface}",
                             e_ads_ev=r.e_ads_ev, e_ads_kjmol=r.e_ads_kjmol,
                             best_height_A=r.best_height_A,
                             accept_ratio=round(r.n_accept / r.n_steps, 3)))
-        print(f"  E_ads = {r.e_ads_ev:.3f} eV ({r.e_ads_kjmol:.1f} kJ/mol) "
-              f"at {r.best_height_A} Å", file=sys.stderr)
+        stderr_log(f"  E_ads = {r.e_ads_ev:.3f} eV ({r.e_ads_kjmol:.1f} kJ/mol) "
+                   f"at {r.best_height_A} Å")
 
-    json.dump(summary, open(f"{args.outdir}/mc_adsorption.json", "w"), indent=2)
-    import pandas as pd
-    print(pd.DataFrame(summary).to_string(index=False))
+    write_json(f"{args.outdir}/mc_adsorption.json", summary)
+    print_table(summary)
     return 0
 
 
