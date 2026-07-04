@@ -59,6 +59,7 @@ image; everything else runs in a venv.
 pytest -q                              # test suite (venv; no QM)
 ruff check .                           # lint
 mypy                                   # type-check (non-strict) — also a CI gate
+complexipy                             # cognitive-complexity ratchet vs committed snapshot
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
 python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors_ff.csv
@@ -166,8 +167,9 @@ Testing, quality gates, and packaging follow the referenced templates
   `pip install -e .[dev]`. Every new feature/module ships a test; name
   `test_<unit>_<state>_<expected>`.
 - Quality gates in CI: `ruff check` (incl. Google docstrings, `D`) + `mypy`
-  (non-strict) + `pytest` with scoped coverage ≥ 80% + Bandit (SAST) + gitleaks
-  (secrets) + CodeQL. Explicit, deferrable deviations from the python-lib stack
+  (non-strict) + `complexipy` (cognitive-complexity ratchet vs the committed
+  snapshot — ADR 0013) + `pytest` with scoped coverage ≥ 80% + Bandit (SAST) +
+  gitleaks (secrets) + CodeQL. Explicit, deferrable deviations from the python-lib stack
   (ADR 0007): `ruff format` deferred; `mypy --strict` deferred; docstring rule
   `D205` relaxed for the scientific long-summary style; coverage gated on the
   QM-light-testable surface (QM-engine/Docker modules `omit`-ted, not global).
@@ -195,7 +197,8 @@ and `python-lib.md` as the standard.
 
 ### 5.2 Structure audit
 
-- Run `pytest -q`, `ruff check .`, and `mypy` before every PR/merge.
+- Run `pytest -q`, `ruff check .`, `mypy`, and `complexipy` before every
+  PR/merge.
 - Confirm docs are in their home (see 1.4): decisions in `docs/decisions/`, a
   session entry added to `docs/dev-journal.md`, structure changes in `README.md`.
 

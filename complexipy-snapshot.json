@@ -1,0 +1,80 @@
+[
+  {
+    "path": "corrosim/adsorption/md.py",
+    "file_name": "md.py",
+    "functions": [
+      {
+        "name": "run_md",
+        "complexity": 24
+      }
+    ]
+  },
+  {
+    "path": "corrosim/cli.py",
+    "file_name": "cli.py",
+    "functions": [
+      {
+        "name": "read_input_csv",
+        "complexity": 31
+      }
+    ]
+  },
+  {
+    "path": "corrosim/report/figures.py",
+    "file_name": "figures.py",
+    "functions": [
+      {
+        "name": "render_orbital",
+        "complexity": 17
+      }
+    ]
+  },
+  {
+    "path": "corrosim/report/report_docx.py",
+    "file_name": "report_docx.py",
+    "functions": [
+      {
+        "name": "_scientific_basis",
+        "complexity": 16
+      },
+      {
+        "name": "build_docx_report",
+        "complexity": 26
+      }
+    ]
+  },
+  {
+    "path": "corrosim/runs/make_figures.py",
+    "file_name": "make_figures.py",
+    "functions": [
+      {
+        "name": "main",
+        "complexity": 18
+      }
+    ]
+  },
+  {
+    "path": "corrosim/runs/make_report.py",
+    "file_name": "make_report.py",
+    "functions": [
+      {
+        "name": "main",
+        "complexity": 38
+      }
+    ]
+  },
+  {
+    "path": "corrosim/runs/run_dft.py",
+    "file_name": "run_dft.py",
+    "functions": [
+      {
+        "name": "main",
+        "complexity": 16
+      },
+      {
+        "name": "analyse_matrix",
+        "complexity": 47
+      }
+    ]
+  }
+]

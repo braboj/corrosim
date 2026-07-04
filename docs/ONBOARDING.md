@@ -48,6 +48,7 @@ Run the fast checks. The test suite is QM-light, so it needs no Docker.
 pytest -q          # all tests pass; one QM-dependent test is skipped
 ruff check .       # lint: clean
 mypy               # type-check (non-strict): clean
+complexipy         # cognitive complexity: no regression vs the snapshot
 ```
 
 For an end-to-end check that does not need QM, rebuild the report from the
