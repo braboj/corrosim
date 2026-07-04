@@ -13,10 +13,9 @@ Runs in the venv (no QM container needed):
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import shutil
-import sys
+from collections.abc import Sequence
 
 import pandas as pd
 
@@ -25,15 +24,17 @@ from corrosim.medium import parse_medium
 from corrosim.presets import ARGHEL
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
+from corrosim.runs._cli import read_json, strip_protonation_suffix
+from corrosim.runs._cli import stderr_log as log
 
 ORDER = ARGHEL.molecule_list()
 
 
 def _load_json(path: str):
-    return json.load(open(path)) if os.path.exists(path) else []
+    return read_json(path, [])
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: build the self-contained multiscale HTML pipeline report."""
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     p.add_argument("--descriptors", default="results/dft_descriptors_ff.csv")
@@ -56,7 +57,6 @@ def main(argv=None) -> int:
     p.add_argument("--metal", default=ARGHEL.metal)
     p.add_argument("--medium", default=ARGHEL.medium)
     args = p.parse_args(argv)
-    log = lambda m: print(m, file=sys.stderr)
 
     if not os.path.exists(args.descriptors):
         log(f"error: {args.descriptors} not found — run run_dft first.")
@@ -73,7 +73,7 @@ def main(argv=None) -> int:
     acid_rows = None
     if spec.acidic and {"form", "phase"} <= set(df.columns):
         paq = df[(df.form == "protonated") & (df.phase == "aqueous")].copy()
-        paq["_base"] = paq["name"].str.replace(r"\+H\+$", "", regex=True)
+        paq["_base"] = strip_protonation_suffix(paq["name"])
         paq = paq[paq["_base"].isin(present)]
         paq["_ord"] = paq["_base"].map({n: i for i, n in enumerate(present)})
         acid_rows = paq.sort_values("_ord").drop(columns=["_base", "_ord"]).to_dict("records") \
@@ -115,7 +115,7 @@ def main(argv=None) -> int:
             .to_dict("records") or None
         if spec.acidic:
             op = odf[(odf.form == "protonated") & (odf.phase == "aqueous")].copy()
-            op["_base"] = op["name"].str.replace(r"\+H\+$", "", regex=True)
+            op["_base"] = strip_protonation_suffix(op["name"])
             op = op[op["_base"].isin(on_present)]
             op["_ord"] = op["_base"].map({n: i for i, n in enumerate(on_present)})
             opt_acid_rows = op.sort_values("_ord").drop(columns=["_base", "_ord"]) \

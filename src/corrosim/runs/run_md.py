@@ -10,23 +10,31 @@ interaction energy. Pure classical (numpy + ASE); runs anywhere.
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import sys
+from collections.abc import Sequence
 
 from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.adsorption.md import run_md
 from corrosim.presets import ARGHEL
+from corrosim.runs._cli import (
+    add_molecules_arg,
+    parse_molecules,
+    print_table,
+    stderr_log,
+    write_json,
+)
 
-DEFAULT_MOLECULES = ARGHEL.molecule_list()
+# MC steps used only to relax the molecule onto the slab before the MD run
+# (a converged adsorbed start), not the sampled MC search itself.
+MC_WARMUP_STEPS = 2000
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: run Brownian MD to the metal-X RDF / adsorption distance (M4)."""
     p = argparse.ArgumentParser(prog="corrosim-run-md",
                                 description="Brownian MD -> RDF (M4).")
-    p.add_argument("--molecules", default=",".join(DEFAULT_MOLECULES))
+    add_molecules_arg(p)
     p.add_argument("--metal", default=ARGHEL.metal_element)
     p.add_argument("--steps", type=int, default=6000)
     p.add_argument("--equil", type=int, default=1500)
@@ -37,10 +45,10 @@ def main(argv=None) -> int:
     os.makedirs(args.outdir, exist_ok=True)
 
     summary = []
-    for name in [m.strip() for m in args.molecules.split(",") if m.strip()]:
-        print(f"[{name}] MD ({args.steps} steps, {args.temperature:.0f} K) ...", file=sys.stderr)
+    for name in parse_molecules(args.molecules):
+        stderr_log(f"[{name}] MD ({args.steps} steps, {args.temperature:.0f} K) ...")
         m = build_molecule(name)
-        mc = run_mc(m, metal=args.metal, n_steps=2000, seed=args.seed)  # adsorbed start
+        mc = run_mc(m, metal=args.metal, n_steps=MC_WARMUP_STEPS, seed=args.seed)
         r = run_md(m, metal=args.metal, n_steps=args.steps, equil=args.equil,
                    temperature=args.temperature, seed=args.seed,
                    start_positions=mc.best_positions)
@@ -48,12 +56,11 @@ def main(argv=None) -> int:
                             e_mean_kjmol=r.e_mean_kjmol,
                             metal_O_peak_A=r.first_peak_metal_O,
                             metal_N_peak_A=r.first_peak_metal_N))
-        print(f"  <E> = {r.e_mean_kjmol:.1f} kJ/mol | {r.metal}-O peak {r.first_peak_metal_O} Å",
-              file=sys.stderr)
+        stderr_log(f"  <E> = {r.e_mean_kjmol:.1f} kJ/mol | "
+                   f"{r.metal}-O peak {r.first_peak_metal_O} Å")
 
-    json.dump(summary, open(f"{args.outdir}/md_rdf.json", "w"), indent=2)
-    import pandas as pd
-    print(pd.DataFrame(summary).to_string(index=False))
+    write_json(f"{args.outdir}/md_rdf.json", summary)
+    print_table(summary)
     return 0
 
 

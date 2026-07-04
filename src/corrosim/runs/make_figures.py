@@ -10,9 +10,8 @@ Runs in the venv (no QM container needed unless you want fresh orbital cubes):
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import sys
+from collections.abc import Sequence
 
 import matplotlib
 
@@ -27,12 +26,14 @@ from corrosim.presets import ARGHEL
 from corrosim.qm.fukui import FukuiResult
 from corrosim.report import figures
 from corrosim.report.report_layout import figure_path
+from corrosim.runs._cli import read_json
+from corrosim.runs._cli import stderr_log as log
 
 ORDER = ARGHEL.molecule_list()
 
 
 def _fukui_from_json(path):
-    rows = json.load(open(path))
+    rows = read_json(path)
     n = max(r["idx"] for r in rows) + 1
     fr = FukuiResult([None] * n, [0.] * n, [0.] * n, [0.] * n, [0.] * n, [0.] * n)
     for r in rows:
@@ -42,7 +43,7 @@ def _fukui_from_json(path):
     return fr
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: regenerate the full manuscript figure set into report/figures/."""
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
     p.add_argument("--outdir", default="report/figures")
@@ -59,8 +60,6 @@ def main(argv=None) -> int:
         path = figure_path(args.outdir, f)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         return path
-
-    log = lambda m: print(m, file=sys.stderr)
 
     log("Fig 1: structures")
     figures.plot_structures(ORDER, out=out("fig1_structures.png"))

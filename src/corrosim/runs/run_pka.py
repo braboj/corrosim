@@ -29,11 +29,10 @@ the isorhamnetin cation:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
+from collections.abc import Sequence
 
 from corrosim.molecules import build_molecule
-from corrosim.presets import ARGHEL
 from corrosim.qm.engines import (
     Coords,
     optimize_geometry,
@@ -42,6 +41,7 @@ from corrosim.qm.engines import (
     thermo_correction,
 )
 from corrosim.qm.pka import G_AQ_PROTON_EV, estimate_pka
+from corrosim.runs._cli import add_molecules_arg, parse_molecules, write_json
 from corrosim.runs.run_dft import _best_protonation_site
 
 
@@ -145,11 +145,10 @@ def compute_pka_rows(molecules, basis="6-311++G(d,p)", xc="b3lyp",
     return rows
 
 
-def main(argv=None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: estimate pKaH from a DFT deprotonation cycle (QM container)."""
     p = argparse.ArgumentParser(prog="corrosim-run-pka")
-    p.add_argument("--molecules", default=",".join(ARGHEL.molecule_list()),
-                   help="Comma-separated names or SMILES.")
+    add_molecules_arg(p)
     p.add_argument("--basis", default="6-311++G(d,p)")
     p.add_argument("--xc", default="b3lyp")
     p.add_argument("--select-engine", default="xtb")
@@ -167,15 +166,14 @@ def main(argv=None) -> int:
     p.add_argument("--out-json", default=None)
     args = p.parse_args(argv)
 
-    molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    molecules = parse_molecules(args.molecules)
     rows = compute_pka_rows(molecules, basis=args.basis, xc=args.xc,
                             select_engine=args.select_engine, freq=args.freq,
                             opt_basis=args.opt_basis, opt_xc=args.opt_xc,
                             temperature=args.temperature, tight=args.tight)
 
     if args.out_json:
-        with open(args.out_json, "w") as f:
-            json.dump(rows, f, indent=2)
+        write_json(args.out_json, rows)
         print(f"JSON: {args.out_json}", file=sys.stderr)
 
     if args.freq:
