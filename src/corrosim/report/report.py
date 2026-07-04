@@ -12,7 +12,8 @@ import os
 import re
 from typing import NamedTuple
 
-import matplotlib.pyplot as plt  # backend auto-selected: inline in Jupyter, Agg headless
+# backend auto-selected: inline in Jupyter, Agg when headless
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from ..qm.descriptors import DESCRIPTOR_META
@@ -22,7 +23,14 @@ from .report_layout import figure_path
 
 
 def results_dataframe(rows: list[dict]) -> pd.DataFrame:
-    """rows: list of {name, formula, level, **descriptor fields}."""
+    """Tidy descriptor table (ordered columns, rounded) from result rows.
+
+    Args:
+        rows: Dicts of ``{name, formula, level, **descriptor fields}``.
+
+    Returns:
+        A DataFrame with the known descriptor columns, rounded to 3 dp.
+    """
     df = pd.DataFrame(rows)
     cols = ["name", "formula", "charge", "level", "homo_ev", "lumo_ev", "gap_ev",
             "hardness_ev", "softness_inv_ev", "electronegativity_ev",
@@ -34,9 +42,16 @@ def results_dataframe(rows: list[dict]) -> pd.DataFrame:
 
 
 def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
-    """Simple composite ranking: stronger inhibition is associated with a smaller
-    gap, lower hardness, and higher softness. We z-score those and combine.
-    Returns df sorted best-first with a 'score' column (higher = better).
+    """Composite ranking from z-scored gap / hardness / softness.
+
+    Stronger inhibition is associated with a smaller gap, lower hardness and
+    higher softness; those are z-scored and combined.
+
+    Args:
+        df: A descriptor frame with gap_ev / hardness_ev / softness_inv_ev.
+
+    Returns:
+        ``df`` sorted best-first with a ``score`` column (higher = better).
     """
     d = df.copy()
     def z(s, invert=False):
@@ -59,8 +74,15 @@ def _fig_to_b64(fig) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
-def plot_homo_lumo(df: pd.DataFrame):
-    """Grouped bar chart of per-molecule HOMO/LUMO energies (eV). Returns the figure."""
+def plot_homo_lumo(df: pd.DataFrame) -> object:
+    """Grouped bar chart of per-molecule HOMO/LUMO energies (eV).
+
+    Args:
+        df: A frame with name / homo_ev / lumo_ev columns.
+
+    Returns:
+        The matplotlib figure.
+    """
     fig, ax = plt.subplots(figsize=(7, 4))
     x = range(len(df))
     ax.bar([i - 0.2 for i in x], df["homo_ev"], width=0.4, label="HOMO", color="#2b6cb0")
@@ -72,8 +94,15 @@ def plot_homo_lumo(df: pd.DataFrame):
     return fig
 
 
-def plot_descriptor_bars(df: pd.DataFrame):
-    """Per-molecule bar panels for the key reactivity descriptors. Returns the figure."""
+def plot_descriptor_bars(df: pd.DataFrame) -> object:
+    """Per-molecule bar panels for the key reactivity descriptors.
+
+    Args:
+        df: A frame with name + the reactivity-descriptor columns.
+
+    Returns:
+        The matplotlib figure.
+    """
     keys = ["gap_ev", "hardness_ev", "softness_inv_ev", "electrophilicity_ev"]
     fig, axes = plt.subplots(1, len(keys), figsize=(4 * len(keys), 3.4))
     for ax, k in zip(axes, keys):
@@ -106,9 +135,19 @@ and higher softness (each z-scored). Higher score = stronger predicted adsorptio
 
 def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                       out_path: str, generated_at: str | None = None) -> str:
-    """Write a self-contained Stage-1 HTML report (ranking, table, plots). Returns its
-    path. ``generated_at`` overrides the timestamp (pass a fixed string for a
-    reproducible, churn-free build).
+    """Write a self-contained Stage-1 HTML report (ranking, table, plots).
+
+    Args:
+        df: The neutral descriptor frame.
+        metal: Substrate label.
+        medium: Corrosive medium label.
+        level: The engine/level string shown in the header.
+        out_path: Destination HTML path.
+        generated_at: Timestamp override (a fixed string gives a
+            reproducible, churn-free build).
+
+    Returns:
+        The output HTML path.
     """
     ranked = rank_inhibitors(df)
     html = _HTML.format(
@@ -400,11 +439,19 @@ def _speciation_block(summary: dict | None, medium: str,
 
 def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
                                n: int = 3) -> list[dict]:
-    """Atoms of a given element most susceptible to electrophilic attack (highest f⁻).
+    """Atoms of one element most susceptible to electrophilic attack (top f⁻).
 
     The electron-donating sites that coordinate the metal; defaults to oxygens.
     (Distinct from FukuiResult.top_donor_sites, which ranks all non-H atoms;
     this one filters by element.)
+
+    Args:
+        fukui_rows: Per-atom Fukui dicts (with symbol / f_minus).
+        element: The element symbol to filter by.
+        n: Number of top sites to return.
+
+    Returns:
+        The ``n`` rows of ``element`` with the largest ``f_minus``.
     """
     sel = [r for r in fukui_rows if r.get("symbol") == element]
     sel.sort(key=lambda r: r.get("f_minus", 0.0), reverse=True)
@@ -457,13 +504,19 @@ class PreparedReport(NamedTuple):
     outputs draw on the same ranking / merged adsorption columns / Fukui summary.
     """
 
-    df: pd.DataFrame                      # ordered neutral rows + e_ads/ads_dist
-    ranked: pd.DataFrame                  # best-first with score
-    summary: pd.DataFrame                 # headline summary columns
-    full: pd.DataFrame                    # full descriptor table
+    # ordered neutral rows + e_ads/ads_dist
+    df: pd.DataFrame
+    # best-first with score
+    ranked: pd.DataFrame
+    # headline summary columns
+    summary: pd.DataFrame
+    # full descriptor table
+    full: pd.DataFrame
     level: str
-    m_elem: str                           # "Fe(110)" -> "Fe"
-    fukui_items: list[tuple[str, str]]    # (molecule, "O5 (f⁻=0.090), ...")
+    # "Fe(110)" -> "Fe"
+    m_elem: str
+    # (molecule, "O5 (f⁻=0.090), ...")
+    fukui_items: list[tuple[str, str]]
 
 
 # Human-readable headers for the headline summary table (display only; the raw
@@ -483,18 +536,33 @@ _SUMMARY_LABELS = {
 def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
                         md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
                         metal: str, order: list[str] | None) -> PreparedReport:
-    """Derive the ranking, the merged Stage-2/3 adsorption columns and the Fukui
-    top-donor summary once, for both report renderers. See :class:`PreparedReport`.
+    """Derive the shared report data once, for both renderers.
+
+    Builds the ranking, the merged Stage-2/3 adsorption columns and the Fukui
+    top-donor summary. See :class:`PreparedReport`.
+
+    Args:
+        neutral_aq_rows: Neutral aqueous descriptor rows.
+        mc_rows: Monte Carlo adsorption summary rows.
+        md_rows: Brownian-MD RDF summary rows.
+        fukui_by_name: Per-molecule Fukui rows keyed by name.
+        metal: Substrate label.
+        order: Molecule display order, or None to keep the input order.
+
+    Returns:
+        The derived :class:`PreparedReport`.
     """
     df = pd.DataFrame(neutral_aq_rows).copy()
     if order:
         df = (df.set_index("name").loc[[n for n in order if n in set(df["name"])]]
               .reset_index())
-    m_elem = str(metal).split("(")[0].strip()        # "Fe(110)" -> "Fe"
+    # "Fe(110)" -> "Fe"
+    m_elem = str(metal).split("(")[0].strip()
     mc_by = {r["name"]: r for r in mc_rows}
     md_by = {r["name"]: r for r in md_rows}
 
-    def _md_peak(n):                                  # generic key, legacy fallback
+    def _md_peak(n):
+        # generic key, legacy fallback
         row = md_by.get(n) or {}
         return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
 
@@ -535,16 +603,34 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
                           pka_freq_corrected: bool = False,
                           opt_neutral_rows: list[dict] | None = None,
                           opt_acid_rows: list[dict] | None = None) -> str:
-    """Assemble one self-contained HTML report spanning the whole multiscale
-    pipeline. Tables are built from the committed result data; figures are
-    embedded inline (base64) from ``figdir`` so the file stands alone.
+    """Assemble one self-contained HTML report for the whole pipeline.
 
-    The headline ranking uses the neutral form. ``acid_cation_rows`` (the
-    protonated-cation descriptor rows) are surfaced as a labelled in-acid
-    comparison when the medium is acidic — see ADR 0003 and _acid_cation_block.
+    Tables are built from the committed result data; figures are embedded
+    inline (base64) from ``figdir`` so the file stands alone. The headline
+    ranking uses the neutral form; ``acid_cation_rows`` are surfaced as a
+    labelled in-acid comparison when the medium is acidic (see ADR 0003).
 
-    ``generated_at`` overrides the timestamp (pass a fixed string for a
-    reproducible, churn-free build).
+    Args:
+        neutral_aq_rows: Neutral aqueous descriptor rows.
+        mc_rows: Monte Carlo adsorption summary rows.
+        md_rows: Brownian-MD RDF summary rows.
+        fukui_by_name: Per-molecule Fukui rows keyed by name.
+        figdir: The figures root directory.
+        out_path: Destination HTML path.
+        metal: Substrate label.
+        medium: Corrosive medium label.
+        order: Molecule display order (defaults to the input order).
+        generated_at: Timestamp override (a fixed string gives a
+            reproducible, churn-free build).
+        acid_cation_rows: Protonated-cation descriptor rows, if any.
+        speciation_summary: The pH-speciation summary dict, if any.
+        computed_pkah: Computed-pKaH rows, if any.
+        pka_freq_corrected: Whether the pKaH is frequency-corrected.
+        opt_neutral_rows: DFT-optimised neutral rows, if any.
+        opt_acid_rows: DFT-optimised protonated-cation rows, if any.
+
+    Returns:
+        The output HTML path.
     """
     prep = prepare_report_data(neutral_aq_rows, mc_rows, md_rows, fukui_by_name,
                                metal, order)
