@@ -20,6 +20,17 @@ Local use (needs rdkit + pyscf — long jobs are expected):
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 
     python -m corrosim.runs.run_dft --engine xtb --no-protonated
+
+Pass --check-minimum (issue #41) to verify each --optimize geometry is a true minimum:
+a vibrational-frequency check runs after the relaxation and records ``n_imag`` (0 = a
+minimum) in the provenance, so a first-order saddle never silently feeds the descriptors.
+--to-minimum goes further and *drives* each geometry to a verified minimum (finer grid +
+imaginary-mode restarts, the #34 recipe). Both imply --optimize and are QM-heavy (a
+Hessian per species) — run detached in the QM container:
+
+    docker compose run -d --name corrosim_dft qm python -m corrosim.runs.run_dft \
+        --to-minimum --out-json results/dft_descriptors_opt.json \
+        --out-csv results/dft_descriptors_opt.csv
 """
 from __future__ import annotations
 
@@ -30,7 +41,13 @@ import os
 import sys
 
 import corrosim
-from corrosim.engines import optimize_geometry, run_engine
+from corrosim.engines import (
+    min_check_fields,
+    optimize_geometry,
+    relax_to_minimum,
+    run_engine,
+    thermo_correction,
+)
 from corrosim.medium import parse_medium, relevant_forms
 from corrosim.molecules import (
     build_molecule,
@@ -70,7 +87,8 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                    basis="6-311++G(d,p)", xc="b3lyp",
                    forms="both", select_engine="xtb",
                    optimize=False, opt_basis="6-31G(d)", opt_xc="b3lyp",
-                   opt_solvent=None, opt_maxsteps=100, opt_geom_dir=None):
+                   opt_solvent=None, opt_maxsteps=100, opt_geom_dir=None,
+                   check_minimum=False, to_minimum=False):
     """Run the {neutral, protonated} x {gas, aqueous} DFT matrix; return row dicts.
 
     ``forms`` selects which species to run: 'neutral', 'protonated', or 'both'.
@@ -83,10 +101,25 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
     records which was used. When ``opt_geom_dir`` is also given, the relaxed
     geometry is persisted there as ``<molecule>_opt.xyz`` (issue #36) — it is the
     expensive artifact every Stage-1 descriptor sits on.
+
+    ``check_minimum`` runs a vibrational-frequency check after each relaxation and
+    records ``n_imag`` (0 ⇒ a true minimum) + ``lowest_freq_cm`` in the provenance,
+    so a first-order saddle never silently feeds the descriptors (issue #41). A
+    grid-3 check can flag a spurious soft imaginary mode on a floppy torsion (the
+    isorhamnetin case, #34); ``to_minimum`` instead drives each geometry to a
+    *verified* minimum via :func:`relax_to_minimum` (finer grid + imaginary-mode
+    restarts, the #34 recipe) and supersedes ``check_minimum``. Both imply
+    ``optimize`` and are QM-heavy (a Hessian per species) — run in the QM container.
     """
-    geom_tag = (f"DFT-opt {opt_xc}/{opt_basis}"
-                + (f" ({opt_solvent})" if opt_solvent else " (gas)")) \
-        if optimize else "FF (MMFF)"
+    if optimize:
+        geom_tag = (f"DFT-opt {opt_xc}/{opt_basis}"
+                    + (f" ({opt_solvent})" if opt_solvent else " (gas)"))
+        if to_minimum:
+            geom_tag += ", relaxed to true minimum (grid 4, imag-mode restarts)"
+        elif check_minimum:
+            geom_tag += ", frequency-checked"
+    else:
+        geom_tag = "FF (MMFF)"
     want_neutral = forms in ("both", "neutral")
     want_prot = forms in ("both", "protonated")
     rows = []
@@ -100,23 +133,45 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
             _, prot = _best_protonation_site(name, select_engine)
             form_list.append(("protonated", prot))
         for form, mol in form_list:
+            min_prov = {}
             if optimize:
                 print(f"  optimising {form} geometry ({opt_xc}/{opt_basis}) ...",
                       file=sys.stderr)
-                _, opt_coords = optimize_geometry(
-                    mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
-                    charge=mol.charge, solvent=opt_solvent, maxsteps=opt_maxsteps)
+                tinfo = None
+                if to_minimum:
+                    _, opt_coords, tinfo = relax_to_minimum(
+                        mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
+                        charge=mol.charge, solvent=opt_solvent)
+                else:
+                    _, opt_coords = optimize_geometry(
+                        mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
+                        charge=mol.charge, solvent=opt_solvent, maxsteps=opt_maxsteps)
+                    if check_minimum:
+                        print(f"  frequency check {form} ({opt_xc}/{opt_basis}) ...",
+                              file=sys.stderr)
+                        tinfo = thermo_correction(
+                            list(mol.symbols), opt_coords, basis=opt_basis,
+                            xc=opt_xc, charge=mol.charge, solvent=opt_solvent)
                 mol = dataclasses.replace(mol, coords=opt_coords)
                 if opt_geom_dir is not None:
                     path = write_xyz(
                         mol, os.path.join(opt_geom_dir, f"{mol.name}_opt.xyz"))
                     print(f"  opt geometry -> {path}", file=sys.stderr)
+                min_prov = min_check_fields(tinfo)
+                if min_prov and min_prov["n_imag"]:
+                    hint = (" (restart budget exhausted)" if to_minimum
+                            else " — re-run with --to-minimum to clear it")
+                    print(f"  WARNING: {form} is not a true minimum: "
+                          f"{min_prov['n_imag']} imaginary frequency(ies), lowest "
+                          f"{min_prov['lowest_freq_cm']} cm^-1{hint}.", file=sys.stderr)
+                elif min_prov:
+                    print(f"  {form}: true minimum verified (n_imag=0)", file=sys.stderr)
             for phase, solvent in (("gas", None), ("aqueous", "water")):
                 print(f"  DFT {form}/{phase} ...", file=sys.stderr)
                 kw = (dict(basis=basis, xc=xc, solvent=solvent)
                       if engine == "pyscf" else {})
                 row = corrosim.analyse_molecule(mol, metal=metal, engine=engine, **kw)
-                row.update(form=form, phase=phase, geometry=geom_tag)
+                row.update(form=form, phase=phase, geometry=geom_tag, **min_prov)
                 rows.append(row)
     return rows
 
@@ -147,6 +202,18 @@ def main(argv=None) -> int:
                    help="Fast engine for protonation-site selection.")
     p.add_argument("--optimize", action="store_true",
                    help="DFT-relax each geometry before the single point (M1 refinement).")
+    p.add_argument("--check-minimum", action="store_true",
+                   help="Verify each optimised geometry is a true minimum: run a "
+                        "vibrational-frequency check and record n_imag (0 = minimum) + "
+                        "lowest_freq_cm in the provenance, warning on any imaginary mode "
+                        "so a saddle never silently feeds the descriptors. Implies "
+                        "--optimize. Slow (a Hessian per species; QM container). "
+                        "Issue #41.")
+    p.add_argument("--to-minimum", action="store_true",
+                   help="Drive each geometry to a *verified* true minimum (finer DFT "
+                        "grid + imaginary-mode restarts, the #34 recipe) instead of a "
+                        "single relaxation. Implies --optimize; supersedes "
+                        "--check-minimum. Issue #41.")
     p.add_argument("--opt-basis", default="6-31G(d)",
                    help="Basis for the geometry optimisation (kept small on purpose).")
     p.add_argument("--opt-xc", default="b3lyp", help="XC functional for the optimisation.")
@@ -165,6 +232,13 @@ def main(argv=None) -> int:
     molecules = [m.strip() for m in args.molecules.split(",") if m.strip()]
     forms = "neutral" if args.no_protonated else args.forms
 
+    # The frequency check only makes sense on a stationary geometry, so both minimum
+    # flags imply --optimize; --to-minimum (drive-to-minimum) supersedes the plain
+    # --check-minimum (detect-and-flag). (#41)
+    to_minimum = args.to_minimum
+    check_minimum = args.check_minimum and not to_minimum
+    optimize = args.optimize or check_minimum or to_minimum
+
     # Consistency check: does the requested protonation match the medium? (#8)
     spec = parse_medium(args.medium)
     ph_str = f" (pH ~{spec.ph})" if spec.ph is not None else ""
@@ -180,7 +254,7 @@ def main(argv=None) -> int:
     # Persist the DFT-optimised geometries alongside the descriptors (#36); default
     # to the descriptor-table directory so the .xyz land next to *_opt.{csv,json}.
     opt_geom_dir = None
-    if args.optimize:
+    if optimize:
         opt_geom_dir = (args.opt_xyz_dir
                         or os.path.dirname(args.out_csv or args.out_json or "")
                         or "results")
@@ -189,9 +263,10 @@ def main(argv=None) -> int:
                           basis=args.basis, xc=args.xc,
                           forms=forms,
                           select_engine=args.select_engine,
-                          optimize=args.optimize, opt_basis=args.opt_basis,
+                          optimize=optimize, opt_basis=args.opt_basis,
                           opt_xc=args.opt_xc, opt_solvent=args.opt_solvent,
-                          opt_maxsteps=args.opt_maxsteps, opt_geom_dir=opt_geom_dir)
+                          opt_maxsteps=args.opt_maxsteps, opt_geom_dir=opt_geom_dir,
+                          check_minimum=check_minimum, to_minimum=to_minimum)
 
     if args.out_json:
         with open(args.out_json, "w") as f:
@@ -203,7 +278,7 @@ def main(argv=None) -> int:
     show = [c for c in ["name", "form", "phase", "charge", "homo_ev", "lumo_ev",
                         "gap_ev", "hardness_ev", "softness_inv_ev",
                         "electronegativity_ev", "electrophilicity_ev", "delta_n",
-                        "back_donation_ev", "tnc"] if c in df.columns]
+                        "back_donation_ev", "tnc", "n_imag"] if c in df.columns]
     print("\n" + df[show].round(3).to_string(index=False))
     if args.out_csv:
         df.to_csv(args.out_csv, index=False)

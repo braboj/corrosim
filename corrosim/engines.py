@@ -279,6 +279,24 @@ def relax_to_minimum(symbols: Sequence[str], coords: Coords, basis: str = "6-31G
     return sym, xyz, info
 
 
+def min_check_fields(thermo: dict | None) -> dict:
+    """Provenance for the true-minimum (frequency) check (issue #41).
+
+    Condense a :func:`thermo_correction` / :func:`relax_to_minimum` result into the two
+    fields a descriptor row carries so a saddle never silently feeds Stage-1: ``n_imag``
+    (imaginary-mode count; 0 ⇒ a verified minimum) and ``lowest_freq_cm`` (the softest
+    harmonic frequency in cm⁻¹; negative ⇒ imaginary). Returns ``{}`` when no check ran
+    (``thermo`` falsy), leaving a plain ``--optimize`` row untouched.
+    """
+    if not thermo:
+        return {}
+    fw = np.asarray(thermo["freq_cm"])
+    return {
+        "n_imag": int(thermo["n_imag"]),
+        "lowest_freq_cm": round(float(np.min(fw.real)), 1),
+    }
+
+
 def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb", charge: int = 0,
                **kwargs) -> EngineResult:
     """Dispatch to the chosen engine. charge: net molecular charge (e.g. +1 for a

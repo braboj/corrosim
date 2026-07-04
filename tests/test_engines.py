@@ -6,7 +6,7 @@ orchestration loop and the DFT calls around them do.
 """
 import numpy as np
 
-from corrosim.engines import displace_along_mode, imaginary_mode
+from corrosim.engines import displace_along_mode, imaginary_mode, min_check_fields
 
 
 def test_imaginary_mode_returns_none_at_a_minimum():
@@ -52,3 +52,29 @@ def test_displace_along_mode_accepts_flat_mode_vector():
     mode = [0.0, 0.0, 0.0, 0.5, 0.0, 0.0]
     out = displace_along_mode(coords, mode, amplitude_ang=0.3)
     assert np.isclose(out[1][0], 1.3)
+
+
+# --- min_check_fields: the true-minimum provenance condenser (issue #41) ----------
+
+def test_min_check_fields_empty_when_no_check_ran():
+    # a plain --optimize row carries no frequency check -> no extra provenance
+    assert min_check_fields(None) == {}
+    assert min_check_fields({}) == {}
+
+
+def test_min_check_fields_clean_minimum_reports_zero_n_imag():
+    thermo = {"n_imag": 0, "freq_cm": np.array([55.0, 210.0, 1590.0])}
+    assert min_check_fields(thermo) == {"n_imag": 0, "lowest_freq_cm": 55.0}
+
+
+def test_min_check_fields_flags_a_saddle_with_the_softest_frequency():
+    # a first-order saddle: n_imag carried through, lowest freq is the negative one
+    thermo = {"n_imag": 1, "freq_cm": np.array([-42.3, 200.0, 1600.0])}
+    assert min_check_fields(thermo) == {"n_imag": 1, "lowest_freq_cm": -42.3}
+
+
+def test_min_check_fields_handles_complex_encoded_imaginary():
+    # PySCF may encode an imaginary mode as a non-zero imaginary part; .real ranks it
+    thermo = {"n_imag": 1, "freq_cm": np.array([0.0 + 30.0j, 240.0, 1500.0])}
+    out = min_check_fields(thermo)
+    assert out["n_imag"] == 1 and out["lowest_freq_cm"] == 0.0

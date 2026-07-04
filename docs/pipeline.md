@@ -80,10 +80,10 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 | | |
 | --- | --- |
 | **Why** | The force-field shape is only a rough draft; every descriptor below is read off this geometry, so it must be a genuine quantum-mechanical minimum before any number is trusted. |
-| **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. |
-| **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. |
+| **What it does** | Re-optimises the starting geometry to a DFT energy minimum (default B3LYP/6-31G(d)). Because the choice of geometry can shift results, its robustness is checked — the FF-vs-DFT comparison in `docs/validation.md`. Optionally the minimum is *verified*: a vibrational-frequency check confirms it is a true minimum (no imaginary mode), so a first-order saddle never silently feeds the descriptors. |
+| **How** | `corrosim/engines.py` (`optimize_geometry`, PySCF + geomeTRIC), driven by `run_dft --optimize`; the geometry comparison by `corrosim/runs/compare_geometry.py`. `run_dft --check-minimum` records the imaginary-mode count `n_imag` (0 = a true minimum) in each row's provenance; `run_dft --to-minimum` drives any saddle to a verified minimum (finer grid + imaginary-mode restarts, `relax_to_minimum`). |
 | **Input** | The starting 3D geometry from the previous step. |
-| **Output** | The DFT-optimised geometry, persisted as `results/<molecule>_opt.xyz` (each neutral and its `+H+` cation; `run_dft --optimize`), plus the FF-vs-DFT robustness table `results/geometry_comparison.csv`. (The descriptors *on* this geometry are written by the next step.) |
+| **Output** | The DFT-optimised geometry, persisted as `results/<molecule>_opt.xyz` (each neutral and its `+H+` cation; `run_dft --optimize`), plus the FF-vs-DFT robustness table `results/geometry_comparison.csv`. With `--check-minimum`/`--to-minimum`, each descriptor row also carries `n_imag` + `lowest_freq_cm`. (The descriptors *on* this geometry are written by the next step.) |
 
 ## DFT — global and local reactivity descriptors
 
