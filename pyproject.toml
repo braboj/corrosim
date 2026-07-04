@@ -41,7 +41,8 @@ report = ["python-docx>=1.0", "latex2mathml>=3.77", "mathml2omml>=0.0.2"]
 # Tests / dev (viz + report deps listed explicitly so the renderers are importable).
 # tblite is deliberately NOT here: the suite is QM-light (CLAUDE.md 3.1), and the
 # one xtb smoke test importorskips it. Use `.[dev,qm]` to exercise the xtb path.
-dev = ["pytest", "pytest-cov", "ruff", "mypy", "scikit-image", "scipy", "Pillow",
+dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
+       "scipy", "Pillow",
        "python-docx>=1.0", "latex2mathml>=3.77", "mathml2omml>=0.0.2"]
 
 [project.scripts]
@@ -144,6 +145,16 @@ convention = "google"
 # Tests are not public API — docstrings (D), line length and complexity there
 # are not held to the package standard.
 "tests/**" = ["D", "E501", "C901"]
+
+[tool.complexipy]
+# Cognitive-complexity ratchet (SonarQube's metric — counts nesting and
+# control-flow interruptions, which McCabe/C901 cannot see). Threshold matches
+# the C901 gate. complexipy-snapshot.json is the committed watermark: an
+# over-threshold function fails only when it is NEW or has INCREASED relative
+# to the snapshot, so pre-existing offenders are frozen, not exempted. A
+# successful run rewrites the snapshot; commit the refresh in the same change.
+paths = ["src/corrosim"]
+max-complexity-allowed = 15
 
 [tool.bandit]
 # Security SAST (issue #31 / ADR 0007). The runtime security surface is the two

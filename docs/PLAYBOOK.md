@@ -78,12 +78,24 @@ plus the no-trailing / no-ticket-number comment rules — is pinned by
 Run `mypy`. It is non-strict but is a CI gate — run it before pushing, since
 `ruff` alone does not catch type errors.
 
-### 3.4 QM tests (Docker)
+### 3.4 Cognitive complexity (complexipy)
+
+Run `complexipy` from the repo root (config in `[tool.complexipy]`; threshold
+15, same as `C901`, but counting nesting and control-flow interruptions rather
+than branches — ADR 0013). It ratchets against the committed
+`complexipy-snapshot.json` watermark: an over-threshold function fails only
+when it is new or has increased relative to the snapshot, so pre-existing
+offenders are frozen, not exempted. A successful run rewrites the snapshot —
+when a refactor shrinks an offender, commit the tightened snapshot in the same
+change. `complexipy --snapshot-ignore` lists the current offenders;
+`--ignore-complexity --top 20` shows the package-wide picture.
+
+### 3.5 QM tests (Docker)
 
 Anything exercising the real engines runs in the container:
 `docker compose run --rm qm pytest -q`. This is manual — CI does not run QM.
 
-### 3.5 Coverage (pytest-cov)
+### 3.6 Coverage (pytest-cov)
 
 Run `pytest --cov=corrosim --cov-report=term-missing`. Gated at 80% over a
 *scoped* surface: the QM-engine modules and Docker-only drivers are `omit`-ted in
@@ -91,7 +103,7 @@ Run `pytest --cov=corrosim --cov-report=term-missing`. Gated at 80% over a
 QM-light-testable code (ADR 0007). A new pure-Python module is in scope by
 default — add a test. The scoped surface currently sits at ~85%.
 
-### 3.6 Security & secrets (Bandit, gitleaks, CodeQL)
+### 3.7 Security & secrets (Bandit, gitleaks, CodeQL)
 
 Three CI gates guard the supply/security surface:
 

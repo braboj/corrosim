@@ -149,6 +149,7 @@ pip install -e ".[dev]"       # runtime + tests + figure rendering
 pytest -q                     # test suite (QM-light; no Docker)
 ruff check .                  # lint
 mypy                          # type-check (non-strict; CI gate)
+complexipy                    # cognitive-complexity ratchet (CI gate)
 ```
 
 **External tool — Docker (for the quantum stages).** The DFT/xTB engines
