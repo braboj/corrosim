@@ -45,6 +45,7 @@ CONTRACTED = [
     "report/report_docx.py",
     "report/figures.py",
     "report/report.py",
+    "report/report_content.py",
 ]
 
 MAX_LINE = 80
