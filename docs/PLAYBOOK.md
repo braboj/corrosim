@@ -65,10 +65,13 @@ Run `pytest -q` in the venv. Every new feature or module ships a test named
 
 ### 3.2 Linting (ruff)
 
-Run `ruff check .`. The line length is 100. Keep new and edited code clean; do
-not bulk-reformat untouched files. Ruff also enforces Google-convention
-docstrings (`D` rules, `D205` relaxed — ADR 0007); every public symbol needs a
-docstring (also pinned by `tests/test_docstrings.py`).
+Run `ruff check .`. The line length is 80, and `C901` gates cyclomatic
+complexity at 15 (ADR 0012). Keep new and edited code clean; do not
+bulk-reformat untouched files. Ruff also enforces Google-convention docstrings
+(`D` rules incl. `D417`; `D205` relaxed — ADR 0007). The full public API
+contract — every public symbol documented, all public params/returns typed,
+plus the no-trailing / no-ticket-number comment rules — is pinned by
+`tests/test_docstrings.py` (not ruff `ANN`; ADR 0012).
 
 ### 3.3 Type checking (mypy)
 
