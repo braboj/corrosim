@@ -349,4 +349,57 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   issues are **#40** (LAMMPS/periodic-DFT E_ads) and **#41** (routine true-minimum/
   frequency check), both QM/compute-heavy and unstarted.
 
+## 2026-07-04 — #41 minimum-check shipped; codebase review → 25 issues, 4 epics, 1 spike
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** three threads. (1) Land the two prior-session PRs. (2) Implement + merge the
+  last open QM feature, **#41** (routine true-minimum check for `run_dft --optimize`).
+  (3) A full code-quality review of the codebase, filed as a structured backlog.
+- **PRs landed (all 2026-07-04):** **#44** (prior wrap: ADR 0010 + #36/#42/#43 journal),
+  then **#45** (#34 fix) — reordering the dev-journal on an append-order conflict; then
+  **#46**, the #41 feature (`run_dft --check-minimum` / `--to-minimum`, new pure helper
+  `engines.min_check_fields`) with the **#49** pre-merge review fixes folded in
+  (`Closes #41`, `Closes #49`).
+- **#41 + #49 (in #46):** `--check-minimum` records `n_imag` + a **signed**
+  `lowest_freq_cm` (negative = imaginary) per descriptor row so a saddle never silently
+  feeds Stage-1; `--to-minimum` drives to a verified minimum (grid-4 + imaginary-mode
+  restarts, honoring `--opt-maxsteps`); a bare `--check-minimum` no longer clobbers a
+  tracked `*_opt.xyz`. New QM-light tests (`test_engines` helper + `test_run_dft` wiring);
+  corrected an earlier test that had enshrined the wrong `lowest_freq_cm = 0.0`.
+- **QM verification (detached, `corrosim-qm`):** ran `run_dft --check-minimum` on
+  kaempferol neutral end-to-end. Geometry opt converged (~71 min); the analytic
+  frequency-check Hessian is **still running at wrap** (see Pending) — the log confirms
+  the new code reached the frequency stage (result unaffected by the #49 sign fix; a
+  neutral is a clean minimum).
+- **Code-quality review (planning only — no repo change beyond #46):** reviewed surface,
+  md, mc, fukui by hand + a **5-agent parallel sweep** of the remaining ~16 modules.
+  Honest triage — **10 of 16 swept modules were SWEEP-ONLY** (mechanical only), **zero
+  new correctness bugs** beyond #47/#49. Filed: bug **#47** (`orient_flat` orients
+  molecules vertical — confirmed empirically); standards **#51** (full API contract),
+  **#52** (readability standard); foundational de-dup **#57** (shared UFF vdW energy +
+  `EV_TO_KJMOL` + pose), **#64** (shared driver CLI → `runs/_cli.py`); per-module
+  refactors **#48, #50, #55, #56, #58, #59, #60, #61, #62, #63**;
+  generalization/validation **#54** (data-driven molecule library + optional fetch),
+  **#53** (per-paper validation presets); deployment **#66** (Colab), **#67**
+  (release → GHCR + PyPI), **#68** (GitHub Pages); structure **spike #73** (`src/` layout
+  and subsystem sub-packages).
+- **Organization:** grouped into **four workstream epics** — **#69** Standards &
+  Foundations, **#70** Per-module refactors (gated by #73), **#71** Deployment, **#72**
+  Generalization & Validation (a first mega-epic #65 was created then split/retired). New
+  labels `tech-debt`, `epic`, `spike`. Standalone: #40, #47.
+- **Decisions:** no ADR filed this session — the durable decisions (adopt the API
+  contract + readability standard; the `src/`-layout question; zero-cost deployment via
+  Colab/GHCR/PyPI/Pages, **not** a hosted web app) are tracked in #51/#52/#73/#71, each of
+  which produces its own ADR (amending ADR 0007's `--strict`/D-rule deferral) when
+  implemented.
+- **Verification:** `ruff check .` clean; `mypy` clean (31 files); `pytest -q` green
+  (93 passed, 1 skip); PR #46 CI all green before merge.
+- **Pending:** **the kaempferol frequency-check QM job is still running** (container
+  `corrosim_mincheck`, ~3 h; opt done, Hessian in progress) — confirm `n_imag = 0` then
+  `docker rm` it. Backlog then executes in order: **spike #73** (structure) → **#69**
+  (standards + CI gates + de-dup) → **#70** (per-module refactors) → **#72**
+  (generalization) → **#71** (deployment) → **#40** (E_ads). Fix bug **#47**
+  (`orient_flat`) early — it regenerates MC/MD artifacts. Cosmetic loose end: deployment
+  tickets #66–#68 still cite the retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
