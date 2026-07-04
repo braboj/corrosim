@@ -6,9 +6,9 @@ real typeset formulas (fractions, Greek, sub/superscripts) with **no** LaTeX,
 MathJax or web dependency. matplotlib is already a core dependency, so this adds
 nothing to the install and keeps the HTML report self-contained.
 
-Each :class:`Equation` carries the mathtext source, the quantity it defines and a
-one-line meaning; :data:`EQUATION_GROUPS` orders them by pipeline stage for the
-report's "Scientific basis" section. Definitions mirror ``descriptors.py``
+Each :class:`Equation` carries the mathtext source, the quantity it defines and
+a one-line meaning; :data:`EQUATION_GROUPS` orders them by pipeline stage for
+the report's "Scientific basis" section. Definitions mirror ``descriptors.py``
 (Koopmans), ``fukui.py``, ``speciation.py`` (Henderson-Hasselbalch), ``pka.py``
 (DFT deprotonation cycle) and the Stage-2/3 adsorption observables.
 """
@@ -17,37 +17,40 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 
-# eV -> kJ/mol, single-sourced in surface.py (#57) — mc/md/adsorption consume
-# it there; re-exported here for back-compat and the conversion equation below.
+# eV -> kJ/mol, single-sourced in surface.py — mc/md/adsorption consume it
+# there; re-exported here for back-compat and the conversion equation below.
 from ..adsorption.surface import EV_TO_KJMOL
 
 
 @dataclass(frozen=True)
 class Equation:
-    """One governing equation: ``latex`` is matplotlib-mathtext (no surrounding $)."""
+    """One governing equation: ``latex`` is matplotlib-mathtext (no $)."""
 
     key: str
     latex: str
-    quantity: str        # short label, e.g. "Chemical hardness η"
-    meaning: str         # one-line interpretation
+    # short label, e.g. "Chemical hardness η"
+    quantity: str
+    # one-line interpretation
+    meaning: str
 
 
 # --- Stage 1: global reactivity descriptors (Koopmans; descriptors.py) --------
 _STAGE1 = [
     Equation("gap", r"E_{gap} = E_{LUMO} - E_{HOMO}",
              "Energy gap ΔE",
-             "Frontier HOMO-LUMO separation; a smaller gap means a more reactive, "
-             "more easily polarised inhibitor."),
+             "Frontier HOMO-LUMO separation; a smaller gap means a more "
+             "reactive, more easily polarised inhibitor."),
     Equation("ip", r"IP = -\,E_{HOMO}",
              "Ionization potential",
-             "Koopmans' theorem: the energy to remove the highest-energy electron."),
+             "Koopmans' theorem: the energy to remove the highest-energy "
+             "electron."),
     Equation("ea", r"EA = -\,E_{LUMO}",
              "Electron affinity",
              "Koopmans' theorem: the energy released on adding an electron."),
     Equation("chi", r"\chi = \frac{IP + EA}{2}",
              "Electronegativity χ",
-             "Mulliken electronegativity; drives the direction of charge transfer "
-             "to the metal."),
+             "Mulliken electronegativity; drives the direction of charge "
+             "transfer to the metal."),
     Equation("eta", r"\eta = \frac{IP - EA}{2} = \frac{E_{gap}}{2}",
              "Chemical hardness η",
              "Resistance to charge redistribution; softer (lower η) molecules "
@@ -64,9 +67,9 @@ _STAGE1 = [
     Equation("delta_n",
              r"\Delta N = \frac{\Phi_{metal} - \chi}{2\,(\eta_{metal} + \eta)}",
              "Fraction of electrons transferred ΔN",
-             "Charge donated to the metal; the Lukovits window 0 < ΔN < 3.6 marks "
-             "electron donation that strengthens inhibition. Φ is the metal work "
-             "function, with η_metal ≈ 0."),
+             "Charge donated to the metal; the Lukovits window 0 < ΔN < 3.6 "
+             "marks electron donation that strengthens inhibition. Φ is the "
+             "metal work function, with η_metal ≈ 0."),
     Equation("back", r"\Delta E_{back} = -\,\frac{\eta}{4}",
              "Back-donation energy ΔE_back",
              "Energy of the metal → molecule back-donation that accompanies "
@@ -81,8 +84,8 @@ _FUKUI = [
              "oxygens are the electron-donating, metal-coordinating sites."),
     Equation("f_plus", r"f^{+}_{k} = q_{k}(N) - q_{k}(N+1)",
              "Electrophilic Fukui f⁺",
-             "Per-atom susceptibility to nucleophilic attack; the back-donation "
-             "(electron-accepting) sites."),
+             "Per-atom susceptibility to nucleophilic attack; the "
+             "back-donation (electron-accepting) sites."),
     Equation("dual", r"\Delta f_{k} = f^{+}_{k} - f^{-}_{k}",
              "Dual descriptor Δf",
              "Δf < 0 marks a net electron donor, Δf > 0 a net acceptor."),
@@ -109,8 +112,9 @@ _SPECIATION = [
 _ADSORPTION = [
     Equation("e_ads", r"E_{ads} = E_{slab+mol} - (E_{slab} + E_{mol})",
              "Adsorption energy E_ads",
-             "Interaction energy of the best Monte-Carlo pose; more negative = a "
-             "stronger grip. Values near −16 kJ/mol indicate physisorption."),
+             "Interaction energy of the best Monte-Carlo pose; more negative "
+             "= a stronger grip. Values near −16 kJ/mol indicate "
+             "physisorption."),
     Equation("e_ads_conv",
              rf"E_{{ads}}[\mathrm{{kJ\,mol^{{-1}}}}] = {EV_TO_KJMOL}"
              r" \times E_{ads}[\mathrm{eV}]",
@@ -137,9 +141,19 @@ EQUATIONS: dict[str, Equation] = {
 }
 
 
-def render_equation_png(latex: str, dpi: int = 150, fontsize: int = 18) -> bytes:
-    """Render a mathtext expression (no surrounding ``$``) to PNG bytes on a white
-    background, tightly cropped. Uses the Agg backend so it is headless-safe.
+def render_equation_png(latex: str, dpi: int = 150,
+                        fontsize: int = 18) -> bytes:
+    """Render a mathtext expression to tightly-cropped PNG bytes.
+
+    Uses the Agg backend so it is headless-safe.
+
+    Args:
+        latex: A matplotlib-mathtext expression (no surrounding ``$``).
+        dpi: Output resolution.
+        fontsize: Font size in points.
+
+    Returns:
+        The rendered PNG image as bytes on a white background.
     """
     import matplotlib
 

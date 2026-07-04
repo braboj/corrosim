@@ -40,6 +40,9 @@ CONTRACTED = [
     "qm/fukui.py",
     "qm/pka.py",
     "qm/speciation.py",
+    "report/report_layout.py",
+    "report/equations.py",
+    "report/report_docx.py",
 ]
 
 MAX_LINE = 80
