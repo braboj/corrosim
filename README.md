@@ -121,7 +121,7 @@ src/corrosim/    core package — facade (__init__), cli, molecules, medium,
                                 report_layout, figures, equations
 src/corrosim/runs/  stage drivers — run_dft, run_fukui, run_mc, run_md,
                     run_pka, make_cubes, make_figures, make_report,
-                    compare_geometry
+                    compare_geometry (+ _cli: shared CLI plumbing, #64)
 results/         tracked pipeline data (descriptors, Fukui, MC/MD, pKa)
 report/          report bundle (make_report): report.html + report.docx +
                  figures/<stage>/ + tables/<stage>/ (per-stage subfolders)

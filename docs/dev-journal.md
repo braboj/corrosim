@@ -535,4 +535,54 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   open in the tracker today (2026-07-04). First release tag still deferred to
   post-#67. Cosmetic loose end: **#66–#68** cite the retired epic #65.
 
+## 2026-07-04 — #69 de-dup: shared UFF vdW (#57) + driver CLI (#64) landed
+
+- **Tool:** Claude Code (Fable 5).
+- **Scope:** resume at the epic **#69** backlog head — the two foundational
+  de-duplication tickets that unblock the #70 per-module refactors: **#57**
+  (shared UFF van-der-Waals machinery → `surface.py`) then **#64** (shared
+  driver CLI boilerplate → `runs/_cli.py`). Both behaviour-preserving.
+- **#57 done (PR #83):** `surface.py` gained `uff_mixing` (combining rules +
+  the UFF-params `ValueError`, was 3 copies), `uff_vdw_energy` /
+  `uff_vdw_forces` (one vectorised LJ 12-6; energy for mc/adsorption, energy+
+  forces for md — two functions, not a boolean flag), and
+  `initial_adsorption_pose` (orient-centre-lift; per-module lifts →
+  `MC_START_HEIGHT_A` / `MD_START_HEIGHT_A`). `EV_TO_KJMOL` moved next to
+  `KCAL_TO_EV`; `equations.py` imports it and folds it into the conversion
+  LaTeX (its "mc uses this" comment was stale — mc hardcoded `96.485`).
+  `adsorption.py`'s divergent per-pair Python loop (which *skipped* rather than
+  clamped sub-`MIN_PAIR_DISTANCE_A` pairs) is gone.
+- **#64 done (PR #84):** `runs/_cli.py` single-sources `parse_molecules`,
+  `add_molecules_arg` (kills the per-driver `DEFAULT_MOLECULES`), `stderr_log`
+  (cleared 4 ruff E731 lambdas), `write_json`/`read_json` (close handles via
+  `with`; fixes the unclosed `open()` I/O in 5 drivers), `print_table`,
+  `strip_protonation_suffix`. Folded in: run_md's warm-up `2000` →
+  `MC_WARMUP_STEPS`; every driver `main` now types `argv: Sequence[str] | None`.
+- **Verification:** #57 proven behaviour-preserving **to the bit** — a golden
+  capture (sha256 over full-precision energy/position arrays) of seeded
+  `run_mc`/`run_md` + `estimate_adsorption_energy` (3 flavonoids + production
+  size) is byte-identical before/after, so `results/` and the `report/` bundle
+  needed no regeneration. #64 smoke-ran the venv drivers end-to-end against the
+  committed `results/` (tables, JSON I/O, rankings PRESERVED). New unit tests:
+  `test_surface_vdw` (two-atom energy = −D_ij, forces vs finite difference,
+  pose invariants), `test_runs_cli` (JSON round-trip + missing-file branches,
+  print_table rows-vs-DataFrame, suffix strip); the single-source identity test
+  and `test_drivers_share_the_preset_list` re-pinned to the new shared APIs.
+  ruff + mypy + pytest green (105 passed, 1 skip; `_cli.py` 100% covered, total
+  88.4% ≥ 80%). Both PRs squash-merged, all 8 checks green each; **#57/#64
+  auto-closed**; epic **#69** boxes ticked; post-merge CI + CodeQL on `main`
+  green.
+- **Decisions:** no ADR — both are mechanical DRY de-dups governed by the
+  existing `quality.md` "third copy is a bug" rule; no new directories, no
+  content moved between docs. README structure map notes `runs/_cli.py`.
+- **Pending:** working tree clean, only `main` local. Epic **#69** now has only
+  the two *standards* tickets left — **#51** (full public API contract; ruff
+  `ANN` + `D417`) and **#52** (readability standard; ruff `line-length` +
+  `C901`) — which flip CI gates and want an ADR amending ADR 0007's deferrals;
+  bigger than this session's mechanical refactors, so confirm scope before
+  starting. After #69: **#70** per-module refactors (now fully unblocked —
+  #57→#55/#56, #64→#62/#63) → **#72** generalization → **#71** deployment →
+  **#40** (E_ads). First release tag still deferred to post-#67. Cosmetic loose
+  end: **#66–#68** cite the retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
