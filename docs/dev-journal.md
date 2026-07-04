@@ -247,6 +247,52 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   both need the `corrosim-qm` Docker image; **#36** would unblock the optional MC/MD
   DFT-geometry sharing flagged in ADR 0009.
 
+## 2026-07-03 — #36 persist geometry; report clarity overhaul; docs polish
+
+- **Tool:** Claude Code (Opus 4.8). Session ran 2026-07-02 → 07-03; picked up the
+  four open tickets plus a client review of the report.
+- **Key changes:**
+  - **#36 (persist DFT-optimised geometry) — PR #42 (open):** new
+    `molecules.write_xyz`; `run_dft` gains `--opt-xyz-dir`; each optimised species is
+    written as `results/<molecule>_opt.xyz` (neutral + `+H+`). Ran the detached
+    `corrosim-qm` optimisation — it reproduced the tracked `dft_descriptors_opt`
+    matrix to ~12 sig figs (ranking robust; quercetin keeps the smallest aqueous
+    gap), so committed the **6 xyz** and reverted the descriptor-file churn (the
+    re-run only added float noise + a new `e_total_ev` column the FF matrix lacks).
+    Two `write_xyz` tests; pipeline.md Output line updated.
+  - **Report clarity overhaul (client review) — PR #43 (open):** added plain-language
+    answers, shared across HTML+Word via `report_content.py` — the composite/z-score,
+    a data-derived **"Bottom line"**, the DFT level gloss (B3LYP/6-311++G(d,p)/
+    ddCOSMO), 2D-structure generation, frontier=HOMO/LUMO, ESP-vs-Fukui, the
+    geometry-refinement rationale, protonation, and the **Monte-Carlo methodology +
+    software** (ASE standard, UFF Rappé 1992, the MC search corrosim's own).
+    **Dropped the "Stage 1/2/3" labels** everywhere (headers, overview, scientific
+    basis, equation groups) — the pipeline has more steps than three. **Pretty-
+    labelled** the summary table. z-score + bottom-line are now shared functions
+    (de-duplicated across the two renderers).
+  - **Docs polish (rides in PR #42):** pipeline.md — Output paragraphs, alphabetised
+    glossary, numbered Notes section, "Stage-1"→step wording, Materials Studio named
+    on its modules, LAMMPS marked free/GPL; README — Limitations/Roadmap split.
+  - **Earlier this session (merged):** #37 (document the MC/MD FF-geometry choice,
+    ADR 0009) + #38 (descriptor `_ff`/`_opt` rename) → **PR #39 (merged)**.
+- **PRs:** #39, **#42** and **#43** all squash-merged to `main` (2026-07-03).
+- **Issues:** #37, #38 closed via #39; **#36 closed via #42**. Created **#40**
+  (quantitative E_ads hand-off) and **#41** (routine true-minimum/frequency check)
+  from the old README roadmap. Still open: #34, #40, #41.
+- **Decisions:** ADR 0009 (FF geometry for MC/MD, from #37). **ADR 0010** — the
+  report narrative may be AI-authored at dev time (Claude Code) and committed as
+  reviewed static content; the shipped pipeline stays LLM-free/deterministic (no
+  runtime AI dependency); narrative single-sourced in `report_content.py`.
+- **Verification:** `ruff` clean; `mypy` clean (31 files); `pytest` green. Report
+  bundle regenerated (HTML + Word).
+- **Pending:** all of this session's PRs are merged; this wrap-up (journal + ADR
+  0010) is the only open PR. Optional report follow-ups: a tighter "how the final
+  score is computed" pipeline thread; refresh both descriptor matrices to add
+  `e_total_ev` (schema parity); a PLAYBOOK "report clarity pass" entry. The ADR 0010
+  principle is a candidate reusable upstream-template convention (not yet filed).
+  Open QM tickets: **#34** (isorhamnetin cation imaginary freq), **#41** (routine
+  freq check), **#40** (LAMMPS/periodic-DFT E_ads).
+
 ## 2026-07-03 — #34 isorhamnetin imaginary freq cleared + ranking-vs-validation docs
 
 - **Tool:** Claude Code (Opus 4.8).
@@ -287,10 +333,10 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   too — strengthened `score_explanation` ("the ranking is these electronic descriptors
   alone … E_ads and the Fe–O distance … validate … not inputs") and short clauses in
   the MC/MD stage intros. Report bundle regenerated.
-- **PRs merged:** none yet — **PR #45 opened** (branch `fix/isorhamnetin-imag-freq`):
-  #34 fix + ranking-vs-validation docs. (I first added a #42/#43 journal backfill here,
-  then reverted it on discovering the wrap-up audit found **open PR #44** already carries
-  the authentic #42/#43 entry + **ADR 0010** — see Pending.)
+- **PRs merged:** **PR #45** (this branch: #34 fix + ranking-vs-validation docs) squash-
+  merged to `main` (2026-07-04), landed **after PR #44** (prior wrap-up: ADR 0010 + the
+  #36/#42/#43 journal entries) to preserve dev-journal append order — `main` was merged
+  into this branch and the two entries reordered chronologically before merge.
 - **Issues closed/created:** PR #45 carries `Closes #34` (auto-closes #34 on merge).
 - **Decisions:** no new ADR; **ADR 0005 updated** (2026-07-03 note + Finding row +
   caveat-turned-resolution). The grid-4/GAU recipe lives in `relax_to_minimum`'s
@@ -299,13 +345,8 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (1 skip, the xTB smoke test); **all PR #45 CI checks green** (lint, test 3.10–3.12,
   CodeQL, Bandit, gitleaks). Report spot-checked: `−3.9` present, old `−5.1` + caveat
   gone, bundled `pka.json` shows −3.92.
-- **Pending:** **Two open PRs to land, in order.** (1) **PR #44** — a *prior* session's
-  wrap-up (`chore/session-wrapup-journal-adr`) that was never merged: it adds **ADR 0010**
-  (AI-authored report narrative — currently referenced but MISSING from `main`) and the
-  authentic #36/#42/#43 dev-journal entry. Merge it first. (2) **PR #45** (this session) —
-  #34 fix + ranking docs; mergeable, CI green, `Closes #34`. Both append to
-  `docs/dev-journal.md`, so the second to merge needs a trivial append-order rebase.
-  After both land, open issues are **#40** (LAMMPS/periodic-DFT E_ads) and **#41**
-  (routine true-minimum/frequency check), both QM/compute-heavy and unstarted.
+- **Pending:** **Both PRs landed** (#44 then #45); #34 auto-closed on #45 merge. Open
+  issues are **#40** (LAMMPS/periodic-DFT E_ads) and **#41** (routine true-minimum/
+  frequency check), both QM/compute-heavy and unstarted.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
