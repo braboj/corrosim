@@ -74,7 +74,8 @@ def test_min_check_fields_flags_a_saddle_with_the_softest_frequency():
 
 
 def test_min_check_fields_handles_complex_encoded_imaginary():
-    # PySCF may encode an imaginary mode as a non-zero imaginary part; .real ranks it
+    # PySCF may encode an imaginary mode as a pure-imaginary number (real part 0); it
+    # must surface as a NEGATIVE signed wavenumber, not 0.0, to agree with n_imag
     thermo = {"n_imag": 1, "freq_cm": np.array([0.0 + 30.0j, 240.0, 1500.0])}
     out = min_check_fields(thermo)
-    assert out["n_imag"] == 1 and out["lowest_freq_cm"] == 0.0
+    assert out["n_imag"] == 1 and out["lowest_freq_cm"] == -30.0

@@ -291,9 +291,14 @@ def min_check_fields(thermo: dict | None) -> dict:
     if not thermo:
         return {}
     fw = np.asarray(thermo["freq_cm"])
+    # PySCF encodes an imaginary mode as a negative real OR a non-zero imaginary part;
+    # report a signed wavenumber (negative = imaginary) so the softest mode ranks
+    # correctly and agrees with n_imag, matching the convention in imaginary_mode().
+    imag = (fw.real < 0) | (np.abs(fw.imag) > 1e-6)
+    signed = np.where(imag, -np.abs(fw), fw.real)
     return {
         "n_imag": int(thermo["n_imag"]),
-        "lowest_freq_cm": round(float(np.min(fw.real)), 1),
+        "lowest_freq_cm": round(float(np.min(signed)), 1),
     }
 
 

@@ -141,7 +141,7 @@ def analyse_matrix(molecules, engine="pyscf", metal="Fe(110)",
                 if to_minimum:
                     _, opt_coords, tinfo = relax_to_minimum(
                         mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
-                        charge=mol.charge, solvent=opt_solvent)
+                        charge=mol.charge, solvent=opt_solvent, maxsteps=opt_maxsteps)
                 else:
                     _, opt_coords = optimize_geometry(
                         mol.symbols, mol.coords, basis=opt_basis, xc=opt_xc,
@@ -251,12 +251,15 @@ def main(argv=None) -> int:
     elif medium_wants_prot and not want_prot:
         print(f"warning: medium {args.medium!r}{ph_str} is acidic — the inhibitor is "
               f"largely protonated there; consider --forms both.", file=sys.stderr)
-    # Persist the DFT-optimised geometries alongside the descriptors (#36); default
-    # to the descriptor-table directory so the .xyz land next to *_opt.{csv,json}.
+    # Persist the DFT-optimised geometries alongside the descriptors (#36). Default the
+    # location only for geometry-PRODUCING runs (--optimize / --to-minimum); a bare
+    # --check-minimum re-optimises from the force-field geometry only to verify it, so it
+    # must not clobber a tracked <molecule>_opt.xyz unless --opt-xyz-dir is given.
     opt_geom_dir = None
-    if optimize:
-        opt_geom_dir = (args.opt_xyz_dir
-                        or os.path.dirname(args.out_csv or args.out_json or "")
+    if args.opt_xyz_dir:
+        opt_geom_dir = args.opt_xyz_dir
+    elif args.optimize or to_minimum:
+        opt_geom_dir = (os.path.dirname(args.out_csv or args.out_json or "")
                         or "results")
 
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
