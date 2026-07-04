@@ -494,4 +494,45 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   tag deferred to post-#78/#67. Cosmetic loose end still open: deployment tickets
   **#66–#68** cite the retired epic #65.
 
+## 2026-07-04 — #78 executed: src/ layout + subsystem sub-packages live
+
+- **Tool:** Claude Code (Fable 5).
+- **Scope:** resume at the backlog head — execute migration ticket **#78**
+  (ADR 0011): mechanical `git mv` of `corrosim/` → `src/corrosim/` regrouped
+  into `qm/` / `adsorption/` / `report/` sub-packages; behaviour-preserving,
+  no logic change.
+- **Done:** moves with git rename detection intact; sub-package `__init__`
+  facades keep the public API stable — including the third module→package
+  collision (`corrosim.adsorption`) the ticket hadn't flagged (only
+  figures/report); intra-cluster imports stay relative, cross-cluster go
+  `..qm.descriptors`; `runs/` + tests re-pointed; packaging re-anchored
+  (`packages.find` `where=["src"]`, coverage omit, mypy files, ruff
+  per-file-ignores); Dockerfile `COPY src ./src`; CI `bandit -r src/corrosim`;
+  docs refreshed (README tree, pipeline.md module table, ONBOARDING, PLAYBOOK,
+  CLAUDE.md §1.2).
+- **Catch of the session:** bandit's bare `"report"` in `exclude_dirs`
+  silently excluded the new `src/corrosim/report/` sub-package from SAST
+  (2357 vs 4312 LOC scanned) — anchored to `"./report"`. CI would have stayed
+  green while skipping ~2k lines; flagged upstream as a python-lib.md
+  candidate (src/-layout excludes must not collide with package dir names).
+- **Verification:** editable reinstall resolves `corrosim` from `src/` (the
+  ADR's packaging payoff — working-tree/installed ambiguity closed); ruff +
+  mypy + pytest green (94 passed, 1 skip; coverage 88.22% ≥ 80% with the
+  re-pointed omit); CLI + all drivers smoke-tested; bandit re-scan clean.
+  `report/` bundle + `results/` untouched (no input changed — nothing to
+  regenerate).
+- **Shipped:** **PR #81** squash-merged to `main` (`84df38e`), all 8 checks
+  green; **#78 auto-closed**; post-merge CI + CodeQL on `main` green. Epic
+  **#70** gate note flipped to "cleared"; epic **#69** #73 line notes the
+  landing. Auto-memory (`corrosim-pipeline-state`) updated to the new layout.
+- **Decisions:** no new ADR — this session executes ADR 0011; the new
+  directories are exactly the ones that ADR decided.
+- **Pending:** working tree clean, only `main` local. Backlog resumes at epic
+  **#69** standards + de-dup: start **#57** (shared UFF vdW → `surface.py`,
+  now `src/corrosim/adsorption/surface.py`), then **#64** (`runs/_cli.py`),
+  then stage the #51/#52 gates → **#70** per-module refactors (unblocked) →
+  **#72** generalization → **#71** deployment → **#40** (E_ads). All validated
+  open in the tracker today (2026-07-04). First release tag still deferred to
+  post-#67. Cosmetic loose end: **#66–#68** cite the retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
