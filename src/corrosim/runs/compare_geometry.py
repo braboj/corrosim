@@ -21,8 +21,8 @@ import matplotlib
 matplotlib.use("Agg")
 import pandas as pd
 
-from corrosim import figures
 from corrosim.presets import ARGHEL
+from corrosim.report import figures
 
 ORDER = ARGHEL.molecule_list()
 KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]

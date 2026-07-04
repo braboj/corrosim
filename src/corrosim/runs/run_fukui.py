@@ -18,8 +18,8 @@ import os
 import sys
 
 from corrosim import build_molecule
-from corrosim.fukui import compute_fukui
 from corrosim.presets import ARGHEL
+from corrosim.qm.fukui import compute_fukui
 
 DEFAULT_MOLECULES = ARGHEL.molecule_list()
 

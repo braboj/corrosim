@@ -74,7 +74,7 @@ jobs:
           pip install "bandit==1.8.*"
 
       - name: Bandit (SAST)
-        run: bandit -c pyproject.toml -r corrosim
+        run: bandit -c pyproject.toml -r src/corrosim
 
   secrets:
     name: Secret scan (gitleaks)

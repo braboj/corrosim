@@ -32,12 +32,12 @@ Project-specific overrides and additions follow below.
 
 ### 1.2 Project structure
 
-Layout is currently flat (`corrosim/`, not `src/`). **[`README.md` § Project
+Layout is a `src/` layout with subsystem sub-packages — `src/corrosim/` keeps
+the facade (`__init__`, `cli`) and the input/config leaves at the top and groups
+the rest into `qm/`, `adsorption/`, and `report/`, with drivers in `runs/`
+(**ADR 0011**, executed in ticket #78). **[`README.md` § Project
 structure](README.md) is the single source of truth** — the annotated
-module/driver map lives there; read it rather than duplicating it here. A move to
-a `src/` layout with `qm`/`adsorption`/`report` subsystem sub-packages is decided
-in **ADR 0011** and pending in migration ticket #78 (before epic #70); this note
-supersedes the earlier "flat is deliberate" wording. Agent-relevant facts that
+module/driver map lives there; read it rather than duplicating it here. Agent-relevant facts that
 tree does not carry:
 
 - `cubes/` — regenerable volumetric `.cube` files; `docs/local/` — private
@@ -135,7 +135,7 @@ duplicate.
 ### 2.3 Data, artifacts, and the single source of truth
 
 - Single source of truth: the case study (molecule set + substrate + medium)
-  lives in `corrosim/presets.py` (`ARGHEL`). Drivers import
+  lives in `src/corrosim/presets.py` (`ARGHEL`). Drivers import
   `ARGHEL.molecule_list()` / `ARGHEL.metal`; never re-declare the list.
 - Generated data -> `results/`; figures -> `report/figures/`; report bundle ->
   `report/`; cubes -> `cubes/`.

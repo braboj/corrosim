@@ -12,9 +12,6 @@ Quick use:
 from __future__ import annotations
 
 from .adsorption import LAMMPS_HANDOFF_NOTE, build_adsorption_system, estimate_adsorption_energy
-from .descriptors import METAL_WORK_FUNCTION, compute_descriptors, total_negative_charge
-from .engines import EngineResult, run_engine
-from .fukui import FukuiResult, compute_fukui
 from .molecules import (
     LIBRARY,
     Molecule,
@@ -23,6 +20,15 @@ from .molecules import (
     enumerate_protonation_sites,
 )
 from .presets import ARGHEL, CaseStudy, case_study
+from .qm import (
+    METAL_WORK_FUNCTION,
+    EngineResult,
+    FukuiResult,
+    compute_descriptors,
+    compute_fukui,
+    run_engine,
+    total_negative_charge,
+)
 from .report import build_html_report, rank_inhibitors, results_dataframe
 
 __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",

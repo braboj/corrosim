@@ -22,7 +22,7 @@ Operational reference for common corrosim tasks. New contributors should read
 ## 2. Domain operations
 
 The case study — molecule set, substrate, and medium — is defined once in
-`corrosim/presets.py` as `ARGHEL`. Change it there; the stage drivers import
+`src/corrosim/presets.py` as `ARGHEL`. Change it there; the stage drivers import
 `ARGHEL.molecule_list()` and `ARGHEL.metal` rather than re-declaring the list.
 
 Run the classical stages (Monte Carlo, molecular dynamics, figures, report) in

@@ -31,7 +31,7 @@ def plot_structures(names, mols_per_row: int = 3, out: str | None = None):
     from rdkit import Chem
     from rdkit.Chem import AllChem, Draw
 
-    from .molecules import resolve_smiles
+    from ..molecules import resolve_smiles
     mols, legends = [], []
     for n in names:
         nm, smi = resolve_smiles(n)
@@ -53,7 +53,7 @@ def plot_mo_energy_diagram(rows, metal: str = "Fe(110)", out: str | None = None)
 
     rows: list of dicts with at least name, homo_ev, lumo_ev.
     """
-    from .descriptors import METAL_WORK_FUNCTION
+    from ..qm.descriptors import METAL_WORK_FUNCTION
     phi = METAL_WORK_FUNCTION.get(metal)
     n = len(rows)
     fig, ax = plt.subplots(figsize=(1.7 * n + 1.5, 5.2))
@@ -85,7 +85,7 @@ def plot_mo_energy_diagram(rows, metal: str = "Fe(110)", out: str | None = None)
 # --- Global reactivity-descriptor comparison -------------------------------
 def plot_descriptor_comparison(rows, keys=None, out: str | None = None):
     """Grouped bar charts of the key global descriptors across molecules."""
-    from .descriptors import DESCRIPTOR_META
+    from ..qm.descriptors import DESCRIPTOR_META
     keys = keys or ["gap_ev", "hardness_ev", "softness_inv_ev",
                     "electrophilicity_ev", "delta_n"]
     names = [r["name"] for r in rows]
@@ -137,7 +137,7 @@ def plot_geometry_comparison(ff_df, opt_df, order, phase: str = "aqueous",
     shows, per descriptor, grouped bars contrasting the two geometry sources to
     document that the M1 refinement shifts magnitudes but preserves the ranking.
     """
-    from .descriptors import DESCRIPTOR_META
+    from ..qm.descriptors import DESCRIPTOR_META
 
     def col(df, name, key):
         sub = df[(df.name == name) & (df.form == "neutral") & (df.phase == phase)]

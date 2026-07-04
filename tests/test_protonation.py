@@ -1,7 +1,7 @@
 import pytest
 
-from corrosim.descriptors import total_negative_charge
 from corrosim.molecules import build_molecule, build_protonated, enumerate_protonation_sites
+from corrosim.qm.descriptors import total_negative_charge
 
 
 def test_enumerate_sites_has_oxygens():

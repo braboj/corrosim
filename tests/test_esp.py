@@ -9,7 +9,7 @@ import numpy as np
 from ase import Atoms
 from ase.io.cube import write_cube
 
-from corrosim import figures
+from corrosim.report import figures
 
 
 def _write_synthetic_cubes(tmp_path):

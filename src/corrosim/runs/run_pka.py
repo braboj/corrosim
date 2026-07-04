@@ -32,16 +32,16 @@ import argparse
 import json
 import sys
 
-from corrosim.engines import (
+from corrosim.molecules import build_molecule
+from corrosim.presets import ARGHEL
+from corrosim.qm.engines import (
     Coords,
     optimize_geometry,
     relax_to_minimum,
     run_engine,
     thermo_correction,
 )
-from corrosim.molecules import build_molecule
-from corrosim.pka import G_AQ_PROTON_EV, estimate_pka
-from corrosim.presets import ARGHEL
+from corrosim.qm.pka import G_AQ_PROTON_EV, estimate_pka
 from corrosim.runs.run_dft import _best_protonation_site
 
 

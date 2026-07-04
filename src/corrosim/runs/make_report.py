@@ -23,8 +23,8 @@ import pandas as pd
 from corrosim import report
 from corrosim.medium import parse_medium
 from corrosim.presets import ARGHEL
-from corrosim.report_layout import table_path
-from corrosim.speciation import analyse_speciation, protonation_fraction
+from corrosim.qm.speciation import analyse_speciation, protonation_fraction
+from corrosim.report.report_layout import table_path
 
 ORDER = ARGHEL.molecule_list()
 
@@ -147,7 +147,7 @@ def main(argv=None) -> int:
     # Word (.docx) report — same content, needs python-docx (the `report` extra).
     if args.out_docx:
         try:
-            from corrosim import report_docx
+            from corrosim.report import report_docx
             docx_out = report_docx.build_docx_report(
                 rows, mc_rows, md_rows, fukui_by_name, out_path=args.out_docx,
                 **common)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from corrosim import report_layout as L
+from corrosim.report import report_layout as L
 
 
 def test_figure_stage_maps_each_family_to_its_stage():

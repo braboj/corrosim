@@ -1,6 +1,6 @@
 import math
 
-from corrosim.engines import (
+from corrosim.qm.engines import (
     HARTREE_TO_EV,
     parse_gaussian_output,
     parse_orca_output,

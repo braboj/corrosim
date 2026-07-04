@@ -70,11 +70,11 @@ Read these first to understand the codebase.
 
 | File | Why it matters |
 | --- | --- |
-| `corrosim/presets.py` | The `ARGHEL` case study — molecule set, substrate, medium. Single source of truth; drivers import it. |
-| `corrosim/engines.py` | Uniform wrappers over the quantum engines (xTB, PySCF) plus geometry optimisation and thermochemistry. |
-| `corrosim/cli.py` | The `corrosim` command-line entry point. |
-| `corrosim/runs/` | Stage drivers (`run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_figures`, `make_report`, `compare_geometry`). |
-| `corrosim/report.py` | Builds the self-contained HTML pipeline report. |
+| `src/corrosim/presets.py` | The `ARGHEL` case study — molecule set, substrate, medium. Single source of truth; drivers import it. |
+| `src/corrosim/qm/engines.py` | Uniform wrappers over the quantum engines (xTB, PySCF) plus geometry optimisation and thermochemistry. |
+| `src/corrosim/cli.py` | The `corrosim` command-line entry point. |
+| `src/corrosim/runs/` | Stage drivers (`run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_figures`, `make_report`, `compare_geometry`). |
+| `src/corrosim/report/report.py` | Builds the self-contained HTML pipeline report. |
 | `docs/pipeline.md` | The scientific basis for the multiscale pipeline. |
 | `docs/validation.md` | How the computational results hold up against published and experimental work. |
 | `CLAUDE.md` | Project rules and conventions for AI-assisted work. |
