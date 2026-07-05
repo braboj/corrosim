@@ -44,3 +44,26 @@ def test_render_esp_falls_back_when_iso_absent(tmp_path):
     out = tmp_path / "esp2.png"
     figures.render_esp(dens, esp, out=str(out), iso=999.0)
     assert out.exists()
+
+
+def _write_orbital_cube(tmp_path):
+    # a signed p-like orbital with a node: negative lobe left, positive right,
+    # so both the +level and -level marching-cubes branches fire
+    atoms = Atoms("OO", positions=[[2, 3, 3], [4, 3, 3]], cell=[6, 6, 6])
+    n = 20
+    xs = np.linspace(0, 6, n, endpoint=False)
+    X, Y, Z = np.meshgrid(xs, xs, xs, indexing="ij")
+    r2 = (X - 3) ** 2 + (Y - 3) ** 2 + (Z - 3) ** 2
+    psi = (X - 3) * np.exp(-r2)
+    path = tmp_path / "m_homo.cube"
+    with open(path, "w") as f:
+        write_cube(f, atoms, data=psi)
+    return str(path)
+
+
+def test_render_orbital_writes_png(tmp_path):
+    cube = _write_orbital_cube(tmp_path)
+    out = tmp_path / "orb.png"
+    res = figures.render_orbital(cube, out=str(out), iso=0.2, title="synthetic")
+    assert res == str(out)
+    assert out.exists() and out.stat().st_size > 1000

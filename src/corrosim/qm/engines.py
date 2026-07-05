@@ -67,10 +67,29 @@ class EngineResult:
 
 # --- Shared PySCF / thermochemistry helpers -------------------------------
 
-def _build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
-               charge: int, solvent: str | None,
-               grid_level: int | None = None) -> Any:
-    """Configure an unkerneled PySCF RKS mean field (grid + ddCOSMO)."""
+def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
+              charge: int, solvent: str | None,
+              grid_level: int | None = None) -> Any:
+    """Configure an unkerneled PySCF RKS mean field (grid + ddCOSMO).
+
+    The shared home for every PySCF single point in corrosim: run_pyscf /
+    optimize_geometry / thermo_correction and the report cube writers all build
+    their RKS object here so the grid and implicit-solvent setup stay identical.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        basis: The AO basis set.
+        xc: The exchange-correlation functional.
+        charge: Net molecular charge.
+        solvent: None for gas phase, or a solvent name to switch on the ddCOSMO
+            implicit-solvation model (water dielectric).
+        grid_level: Override for the DFT integration grid (PySCF default 3).
+
+    Returns:
+        The configured (unkerneled) PySCF RKS mean-field object; call its
+        ``.kernel()`` to run the SCF.
+    """
     from pyscf import dft, gto
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, verbose=0)
@@ -168,7 +187,7 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
     Returns:
         The single-point :class:`EngineResult`.
     """
-    mf = _build_rks(symbols, coords, basis, xc, charge, solvent)
+    mf = build_rks(symbols, coords, basis, xc, charge, solvent)
     e_total = mf.kernel()
     occ = mf.mo_occ
     mo = mf.mo_energy
@@ -221,7 +240,7 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords,
         is preserved.
     """
     from pyscf.geomopt.geometric_solver import optimize
-    mf = _build_rks(symbols, coords, basis, xc, charge, solvent,
+    mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                     grid_level=grid_level)
     conv = {"convergence_set": convergence_set} if convergence_set else {}
     mol_eq = optimize(mf, maxsteps=maxsteps, **conv)
@@ -265,7 +284,7 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
         ``freq_cm`` / ``norm_mode`` let a caller step off a saddle.
     """
     from pyscf.hessian import thermo
-    mf = _build_rks(symbols, coords, basis, xc, charge, solvent,
+    mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                     grid_level=grid_level)
     e_elec = mf.kernel()
     hess = mf.Hessian().kernel()
