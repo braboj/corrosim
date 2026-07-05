@@ -24,6 +24,7 @@ site); local softness s±_k = f±_k * sigma (global softness, 1/eV).
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -77,14 +78,36 @@ class FukuiResult:
         return sorted(rows, key=lambda r: r["f_minus"], reverse=True)[:n]
 
 
-def _atom_pop(mol, c, S):
-    """Gross Mulliken population of one MO (coeff vector c), summed per atom."""
-    pmu = c * (S @ c)
+def _atom_pop(mol, mo_coeff, S):
+    """Gross Mulliken population of one MO, summed per atom.
+
+    Args:
+        mol: The PySCF molecule (for the per-atom AO slices).
+        mo_coeff: The MO coefficient vector (one orbital column).
+        S: The AO overlap matrix.
+
+    Returns:
+        The per-atom summed Mulliken population as an ndarray.
+    """
+    pmu = mo_coeff * (S @ mo_coeff)
     sl = mol.aoslice_by_atom()
     return np.array([pmu[sl[a, 2]:sl[a, 3]].sum() for a in range(mol.natm)])
 
 
 def _scf(symbols, coords, charge, spin, basis, xc):
+    """Run one (U/R)KS SCF, with a second-order fallback if unconverged.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        charge: Net molecular charge.
+        spin: Number of unpaired electrons (0 -> RKS, else UKS).
+        basis: The AO basis set.
+        xc: The exchange-correlation functional.
+
+    Returns:
+        ``(mol, mf)`` — the PySCF molecule and the converged mean field.
+    """
     from pyscf import dft, gto
     mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                 basis=basis, charge=charge, spin=spin, verbose=0)
@@ -98,7 +121,39 @@ def _scf(symbols, coords, charge, spin, basis, xc):
     return mol, mf
 
 
-def _result(symbols, f_plus, f_minus, softness, basis):
+def _mulliken_charges(symbols, coords, charge, spin, basis, xc):
+    """Per-atom Mulliken charges (q = Z - population) from one SCF.
+
+    Args:
+        symbols: Element symbols.
+        coords: Geometry in Angstrom.
+        charge: Net molecular charge.
+        spin: Number of unpaired electrons (0 -> RKS, else UKS).
+        basis: The AO basis set.
+        xc: The exchange-correlation functional.
+
+    Returns:
+        The per-atom Mulliken charges as an ndarray.
+    """
+    _, mf = _scf(symbols, coords, charge, spin, basis, xc)
+    return np.asarray(mf.mulliken_pop(verbose=0)[1])
+
+
+def _result(symbols: Sequence[str], f_plus: Sequence[float],
+            f_minus: Sequence[float], softness: float | None,
+            basis: str) -> FukuiResult:
+    """Assemble a FukuiResult: dual descriptor + local softness from f±.
+
+    Args:
+        symbols: Element symbols.
+        f_plus: Per-atom f+ (nucleophilic / electron-accepting).
+        f_minus: Per-atom f- (electrophilic / electron-donating).
+        softness: Global softness (1/eV) scaling s±; 1.0 if None.
+        basis: The basis-set label recorded on the result.
+
+    Returns:
+        The assembled :class:`FukuiResult`.
+    """
     dual = [p - m for p, m in zip(f_plus, f_minus)]
     s = softness if softness is not None else 1.0
     return FukuiResult(list(symbols), list(f_plus), list(f_minus), dual,
@@ -129,9 +184,9 @@ def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
     Raises:
         ValueError: If ``method`` is not 'fmo' or 'fd'.
     """
-    sym, c, q0 = molecule.symbols, molecule.coords, molecule.charge
+    sym, coords, q0 = molecule.symbols, molecule.coords, molecule.charge
     if method == "fmo":
-        mol, mf = _scf(sym, c, q0, 0, basis, xc)
+        mol, mf = _scf(sym, coords, q0, 0, basis, xc)
         S = mf.get_ovlp()
         homo = int(np.where(mf.mo_occ > 0)[0].max())
         # HOMO population -> donor sites; LUMO population -> acceptor sites
@@ -139,12 +194,13 @@ def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
         f_plus = _atom_pop(mol, mf.mo_coeff[:, homo + 1], S).tolist()
         return _result(sym, f_plus, f_minus, softness, f"{basis} (FMO)")
     if method == "fd":
-        qN = np.asarray(
-            _scf(sym, c, q0, 0, basis, xc)[1].mulliken_pop(verbose=0)[1])
-        qcat = np.asarray(
-            _scf(sym, c, q0 + 1, 1, basis, xc)[1].mulliken_pop(verbose=0)[1])
-        qan = np.asarray(
-            _scf(sym, c, q0 - 1, 1, basis, xc)[1].mulliken_pop(verbose=0)[1])
+        # Yang-Mortier finite differences over N, N-1, N+1 at fixed geometry.
+        # mulliken_pop()[1] yields CHARGES (q = Z - population), so the N/N±1
+        # differences below are taken on charges directly and the signs already
+        # come out right — do not "correct" them.
+        qN = _mulliken_charges(sym, coords, q0, 0, basis, xc)
+        qcat = _mulliken_charges(sym, coords, q0 + 1, 1, basis, xc)
+        qan = _mulliken_charges(sym, coords, q0 - 1, 1, basis, xc)
         return _result(sym, (qN - qan).tolist(), (qcat - qN).tolist(),
                        softness, f"{basis} (FD)")
     raise ValueError(f"Unknown method {method!r}; use 'fmo' or 'fd'.")
