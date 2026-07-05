@@ -1,19 +1,5 @@
 [
   {
-    "path": "corrosim/report/report_docx.py",
-    "file_name": "report_docx.py",
-    "functions": [
-      {
-        "name": "_scientific_basis",
-        "complexity": 16
-      },
-      {
-        "name": "build_docx_report",
-        "complexity": 26
-      }
-    ]
-  },
-  {
     "path": "corrosim/runs/make_figures.py",
     "file_name": "make_figures.py",
     "functions": [
