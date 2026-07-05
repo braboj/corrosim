@@ -79,3 +79,22 @@ def test_plain_optimize_adds_no_minimum_provenance(monkeypatch):
     for row in rows:
         assert "n_imag" not in row and "lowest_freq_cm" not in row
         assert row["geometry"].startswith("DFT-opt") and "checked" not in row["geometry"]
+
+
+def test_check_minimum_implies_optimize_when_called_directly(monkeypatch):
+    # #50: the "minimum implies optimize" invariant now lives with
+    # analyse_matrix, so a direct call with check_minimum but not optimize
+    # still relaxes + frequency-checks rather than silently tagging the row FF.
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(run_dft, "thermo_correction",
+                        lambda symbols, coords, **kw: {"n_imag": 0,
+                                                       "freq_cm": np.array([55.0])})
+
+    rows = run_dft.analyse_matrix(["kaempferol"], engine="xtb", forms="neutral",
+                                  check_minimum=True)
+
+    assert rows
+    for row in rows:
+        assert row["n_imag"] == 0
+        assert "frequency-checked" in row["geometry"]
+        assert "FF" not in row["geometry"]
