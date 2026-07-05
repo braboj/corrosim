@@ -141,6 +141,12 @@ duplicate.
   comment is wrong": non-obvious physics or derivations MUST carry a short
   comment naming the descriptor or source (Koopmans, Lukovits ΔN, Rappé 1992) —
   the source name, not an issue/ADR number.
+- Never write "Stage 1/2/3" (or "Stage-N") in a docstring or comment — name the
+  actual work (DFT descriptors, MC adsorption, MD RDF), not a pipeline-stage
+  number; stage labels rot and were already dropped from the reports (ADR 0010).
+- A module docstring SHOULD carry a small ASCII diagram (pure ASCII, ≤ 80 cols,
+  in a `::` block) when the module's flow is not obvious from prose — a search
+  loop, a data pipeline, a geometry; skip it for a trivial module.
 - Substrate-agnostic: thread the `metal` parameter through; derive labels and
   output keys from the actual metal, never hardcode "Fe".
 - Linter/formatter: ruff + `ruff format` (line length 80). Keep new and
