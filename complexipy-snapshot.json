@@ -20,16 +20,6 @@
     ]
   },
   {
-    "path": "corrosim/report/figures.py",
-    "file_name": "figures.py",
-    "functions": [
-      {
-        "name": "render_orbital",
-        "complexity": 17
-      }
-    ]
-  },
-  {
     "path": "corrosim/report/report_docx.py",
     "file_name": "report_docx.py",
     "functions": [

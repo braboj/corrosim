@@ -25,12 +25,68 @@ if TYPE_CHECKING:
 # --- consistent publication palette ---------------------------------------
 C_HOMO, C_LUMO, C_BAR, C_METAL = "#2b6cb0", "#dd6b20", "#319795", "#c53030"
 
+# Covalent-bond cutoff for the ball-and-stick skeleton in the 3D renderers: a
+# pair closer than this (H-H excepted) is drawn as a bond.
+BOND_CUTOFF_ANG = 1.75
+
 
 def _save(fig, out, dpi=150):
     if out:
         fig.savefig(out, dpi=dpi, bbox_inches="tight")
         plt.close(fig)
     return out
+
+
+def _cube_scf(symbols, coords, basis, xc, charge, solvent=None):
+    """Run one cube-grade DFT SCF; return the (mol, kerneled mf).
+
+    Delegates to the shared engines.build_rks so the grid + implicit-solvent
+    setup matches the descriptor engines exactly.
+    """
+    from ..qm.engines import build_rks
+    mf = build_rks(symbols, coords, basis, xc, charge, solvent)
+    mf.kernel()
+    return mf.mol, mf
+
+
+def _read_cube_grid(path):
+    """Read a .cube; return (data, atoms, origin_ang, spacing_ang)."""
+    from ase.io.cube import read_cube
+    with open(path) as fh:
+        cube = read_cube(fh)
+    data = np.asarray(cube["data"], dtype=float)
+    atoms = cube["atoms"]
+    origin = np.asarray(cube.get("origin", [0, 0, 0]), dtype=float)[:3]
+    cell = np.asarray(atoms.cell)
+    spacing = np.array([cell[i, i] / data.shape[i] for i in range(3)])
+    return data, atoms, origin, spacing
+
+
+def _draw_bonds(ax, positions, symbols, **line_kw):
+    """Draw covalent bonds — atom pairs within BOND_CUTOFF_ANG, minus H-H."""
+    for i in range(len(positions)):
+        for j in range(i + 1, len(positions)):
+            dist = float(np.linalg.norm(positions[i] - positions[j]))
+            if dist < BOND_CUTOFF_ANG and not (
+                    symbols[i] == "H" and symbols[j] == "H"):
+                ax.plot(*zip(positions[i], positions[j]), **line_kw)
+
+
+def _style_3d_axes(ax, positions, margin, elev, azim):
+    """Equal-aspect cubic limits (± margin Å), axes hidden, fixed 3D view."""
+    lo = positions.min(0) - margin
+    hi = positions.max(0) + margin
+    ax.set_xlim(lo[0], hi[0])
+    ax.set_ylim(lo[1], hi[1])
+    ax.set_zlim(lo[2], hi[2])
+    try:
+        ax.set_box_aspect(hi - lo)
+    except (AttributeError, ValueError):
+        # set_box_aspect was added in matplotlib 3.3 (AttributeError on older),
+        # and a degenerate zero-span axis raises ValueError. Aspect is cosmetic.
+        pass
+    ax.set_axis_off()
+    ax.view_init(elev=elev, azim=azim)
 
 
 # --- Fig 1 analog: 2D molecular structures ---------------------------------
@@ -83,17 +139,17 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
     n = len(rows)
     fig, ax = plt.subplots(figsize=(1.7 * n + 1.5, 5.2))
     for i, r in enumerate(rows):
-        h, l = float(r["homo_ev"]), float(r["lumo_ev"])
-        ax.hlines(h, i - 0.30, i + 0.30, color=C_HOMO, lw=2.5)
-        ax.hlines(l, i - 0.30, i + 0.30, color=C_LUMO, lw=2.5)
-        ax.annotate("", xy=(i, l), xytext=(i, h),
+        homo, lumo = float(r["homo_ev"]), float(r["lumo_ev"])
+        ax.hlines(homo, i - 0.30, i + 0.30, color=C_HOMO, lw=2.5)
+        ax.hlines(lumo, i - 0.30, i + 0.30, color=C_LUMO, lw=2.5)
+        ax.annotate("", xy=(i, lumo), xytext=(i, homo),
                     arrowprops=dict(arrowstyle="<->", color="grey", lw=1))
-        ax.text(i + 0.02, (h + l) / 2, f"{l - h:.2f} eV", ha="left",
+        ax.text(i + 0.02, (homo + lumo) / 2, f"{lumo - homo:.2f} eV", ha="left",
                 va="center", fontsize=8, rotation=90, backgroundcolor="white")
-        ax.text(i, h - 0.18, f"{h:.2f}", ha="center", va="top", fontsize=8,
-                color=C_HOMO)
-        ax.text(i, l + 0.18, f"{l:.2f}", ha="center", va="bottom", fontsize=8,
-                color=C_LUMO)
+        ax.text(i, homo - 0.18, f"{homo:.2f}", ha="center", va="top",
+                fontsize=8, color=C_HOMO)
+        ax.text(i, lumo + 0.18, f"{lumo:.2f}", ha="center", va="bottom",
+                fontsize=8, color=C_LUMO)
     if phi is not None:
         ax.axhline(-phi, ls="--", color=C_METAL, lw=1.2)
         ax.text(n - 0.5, -phi + 0.08, f"−Φ({metal}) = −{phi:.2f} eV",
@@ -160,12 +216,12 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
                            (axes[1], "delta_n", "ΔN (electrons transferred)")):
-        def val(name, form, mol):
+        def val(form, mol):
             sub = df[(df.name == mol) & (df.form == form)
                      & (df.phase == "aqueous")]
             return sub[key].iloc[0] if len(sub) else float("nan")
-        neu = [val(m, "neutral", m) for m in order]
-        pro = [val(m, "protonated", m + "+H+") for m in order]
+        neu = [val("neutral", m) for m in order]
+        pro = [val("protonated", m + "+H+") for m in order]
         x = np.arange(len(order))
         ax.bar(x - 0.2, neu, 0.4, label="neutral", color=C_BAR)
         ax.bar(x + 0.2, pro, 0.4, label="protonated", color=C_LUMO)
@@ -316,6 +372,31 @@ def plot_rdf(result: MDResult, out: str | None = None) -> object:
 
 
 # --- Fukui / dual-descriptor map (template local-reactivity figure) ---------
+def _atom_index_structure(molecule):
+    """Optional RDKit 2D depiction with atom indices, or None if unavailable."""
+    if molecule is None or getattr(molecule, "rdkit_mol", None) is None:
+        return None
+    try:
+        import io
+
+        from PIL import Image
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+        from rdkit.Chem.Draw import rdMolDraw2D
+        mol2d = Chem.RemoveHs(molecule.rdkit_mol)
+        AllChem.Compute2DCoords(mol2d)
+        drawer = rdMolDraw2D.MolDraw2DCairo(480, 400)
+        drawer.drawOptions().addAtomIndices = True
+        rdMolDraw2D.PrepareAndDrawMolecule(drawer, mol2d)
+        drawer.FinishDrawing()
+        return Image.open(io.BytesIO(drawer.GetDrawingText()))
+    except Exception:
+        # The atom-index structure panel is optional decoration; RDKit 2D
+        # drawing / PIL can fail for many unrelated reasons (no 2D coords,
+        # Cairo missing). Degrade to the bar-chart-only layout, never abort.
+        return None
+
+
 def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
                title: str | None = None) -> object:
     """Condensed Fukui f-/f+ per heavy atom (which atoms donate/accept).
@@ -330,37 +411,15 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
-    def g(k):
+    def field(k):
         return getattr(fukui, k) if hasattr(fukui, k) else fukui[k]
-    syms, fmin, fpl = g("symbols"), g("f_minus"), g("f_plus")
+    syms, fmin, fpl = field("symbols"), field("f_minus"), field("f_plus")
     heavy = [i for i, s in enumerate(syms) if s != "H"]
     labels = [f"{syms[i]}{i}" for i in heavy]
-    fm = [fmin[i] for i in heavy]
-    fp = [fpl[i] for i in heavy]
+    fmin_heavy = [fmin[i] for i in heavy]
+    fplus_heavy = [fpl[i] for i in heavy]
 
-    struct = None
-    has_mol = getattr(molecule, "rdkit_mol", None) is not None
-    if molecule is not None and has_mol:
-        try:
-            import io
-
-            from PIL import Image
-            from rdkit import Chem
-            from rdkit.Chem import AllChem
-            from rdkit.Chem.Draw import rdMolDraw2D
-            mm = Chem.RemoveHs(molecule.rdkit_mol)
-            AllChem.Compute2DCoords(mm)
-            d = rdMolDraw2D.MolDraw2DCairo(480, 400)
-            d.drawOptions().addAtomIndices = True
-            rdMolDraw2D.PrepareAndDrawMolecule(d, mm)
-            d.FinishDrawing()
-            struct = Image.open(io.BytesIO(d.GetDrawingText()))
-        except Exception:
-            # The atom-index structure panel is optional decoration; RDKit 2D
-            # drawing / PIL can fail for many unrelated reasons (no 2D coords,
-            # Cairo missing). Degrade to the bar-chart-only layout, never abort.
-            struct = None
-
+    struct = _atom_index_structure(molecule)
     if struct is not None:
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(11.5, 4.5),
                                        gridspec_kw={"width_ratios": [1, 1.5]})
@@ -370,8 +429,9 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
     else:
         fig, ax1 = plt.subplots(figsize=(max(6.5, 0.45 * len(heavy)), 4.3))
     x = np.arange(len(heavy))
-    ax1.bar(x - 0.2, fm, 0.4, label="f⁻ (donor / binds metal)", color=C_HOMO)
-    ax1.bar(x + 0.2, fp, 0.4, label="f⁺ (acceptor)", color=C_LUMO)
+    ax1.bar(x - 0.2, fmin_heavy, 0.4, label="f⁻ (donor / binds metal)",
+            color=C_HOMO)
+    ax1.bar(x + 0.2, fplus_heavy, 0.4, label="f⁺ (acceptor)", color=C_LUMO)
     ax1.set_xticks(x)
     ax1.set_xticklabels(labels, rotation=90, fontsize=7)
     ax1.axhline(0, color="grey", lw=0.6)
@@ -404,13 +464,8 @@ def write_orbital_cube(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The output .cube path.
     """
-    from pyscf import dft, gto
     from pyscf.tools import cubegen
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    mf.kernel()
+    mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     occ = mf.mo_occ
     idx = int(np.where(occ > 0)[0].max()) if which.lower() == "homo" \
         else int(np.where(occ == 0)[0].min())
@@ -434,13 +489,8 @@ def write_mep_cube(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The output .cube path.
     """
-    from pyscf import dft, gto
     from pyscf.tools import cubegen
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    mf.kernel()
+    mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     cubegen.mep(mol, out, mf.make_rdm1())
     return out
 
@@ -467,13 +517,8 @@ def write_orbital_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The written paths keyed ``'homo'`` / ``'lumo'``.
     """
-    from pyscf import dft, gto
     from pyscf.tools import cubegen
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    mf.kernel()
+    mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     occ = mf.mo_occ
     homo = int(np.where(occ > 0)[0].max())
     lumo = int(np.where(occ == 0)[0].min())
@@ -512,16 +557,8 @@ def write_density_esp_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The written paths keyed ``'density'`` / ``'esp'``.
     """
-    from pyscf import dft, gto
     from pyscf.tools import cubegen
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    if solvent:
-        mf = mf.ddCOSMO()
-        mf.with_solvent.eps = 78.3553
-    mf.kernel()
+    mol, mf = _cube_scf(symbols, coords, basis, xc, charge, solvent=solvent)
     dm = mf.make_rdm1()
     paths = {"density": f"{prefix}_density.cube", "esp": f"{prefix}_esp.cube"}
     # identical (mol, nx, margin) -> identical grid for both cubes
@@ -554,16 +591,9 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
     Returns:
         The rendered figure (saved to ``out`` when given). Needs scikit-image.
     """
-    from ase.io.cube import read_cube
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from skimage import measure
-    with open(cubefile) as fh:
-        cube = read_cube(fh)
-    data = np.asarray(cube["data"], dtype=float)
-    atoms = cube["atoms"]
-    origin = np.asarray(cube.get("origin", [0, 0, 0]), dtype=float)[:3]
-    cell = np.asarray(atoms.cell)
-    spacing = np.array([cell[i, i] / data.shape[i] for i in range(3)])
+    data, atoms, origin, spacing = _read_cube_grid(cubefile)
 
     fig = plt.figure(figsize=(5.2, 5.2))
     ax = fig.add_subplot(111, projection="3d")
@@ -576,31 +606,14 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
         verts = verts + origin
         ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.45,
                                              facecolor=color, edgecolor="none"))
-    P = atoms.get_positions()
+    positions = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
-    for s, p in zip(syms, P):
+    for s, p in zip(syms, positions):
         ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888"),
                    s=_ELEM_SIZE.get(s, 40), depthshade=True, edgecolors="k",
                    linewidths=0.3)
-    # simple covalent bonds
-    for i in range(len(P)):
-        for j in range(i + 1, len(P)):
-            d = np.linalg.norm(P[i] - P[j])
-            if d < 1.75 and not (syms[i] == "H" and syms[j] == "H"):
-                ax.plot(*zip(P[i], P[j]), color="#666", lw=1.2)
-    lo = P.min(0) - 1.5
-    hi = P.max(0) + 1.5
-    ax.set_xlim(lo[0], hi[0])
-    ax.set_ylim(lo[1], hi[1])
-    ax.set_zlim(lo[2], hi[2])
-    try:
-        ax.set_box_aspect(hi - lo)
-    except (AttributeError, ValueError):
-        # set_box_aspect was added in matplotlib 3.3 (AttributeError on older),
-        # and a degenerate zero-span axis raises ValueError. Aspect is cosmetic.
-        pass
-    ax.set_axis_off()
-    ax.view_init(elev=elev, azim=azim)
+    _draw_bonds(ax, positions, syms, color="#666", lw=1.2)
+    _style_3d_axes(ax, positions, margin=1.5, elev=elev, azim=azim)
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
@@ -634,21 +647,13 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
         scikit-image + scipy.
     """
     import matplotlib as mpl
-    from ase.io.cube import read_cube
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from scipy.ndimage import map_coordinates
     from skimage import measure
 
-    with open(density_cube) as fh:
-        dens = read_cube(fh)
-    with open(esp_cube) as fh:
-        esp = read_cube(fh)
-    rho = np.asarray(dens["data"], dtype=float)
-    pot = np.asarray(esp["data"], dtype=float)
-    atoms = dens["atoms"]
-    origin = np.asarray(dens.get("origin", [0, 0, 0]), dtype=float)[:3]
-    cell = np.asarray(atoms.cell)
-    spacing = np.array([cell[i, i] / rho.shape[i] for i in range(3)])
+    rho, atoms, origin, spacing = _read_cube_grid(density_cube)
+    # the ESP cube shares the density grid by construction; only its data used
+    pot, _, _, _ = _read_cube_grid(esp_cube)
 
     if not (rho.min() < iso < rho.max()):
         # fall back to a present level
@@ -673,25 +678,10 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
                             edgecolor="none", alpha=0.97)
     ax.add_collection3d(surf)
 
-    P = atoms.get_positions()
+    positions = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
-    for i in range(len(P)):
-        for j in range(i + 1, len(P)):
-            d = np.linalg.norm(P[i] - P[j])
-            if d < 1.75 and not (syms[i] == "H" and syms[j] == "H"):
-                ax.plot(*zip(P[i], P[j]), color="#444", lw=1.0, alpha=0.6)
-    lo, hi = P.min(0) - 1.8, P.max(0) + 1.8
-    ax.set_xlim(lo[0], hi[0])
-    ax.set_ylim(lo[1], hi[1])
-    ax.set_zlim(lo[2], hi[2])
-    try:
-        ax.set_box_aspect(hi - lo)
-    except (AttributeError, ValueError):
-        # set_box_aspect was added in matplotlib 3.3 (AttributeError on older),
-        # and a degenerate zero-span axis raises ValueError. Aspect is cosmetic.
-        pass
-    ax.set_axis_off()
-    ax.view_init(elev=elev, azim=azim)
+    _draw_bonds(ax, positions, syms, color="#444", lw=1.0, alpha=0.6)
+    _style_3d_axes(ax, positions, margin=1.8, elev=elev, azim=azim)
     cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
                       shrink=0.6, pad=0.02)
     cb.set_label("electrostatic potential (a.u.)", fontsize=9)
