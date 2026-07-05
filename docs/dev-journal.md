@@ -686,4 +686,47 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   tag still deferred to post-#67. Cosmetic loose end: **#66–#68** cite the
   retired epic #65.
 
+## 2026-07-05 — SonarQube gap analysis → cognitive-complexity ratchet (#97/#98)
+
+- **Tool:** Claude Code (Fable 5).
+- **Scope:** user question "do we have a Python SonarQube?" → gap analysis of
+  the existing gate stack, adopt what is genuinely missing, decide the rest.
+- **Landed:** **PR #97** — complexipy (SonarQube's cognitive-complexity
+  metric) as a CI gate in **snapshot-ratchet** mode: `[tool.complexipy]`
+  (src/corrosim, threshold 15 = the C901 value), committed
+  `complexipy-snapshot.json` freezes the nine over-threshold functions; CI
+  fails only when an over-threshold function is new or has increased; the
+  lint job pins `complexipy==6.0.*` (snapshot format is version-sensitive).
+  **ADR 0013**; PLAYBOOK §3.4; CLAUDE.md §1.3/§3/§5.2; README + ONBOARDING
+  check lists. **PR #98** — PLAYBOOK §3.8: duplication + dead code stay
+  review-time rules plus a periodic whole-tree audit at epic boundaries
+  (pylint duplicate-code / vulture commands + the 2026-07-04 clean baseline);
+  deliberately NOT CI gates (clean tree; false-positive suppression cost).
+  Both squash-merged, 8/8 checks; post-merge CI + CodeQL green; the Linux
+  runner confirmed "Snapshot watermark passed" (Windows-made snapshot is
+  portable).
+- **Measurements (feed the #70 re-scope; posted as a comment on #70):**
+  cognitive vs cyclomatic genuinely disagree — `analyse_matrix` cognitive 47
+  yet C901-clean; `build_docx_report` cognitive 26, correcting ADR 0012's
+  "low cognitive" noqa rationale. Four over-threshold functions have no #70
+  ticket: `cli.read_input_csv` 31, `build_docx_report` 26,
+  `make_figures.main` 18, `report_docx._scientific_basis` 16. Duplication:
+  only two blocks package-wide — the pyscf SCF setup incl. the hardcoded
+  water eps 78.3553 duplicated engines↔figures (already covered by #61+#60),
+  and run_mc/run_md argparse boilerplate (absorbable into `_cli`). vulture:
+  zero dead code at ≥80% confidence; radon MI all grade A; wily skipped (the
+  ratchet already guards the trend).
+- **Upstream:** filed solid-ai-templates **#722** (cognitive-complexity
+  ratchet for quality-gates) and **#723** (diff-invisible rules need a
+  periodic whole-tree sweep, not a CI gate). Correction to the 2026-07-02
+  entry: the ADR 0010 template candidate marked "not yet filed" WAS filed as
+  upstream **#718** on 2026-07-04 (alongside #719 bandit-exclude collision
+  and #720 always-run-job).
+- **Verification:** ruff + mypy + complexipy + pytest green on merged `main`
+  (108 passed, 1 skip); templates submodule in sync with upstream.
+- **Pending:** the **#70 re-scope** against the swept tree remains the next
+  thread — now with measured priorities (see the #70 comment; decide whether
+  the four unticketed offenders get tickets). Then #72 → #71 → #40; first
+  release tag post-#67. Cosmetic: #66–#68 still cite retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
