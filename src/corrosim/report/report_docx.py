@@ -21,6 +21,7 @@ from __future__ import annotations
 import datetime
 import io
 import os
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from docx import Document
@@ -32,6 +33,9 @@ from . import equations as _eq
 from . import report_content as _content
 from .report import prepare_report_data, rank_inhibitors, results_dataframe
 from .report_layout import figure_path
+
+if TYPE_CHECKING:
+    from .report import PreparedReport
 
 _MUTED = RGBColor(0x71, 0x80, 0x96)
 _FIG_WIDTH = Inches(5.7)
@@ -188,6 +192,16 @@ def _set_cell(cell, text, *, bold: bool = False) -> None:
             run.font.size = Pt(8.5)
 
 
+def _equation_groups(d: _Doc) -> None:
+    """The governing-equation set in scientific form: each group as a level-3
+    subsection with its equations rendered in order.
+    """
+    for group_heading, group in _eq.EQUATION_GROUPS:
+        d.heading(group_heading, level=3)
+        for eq in group:
+            d.equation(eq.key)
+
+
 def _scientific_basis(d: _Doc) -> None:
     """The shared 'Scientific basis & validation' section (report_content), with
     the equation set injected in scientific form at the ``eqgroups`` marker.
@@ -201,10 +215,7 @@ def _scientific_basis(d: _Doc) -> None:
         elif kind == "table" and isinstance(payload, dict):
             d.content_table(payload)
         elif kind == "eqgroups":
-            for group_heading, group in _eq.EQUATION_GROUPS:
-                d.heading(group_heading, level=3)
-                for eq in group:
-                    d.equation(eq.key)
+            _equation_groups(d)
 
 
 def _speciation_section(d: _Doc, summary: dict | None, medium: str,
@@ -250,9 +261,161 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
         })
 
 
-# Linear section-by-section Word builder: high cyclomatic (one branch per
-# optional section) but low cognitive complexity, so exempt from C901.
-def build_docx_report(  # noqa: C901
+def _docx_header(d: _Doc, prep: PreparedReport, metal: str, medium: str,
+                 generated_at: str | None) -> None:
+    """Title, run-metadata line, headline caveat and the bottom-line note."""
+    d.heading("corrosim — multiscale corrosion-inhibitor report", level=0)
+    ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    d.para(f"Substrate: {metal}  |  Medium: {medium}  |  DFT level: "
+           f"{prep.level}  |  Generated {ts}", muted=True)
+    d.note(_content.HEADLINE_CAVEAT)
+    if len(prep.ranked):
+        _lead = prep.ranked.iloc[0]
+        _eads = _lead.get("e_ads_kjmol")
+        d.note(_content.bottom_line(
+            len(prep.df), str(_lead["name"]), float(_lead["score"]),
+            float(_lead["gap_ev"]),
+            float(_eads) if _eads is not None and pd.notna(_eads) else None,
+            prep.m_elem))
+
+
+def _overview_section(d: _Doc, figdir: str) -> None:
+    """Overview intro + the pipeline diagram."""
+    d.heading("Overview", level=1)
+    d.para(_content.STAGE_INTROS["overview"])
+    d.explain("pipeline")
+    d.figure(figdir, "fig0_pipeline.png", "corrosim pipeline")
+
+
+def _summary_section(d: _Doc, prep: PreparedReport) -> None:
+    """Summary & ranking table + the score explanation."""
+    d.heading("Summary & ranking", level=1)
+    d.df_table(prep.summary, highlight_first=True)
+    d.para(_content.score_explanation(prep.m_elem), muted=True)
+
+
+def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
+                 names: list[str]) -> None:
+    """Stage 1 DFT descriptors: structures, MO diagram, per-molecule HOMO/LUMO
+    isosurfaces, descriptor charts, the full table and the optional geometry-
+    refinement figure.
+    """
+    d.heading("DFT electronic descriptors", level=1)
+    d.para(_content.STAGE_INTROS["dft"])
+    d.figure(figdir, "fig1_structures.png", "Modelled flavonoids")
+    d.explain("structures")
+    d.figure(figdir, "fig2_mo_diagram.png",
+             "Frontier-orbital energies vs Fe(110) work function")
+    d.explain("mo_diagram")
+    d.heading("Frontier-orbital isosurfaces (HOMO / LUMO)", level=2)
+    for n in names:
+        d.figure(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO", width=_GRID_WIDTH)
+    d.explain("orbital_homo")
+    for n in names:
+        d.figure(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO", width=_GRID_WIDTH)
+    d.explain("orbital_lumo")
+    d.figure(figdir, "fig3_descriptors.png", "Reactivity descriptors")
+    d.explain("descriptors")
+    d.figure(figdir, "fig3b_protonation.png", "Protonation effect (1 M HCl)")
+    d.explain("protonation")
+    d.heading("Full descriptor table (neutral, aqueous)", level=2)
+    d.df_table(prep.full)
+    if os.path.exists(figure_path(figdir, "fig8_geometry_comparison.png")):
+        d.heading("Geometry refinement (FF vs DFT-optimised)", level=2)
+        d.figure(figdir, "fig8_geometry_comparison.png",
+                 "Force-field vs DFT-optimised geometry")
+        d.explain("geometry")
+
+
+def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
+                                opt_acid_rows: list[dict] | None,
+                                order: list[str] | None) -> None:
+    """Optional DFT-optimised-geometry descriptor tables (neutral + cation)."""
+    if not opt_neutral_rows:
+        return
+    d.heading("Optimised-geometry descriptors (DFT-relaxed)", level=2)
+    ndf = pd.DataFrame(opt_neutral_rows)
+    if order:
+        keep = [n for n in order if n in set(ndf["name"])]
+        ndf = ndf.set_index("name").loc[keep].reset_index()
+    ranked = rank_inhibitors(ndf)
+    d.para("Descriptors on DFT-optimised geometries; the ranking is "
+           "unchanged — the lead is geometry-robust.")
+    d.df_table(ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
+                       "delta_n", "tnc", "score"]].round(3),
+               highlight_first=True)
+    if opt_acid_rows:
+        d.heading("Optimised protonated cations (in-acid)", level=3)
+        d.df_table(results_dataframe(opt_acid_rows))
+
+
+def _acid_cation_section(d: _Doc, acid_cation_rows: list[dict] | None,
+                         medium: str) -> None:
+    """Optional protonated-cation descriptor table for the acidic medium."""
+    if not acid_cation_rows:
+        return
+    d.heading("Species in the acidic medium (protonated cation)", level=2)
+    d.para(
+        f"In {medium} the inhibitor is present largely as its +1 cation. "
+        "The headline ranking uses the neutral form (ADR 0003); the "
+        "protonated-cation descriptors are tabulated here for comparison.")
+    d.df_table(results_dataframe(acid_cation_rows))
+
+
+def _fukui_section(d: _Doc, prep: PreparedReport, figdir: str,
+                   names: list[str]) -> None:
+    """Local-reactivity (Fukui) subsection: donor sites + per-molecule maps."""
+    d.heading("Local reactivity (Fukui)", level=2)
+    d.para(_content.STAGE_INTROS["fukui"])
+    if prep.fukui_items:
+        for name, sites in prep.fukui_items:
+            d.para(f"**{name}**: {sites}", size=10)
+    for n in names:
+        d.figure(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
+    d.explain("fukui")
+
+
+def _esp_section(d: _Doc, figdir: str, names: list[str]) -> None:
+    """Electrostatic-potential (ESP) map subsection."""
+    d.heading("Electrostatic-potential (ESP) map", level=2)
+    d.para(_content.STAGE_INTROS["esp"])
+    for n in names:
+        d.figure(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map",
+                 width=_GRID_WIDTH)
+    d.explain("esp")
+
+
+def _mc_section(d: _Doc, figdir: str, names: list[str]) -> None:
+    """Stage 2 Monte Carlo adsorption: per-molecule pose + annealing figures."""
+    d.heading("Monte Carlo adsorption", level=1)
+    d.para(_content.STAGE_INTROS["mc"])
+    for n in names:
+        d.figure(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
+    d.explain("mc_pose")
+    for n in names:
+        d.figure(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
+    d.explain("mc_energy")
+
+
+def _md_section(d: _Doc, prep: PreparedReport, figdir: str,
+                names: list[str]) -> None:
+    """Stage 3 Brownian-MD metal-O RDF subsection."""
+    d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
+    d.para(_content.STAGE_INTROS["md"])
+    for n in names:
+        d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-O RDF")
+    d.explain("rdf")
+
+
+def _method_section(d: _Doc, prep: PreparedReport) -> None:
+    """Method & caveats footer."""
+    d.heading("Method & caveats", level=1)
+    d.para(f"DFT level: {prep.level}. {_content.METHOD_CAVEAT}", muted=True)
+
+
+# Orchestrates the Word report section by section, delegating each to a
+# _*_section builder (mirrors the HTML report's section-by-section build).
+def build_docx_report(
         neutral_aq_rows: list[dict], mc_rows: list[dict],
         md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
         figdir: str, out_path: str,
@@ -295,125 +458,20 @@ def build_docx_report(  # noqa: C901
                                metal, order)
     names = list(prep.df["name"])
     d = _Doc()
-
-    d.heading("corrosim — multiscale corrosion-inhibitor report", level=0)
-    ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    d.para(f"Substrate: {metal}  |  Medium: {medium}  |  DFT level: "
-           f"{prep.level}  |  Generated {ts}", muted=True)
-    d.note(_content.HEADLINE_CAVEAT)
-    if len(prep.ranked):
-        _lead = prep.ranked.iloc[0]
-        _eads = _lead.get("e_ads_kjmol")
-        d.note(_content.bottom_line(
-            len(prep.df), str(_lead["name"]), float(_lead["score"]),
-            float(_lead["gap_ev"]),
-            float(_eads) if _eads is not None and pd.notna(_eads) else None,
-            prep.m_elem))
-
-    d.heading("Overview", level=1)
-    d.para(_content.STAGE_INTROS["overview"])
-    d.explain("pipeline")
-    d.figure(figdir, "fig0_pipeline.png", "corrosim pipeline")
-
-    d.heading("Summary & ranking", level=1)
-    d.df_table(prep.summary, highlight_first=True)
-    d.para(_content.score_explanation(prep.m_elem), muted=True)
-
-    # Stage 1 -----------------------------------------------------------------
-    d.heading("DFT electronic descriptors", level=1)
-    d.para(_content.STAGE_INTROS["dft"])
-    d.figure(figdir, "fig1_structures.png", "Modelled flavonoids")
-    d.explain("structures")
-    d.figure(figdir, "fig2_mo_diagram.png",
-             "Frontier-orbital energies vs Fe(110) work function")
-    d.explain("mo_diagram")
-    d.heading("Frontier-orbital isosurfaces (HOMO / LUMO)", level=2)
-    for n in names:
-        d.figure(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO", width=_GRID_WIDTH)
-    d.explain("orbital_homo")
-    for n in names:
-        d.figure(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO", width=_GRID_WIDTH)
-    d.explain("orbital_lumo")
-    d.figure(figdir, "fig3_descriptors.png", "Reactivity descriptors")
-    d.explain("descriptors")
-    d.figure(figdir, "fig3b_protonation.png", "Protonation effect (1 M HCl)")
-    d.explain("protonation")
-    d.heading("Full descriptor table (neutral, aqueous)", level=2)
-    d.df_table(prep.full)
-    if os.path.exists(figure_path(figdir, "fig8_geometry_comparison.png")):
-        d.heading("Geometry refinement (FF vs DFT-optimised)", level=2)
-        d.figure(figdir, "fig8_geometry_comparison.png",
-                 "Force-field vs DFT-optimised geometry")
-        d.explain("geometry")
-
-    if opt_neutral_rows:
-        d.heading("Optimised-geometry descriptors (DFT-relaxed)", level=2)
-        ndf = pd.DataFrame(opt_neutral_rows)
-        if order:
-            keep = [n for n in order if n in set(ndf["name"])]
-            ndf = ndf.set_index("name").loc[keep].reset_index()
-        ranked = rank_inhibitors(ndf)
-        d.para("Descriptors on DFT-optimised geometries; the ranking is "
-               "unchanged — the lead is geometry-robust.")
-        d.df_table(ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                           "delta_n", "tnc", "score"]].round(3),
-                   highlight_first=True)
-        if opt_acid_rows:
-            d.heading("Optimised protonated cations (in-acid)", level=3)
-            d.df_table(results_dataframe(opt_acid_rows))
-
-    if acid_cation_rows:
-        d.heading("Species in the acidic medium (protonated cation)", level=2)
-        d.para(
-            f"In {medium} the inhibitor is present largely as its +1 cation. "
-            "The headline ranking uses the neutral form (ADR 0003); the "
-            "protonated-cation descriptors are tabulated here for comparison.")
-        d.df_table(results_dataframe(acid_cation_rows))
-
+    _docx_header(d, prep, metal, medium, generated_at)
+    _overview_section(d, figdir)
+    _summary_section(d, prep)
+    _dft_section(d, prep, figdir, names)
+    _optimised_geometry_section(d, opt_neutral_rows, opt_acid_rows, order)
+    _acid_cation_section(d, acid_cation_rows, medium)
     _speciation_section(d, speciation_summary, medium, computed_pkah,
                         pka_freq_corrected)
-
-    # Stage 1 (cont.) — Fukui and ESP are facets of Stage 1 (isolated-molecule
-    # QM analysis), so they are subsections here, not separate pipeline stages.
-    d.heading("Local reactivity (Fukui)", level=2)
-    d.para(_content.STAGE_INTROS["fukui"])
-    if prep.fukui_items:
-        for name, sites in prep.fukui_items:
-            d.para(f"**{name}**: {sites}", size=10)
-    for n in names:
-        d.figure(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
-    d.explain("fukui")
-
-    # Stage 1c — ESP ----------------------------------------------------------
-    d.heading("Electrostatic-potential (ESP) map", level=2)
-    d.para(_content.STAGE_INTROS["esp"])
-    for n in names:
-        d.figure(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map",
-                 width=_GRID_WIDTH)
-    d.explain("esp")
-
-    # Stage 2 — Monte Carlo ---------------------------------------------------
-    d.heading("Monte Carlo adsorption", level=1)
-    d.para(_content.STAGE_INTROS["mc"])
-    for n in names:
-        d.figure(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
-    d.explain("mc_pose")
-    for n in names:
-        d.figure(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
-    d.explain("mc_energy")
-
-    # Stage 3 — MD ------------------------------------------------------------
-    d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
-    d.para(_content.STAGE_INTROS["md"])
-    for n in names:
-        d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-O RDF")
-    d.explain("rdf")
-
-    # Scientific basis & validation ------------------------------------------
+    # Fukui and ESP are facets of Stage 1 (isolated-molecule QM analysis), so
+    # they render as subsections here, not as separate pipeline stages.
+    _fukui_section(d, prep, figdir, names)
+    _esp_section(d, figdir, names)
+    _mc_section(d, figdir, names)
+    _md_section(d, prep, figdir, names)
     _scientific_basis(d)
-
-    # Method ------------------------------------------------------------------
-    d.heading("Method & caveats", level=1)
-    d.para(f"DFT level: {prep.level}. {_content.METHOD_CAVEAT}", muted=True)
-
+    _method_section(d, prep)
     return d.save(out_path)
