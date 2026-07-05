@@ -22,7 +22,7 @@ from collections.abc import Sequence
 import pandas as pd
 
 from corrosim import report
-from corrosim.medium import parse_medium
+from corrosim.medium import MediumSpec, parse_medium
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
 from corrosim.runs._cli import (
@@ -38,14 +38,230 @@ def _load_json(path: str):
     return read_json(path, [])
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: build the self-contained multiscale HTML report.
+def _rank_blend(blend_rows: list[dict]) -> list[dict]:
+    """Rank a population-blended descriptor set for the speciation summary.
 
     Args:
-        argv: Command-line arguments (defaults to ``sys.argv``).
+        blend_rows: Blended descriptor rows to rank.
 
     Returns:
-        The process exit code (0 on success; 1 if descriptors are missing).
+        The ranked rows as record dicts.
+    """
+    return report.rank_inhibitors(pd.DataFrame(blend_rows)).to_dict("records")
+
+
+def _bundle_one(tablesdir: str, src: str, name: str | None = None) -> None:
+    """Copy one source table into the bundle's per-stage subfolder.
+
+    Args:
+        tablesdir: The report bundle's tables root.
+        src: Source file to copy.
+        name: Destination basename; defaults to ``src``'s basename.
+    """
+    dst = table_path(tablesdir, name or os.path.basename(src))
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy(src, dst)
+
+
+def _neutral_rows(
+    df: pd.DataFrame,
+    order: list[str],
+) -> tuple[list[dict], list[str]]:
+    """Neutral aqueous descriptor rows in case-study order.
+
+    Args:
+        df: The force-field descriptor matrix.
+        order: The case-study molecule order.
+
+    Returns:
+        ``(rows, present)`` — the neutral aqueous rows and the molecule names
+        actually present, both in ``order``.
+    """
+    naq = df[(df.form == "neutral") & (df.phase == "aqueous")]
+    present = [n for n in order if n in set(naq["name"])]
+    rows = naq.set_index("name").loc[present].reset_index().to_dict("records")
+    return rows, present
+
+
+def _acid_cation_rows(
+    df: pd.DataFrame,
+    present: list[str],
+    spec: MediumSpec,
+) -> list[dict] | None:
+    """Protonated-cation aqueous rows for the in-acid comparison.
+
+    In an acidic medium the inhibitor protonates; surface the cation
+    descriptors as a labelled comparison (the headline ranking stays neutral).
+
+    Args:
+        df: The force-field descriptor matrix.
+        present: The neutral molecules present, in order.
+        spec: The parsed medium.
+
+    Returns:
+        The cation rows in ``present`` order, or None when the medium is not
+        acidic or no cation rows exist.
+    """
+    if not (spec.acidic and {"form", "phase"} <= set(df.columns)):
+        return None
+    paq = df[(df.form == "protonated") & (df.phase == "aqueous")].copy()
+    paq["_base"] = strip_protonation_suffix(paq["name"])
+    paq = paq[paq["_base"].isin(present)]
+    paq["_ord"] = paq["_base"].map({n: i for i, n in enumerate(present)})
+    return (paq.sort_values("_ord")
+            .drop(columns=["_base", "_ord"]).to_dict("records")
+            or None)
+
+
+def _speciation_summary(
+    rows: list[dict],
+    acid_rows: list[dict] | None,
+    spec: MediumSpec,
+) -> dict | None:
+    """Population-weighted speciation blend + lead-crossover sensitivity.
+
+    Args:
+        rows: Neutral descriptor rows.
+        acid_rows: Protonated-cation rows, or None.
+        spec: The parsed medium (needs a numeric pH).
+
+    Returns:
+        The speciation summary, or None without an acid comparison or pH.
+    """
+    if not (acid_rows and spec.ph is not None):
+        return None
+    return analyse_speciation(rows, acid_rows, spec.ph, _rank_blend)
+
+
+def _computed_pkah(
+    pka_path: str,
+    present: list[str],
+    spec: MediumSpec,
+) -> tuple[list[dict] | None, bool]:
+    """Computed per-molecule pKaH populations that resolve the lead crossover.
+
+    Args:
+        pka_path: Path to the run_pka JSON.
+        present: The neutral molecules present, in order.
+        spec: The parsed medium (needs a numeric pH).
+
+    Returns:
+        ``(computed_pkah, freq_corrected)`` — the ordered pKaH population rows
+        (or None) and whether every row carries a frequency-corrected pKaH.
+    """
+    if not (spec.ph is not None and os.path.exists(pka_path)):
+        return None, False
+    order_ix = {n: i for i, n in enumerate(present)}
+    pka_rows = [r for r in _load_json(pka_path) if r["name"] in order_ix]
+    # prefer the frequency-corrected pKaH ("pkah") when run_pka --freq produced
+    # it, else the electronic-only value.
+    freq_corrected = bool(pka_rows) and all("pkah" in r for r in pka_rows)
+    computed = sorted(
+        ({"name": r["name"], "pkah": r.get("pkah", r["pkah_electronic"]),
+          "f_protonated": protonation_fraction(
+              spec.ph, r.get("pkah", r["pkah_electronic"]))}
+         for r in pka_rows),
+        key=lambda r: order_ix[r["name"]]) or None
+    return computed, freq_corrected
+
+
+def _opt_geometry_rows(
+    opt_path: str,
+    order: list[str],
+    spec: MediumSpec,
+) -> tuple[list[dict] | None, list[dict] | None]:
+    """DFT-optimised-geometry neutral ranking + optimised protonated cations.
+
+    Surfaced alongside the FF headline when the optimised matrix is present.
+
+    Args:
+        opt_path: Path to the DFT-optimised descriptor matrix.
+        order: The case-study molecule order.
+        spec: The parsed medium.
+
+    Returns:
+        ``(opt_neutral_rows, opt_acid_rows)`` — either may be None when absent.
+    """
+    if not os.path.exists(opt_path):
+        return None, None
+    odf = pd.read_csv(opt_path)
+    on = odf[(odf.form == "neutral") & (odf.phase == "aqueous")]
+    on_present = [n for n in order if n in set(on["name"])]
+    opt_neutral_rows = (on.set_index("name").loc[on_present].reset_index()
+                        .to_dict("records") or None)
+    opt_acid_rows = None
+    if spec.acidic:
+        op = odf[(odf.form == "protonated")
+                 & (odf.phase == "aqueous")].copy()
+        op["_base"] = strip_protonation_suffix(op["name"])
+        op = op[op["_base"].isin(on_present)]
+        op["_ord"] = op["_base"].map(
+            {n: i for i, n in enumerate(on_present)})
+        opt_acid_rows = (op.sort_values("_ord")
+                         .drop(columns=["_base", "_ord"])
+                         .to_dict("records") or None)
+    return opt_neutral_rows, opt_acid_rows
+
+
+def _render_reports(
+    rows: list[dict],
+    mc_rows: list[dict],
+    md_rows: list[dict],
+    fukui_by_name: dict[str, list[dict]],
+    args: argparse.Namespace,
+    common: dict,
+) -> None:
+    """Build the HTML report and, unless skipped, the Word mirror.
+
+    Args:
+        rows: Neutral descriptor rows.
+        mc_rows: Monte-Carlo adsorption rows.
+        md_rows: MD RDF rows.
+        fukui_by_name: Per-molecule Fukui rows.
+        args: Parsed CLI arguments (output paths).
+        common: The shared renderer keyword arguments.
+    """
+    out = report.build_pipeline_report(rows, mc_rows, md_rows, fukui_by_name,
+                                       out_path=args.out, **common)
+    size_kb = os.path.getsize(out) / 1024
+    print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
+
+    # Word (.docx) report — same content, needs python-docx (`report` extra).
+    if args.out_docx:
+        try:
+            from corrosim.report import report_docx
+            docx_out = report_docx.build_docx_report(
+                rows, mc_rows, md_rows, fukui_by_name, out_path=args.out_docx,
+                **common)
+            print(f"word report written to {docx_out} "
+                  f"({os.path.getsize(docx_out) / 1024:.0f} kB)")
+        except ImportError:
+            log("python-docx not installed; skipped .docx "
+                "(install it with: pip install -e .[report])")
+
+
+def _bundle_tables(args: argparse.Namespace, rows: list[dict]) -> None:
+    """Copy the report's source tables next to it, so the bundle stands alone.
+
+    Args:
+        args: Parsed CLI arguments (paths + the tables root).
+        rows: Neutral descriptor rows, for the ranking table.
+    """
+    ranking_dst = table_path(args.tablesdir, "ranking.csv")
+    os.makedirs(os.path.dirname(ranking_dst), exist_ok=True)
+    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(ranking_dst, index=False)
+    for src in (args.descriptors, args.opt_descriptors,
+                "results/geometry_comparison.csv", args.pka):
+        if os.path.exists(src):
+            _bundle_one(args.tablesdir, src)
+    print(f"tables in {args.tablesdir}/ (per-stage subfolders)")
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """Construct the make_report argument parser.
+
+    Returns:
+        The configured argument parser.
     """
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     add_case_arg(p)
@@ -72,7 +288,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "bundle (nested into per-stage subfolders).")
     p.add_argument("--metal", default=None)
     p.add_argument("--medium", default=None)
-    args = p.parse_args(argv)
+    return p
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """CLI entry point: build the self-contained multiscale HTML report.
+
+    Args:
+        argv: Command-line arguments (defaults to ``sys.argv``).
+
+    Returns:
+        The process exit code (0 on success; 1 if descriptors are missing).
+    """
+    args = _build_parser().parse_args(argv)
     order = resolve_case(args, metal="label").molecule_list()
 
     if not os.path.exists(args.descriptors):
@@ -80,71 +308,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     df = pd.read_csv(args.descriptors)
-    naq = df[(df.form == "neutral") & (df.phase == "aqueous")]
-    present = [n for n in order if n in set(naq["name"])]
-    rows = naq.set_index("name").loc[present].reset_index().to_dict("records")
-
-    # In an acidic medium the inhibitor protonates; surface the cation
-    # descriptors as a labelled in-acid comparison (the headline ranking stays
-    # neutral).
+    rows, present = _neutral_rows(df, order)
     spec = parse_medium(args.medium)
-    acid_rows = None
-    if spec.acidic and {"form", "phase"} <= set(df.columns):
-        paq = df[(df.form == "protonated") & (df.phase == "aqueous")].copy()
-        paq["_base"] = strip_protonation_suffix(paq["name"])
-        paq = paq[paq["_base"].isin(present)]
-        paq["_ord"] = paq["_base"].map({n: i for i, n in enumerate(present)})
-        acid_rows = (paq.sort_values("_ord")
-                     .drop(columns=["_base", "_ord"]).to_dict("records")
-                     or None)
-
-    # Quantitative pH-speciation: population-weighted descriptors + a
-    # lead-crossover sensitivity to the protonation pKa. Needs a numeric pH.
-    speciation_summary = None
-    if acid_rows and spec.ph is not None:
-        def _rank(blend_rows):
-            return report.rank_inhibitors(
-                pd.DataFrame(blend_rows)).to_dict("records")
-        speciation_summary = analyse_speciation(rows, acid_rows, spec.ph, _rank)
-
-    # Computed per-molecule pKaH (run_pka, DFT cycle) -> populations that
-    # resolve the crossover.
-    computed_pkah = None
-    pka_freq_corrected = False
-    if spec.ph is not None and os.path.exists(args.pka):
-        order_ix = {n: i for i, n in enumerate(present)}
-        pka_rows = [r for r in _load_json(args.pka) if r["name"] in order_ix]
-        # prefer the frequency-corrected pKaH ("pkah") when run_pka --freq
-        # produced it, else the electronic-only value.
-        pka_freq_corrected = (bool(pka_rows)
-                              and all("pkah" in r for r in pka_rows))
-        computed_pkah = sorted(
-            ({"name": r["name"], "pkah": r.get("pkah", r["pkah_electronic"]),
-              "f_protonated": protonation_fraction(
-                  spec.ph, r.get("pkah", r["pkah_electronic"]))}
-             for r in pka_rows),
-            key=lambda r: order_ix[r["name"]]) or None
-
-    # Optimised-geometry matrix: surface the DFT-relaxed neutral ranking and
-    # the optimised protonated cations alongside the FF headline, when
-    # available.
-    opt_neutral_rows = opt_acid_rows = None
-    if os.path.exists(args.opt_descriptors):
-        odf = pd.read_csv(args.opt_descriptors)
-        on = odf[(odf.form == "neutral") & (odf.phase == "aqueous")]
-        on_present = [n for n in order if n in set(on["name"])]
-        opt_neutral_rows = (on.set_index("name").loc[on_present].reset_index()
-                            .to_dict("records") or None)
-        if spec.acidic:
-            op = odf[(odf.form == "protonated")
-                     & (odf.phase == "aqueous")].copy()
-            op["_base"] = strip_protonation_suffix(op["name"])
-            op = op[op["_base"].isin(on_present)]
-            op["_ord"] = op["_base"].map(
-                {n: i for i, n in enumerate(on_present)})
-            opt_acid_rows = (op.sort_values("_ord")
-                             .drop(columns=["_base", "_ord"])
-                             .to_dict("records") or None)
+    acid_rows = _acid_cation_rows(df, present, spec)
+    speciation_summary = _speciation_summary(rows, acid_rows, spec)
+    computed_pkah, pka_freq_corrected = _computed_pkah(args.pka, present, spec)
+    opt_neutral_rows, opt_acid_rows = _opt_geometry_rows(
+        args.opt_descriptors, order, spec)
 
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
@@ -166,39 +336,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         computed_pkah=computed_pkah, pka_freq_corrected=pka_freq_corrected,
         opt_neutral_rows=opt_neutral_rows, opt_acid_rows=opt_acid_rows,
     )
-    out = report.build_pipeline_report(rows, mc_rows, md_rows, fukui_by_name,
-                                       out_path=args.out, **common)
-    size_kb = os.path.getsize(out) / 1024
-    print(f"report written to {out} ({size_kb:.0f} kB, self-contained)")
-
-    # Word (.docx) report — same content, needs python-docx (`report` extra).
-    if args.out_docx:
-        try:
-            from corrosim.report import report_docx
-            docx_out = report_docx.build_docx_report(
-                rows, mc_rows, md_rows, fukui_by_name, out_path=args.out_docx,
-                **common)
-            print(f"word report written to {docx_out} "
-                  f"({os.path.getsize(docx_out) / 1024:.0f} kB)")
-        except ImportError:
-            log("python-docx not installed; skipped .docx "
-                "(install it with: pip install -e .[report])")
-
-    # Bundle the source tables next to the report (per-stage subfolders) so the
-    # report/ bundle is self-describing.
-    def _bundle(src: str, name: str | None = None) -> None:
-        dst = table_path(args.tablesdir, name or os.path.basename(src))
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copy(src, dst)
-
-    ranking_dst = table_path(args.tablesdir, "ranking.csv")
-    os.makedirs(os.path.dirname(ranking_dst), exist_ok=True)
-    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(ranking_dst, index=False)
-    for src in (args.descriptors, args.opt_descriptors,
-                "results/geometry_comparison.csv", args.pka):
-        if os.path.exists(src):
-            _bundle(src)
-    print(f"tables in {args.tablesdir}/ (per-stage subfolders)")
+    _render_reports(rows, mc_rows, md_rows, fukui_by_name, args, common)
+    _bundle_tables(args, rows)
     return 0
 
 
