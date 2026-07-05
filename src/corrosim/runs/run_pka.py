@@ -37,6 +37,7 @@ from collections.abc import Sequence
 
 from corrosim.molecules import build_molecule
 from corrosim.qm.engines import (
+    MIN_RECIPE,
     Coords,
     optimize_geometry,
     relax_to_minimum,
@@ -159,7 +160,7 @@ def compute_pka_rows(molecules: Sequence[str], basis: str = "6-311++G(d,p)",
                 "temperature_k": temperature,
                 "level": f"{xc.upper()}/{basis} (ddCOSMO:water) // "
                          f"{opt_xc.upper()}/{opt_basis} gas opt+freq"
-                         + (" (grid 4, imag-mode refined)" if tight else "")
+                         + (f" ({MIN_RECIPE})" if tight else "")
                          + ", frequency-corrected",
             })
             imag = tb["n_imag"] + tbh["n_imag"]

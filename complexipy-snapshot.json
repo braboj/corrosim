@@ -62,19 +62,5 @@
         "complexity": 38
       }
     ]
-  },
-  {
-    "path": "corrosim/runs/run_dft.py",
-    "file_name": "run_dft.py",
-    "functions": [
-      {
-        "name": "main",
-        "complexity": 16
-      },
-      {
-        "name": "analyse_matrix",
-        "complexity": 47
-      }
-    ]
   }
 ]

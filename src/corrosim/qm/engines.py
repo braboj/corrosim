@@ -23,6 +23,11 @@ Coords = Sequence[Sequence[float]]
 HARTREE_TO_EV = 27.211386245988
 ANG_TO_BOHR = 1.8897259886
 
+# How relax_to_minimum drives a floppy geometry to a verified minimum: a finer
+# DFT integration grid (level 4) plus imaginary-mode-displaced restarts. Named
+# once so both drivers' geometry-provenance strings stay in step.
+MIN_RECIPE = "grid 4, imag-mode refined"
+
 
 @dataclass
 class EngineResult:
