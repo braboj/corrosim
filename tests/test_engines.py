@@ -7,9 +7,14 @@ orchestration loop and the DFT calls around them do.
 import numpy as np
 
 from corrosim.qm.engines import (
+    HARTREE_TO_EV,
     displace_along_mode,
     imaginary_mode,
     min_check_fields,
+    parse_gaussian_output,
+    parse_orca_output,
+    write_gaussian_input,
+    write_orca_input,
 )
 
 
@@ -83,3 +88,60 @@ def test_min_check_fields_handles_complex_encoded_imaginary():
     thermo = {"n_imag": 1, "freq_cm": np.array([0.0 + 30.0j, 240.0, 1500.0])}
     out = min_check_fields(thermo)
     assert out["n_imag"] == 1 and out["lowest_freq_cm"] == -30.0
+
+
+# --- ORCA / Gaussian deck writers + output parsers (no QM binary) ------------
+
+WATER = "water"
+
+
+def test_orca_and_gaussian_writers_share_the_xyz_block():
+    # both decks embed the identical aligned geometry block (shared _xyz_block)
+    symbols = ["O", "H"]
+    coords = [(0.0, 0.0, 0.0), (0.0, 0.0, 0.96)]
+    orca = write_orca_input(symbols, coords, "B3LYP def2-TZVP")
+    gauss = write_gaussian_input(symbols, coords, "B3LYP/6-31G(d)")
+
+    def atom_lines(deck):
+        return [ln for ln in deck.splitlines()
+                if ln.strip().startswith(("O ", "H "))]
+
+    assert atom_lines(orca) == atom_lines(gauss)
+    # the format contract: element in a 2-wide field, coords in 16.8f columns
+    assert atom_lines(orca)[1] == (
+        f" {'H':2s} {0.0:16.8f} {0.0:16.8f} {0.96:16.8f}")
+
+
+def test_write_orca_input_emits_cpcm_and_charge_mult():
+    deck = write_orca_input(["C"], [(0.0, 0.0, 0.0)], "B3LYP def2-SVP",
+                            charge=1, mult=2, solvent=WATER)
+    assert "! B3LYP def2-SVP" in deck
+    assert "! CPCM(water)" in deck
+    assert "* xyz 1 2" in deck
+
+
+def test_parse_orca_output_picks_homo_lumo_from_occupations():
+    text = "\n".join([
+        "----------------",
+        "ORBITAL ENERGIES",
+        "----------------",
+        "  NO   OCC          E(Eh)            E(eV)",
+        "   0   2.0000     -10.000000     -272.000000",
+        "   1   2.0000      -1.000000      -20.000000",
+        "   2   0.0000       0.500000       10.000000",
+        "   3   0.0000       1.000000       20.000000",
+        "",
+    ])
+    # HOMO = last occupied (row 1), LUMO = first virtual (row 2), values in eV
+    assert parse_orca_output(text) == (-20.0, 10.0)
+
+
+def test_parse_gaussian_output_converts_hartree_to_ev():
+    text = "\n".join([
+        " Alpha  occ. eigenvalues --  -10.00000   -1.00000",
+        " Alpha virt. eigenvalues --    0.50000    1.00000",
+    ])
+    homo, lumo = parse_gaussian_output(text)
+    # HOMO = highest occupied (-1 Eh), LUMO = lowest virtual (0.5 Eh)
+    assert np.isclose(homo, -1.0 * HARTREE_TO_EV)
+    assert np.isclose(lumo, 0.5 * HARTREE_TO_EV)
