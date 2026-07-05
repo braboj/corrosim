@@ -876,4 +876,58 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   restructure. First release tag is gated on #67. Cosmetic loose end unchanged:
   #66–#68 still cite retired epic #65.
 
+## 2026-07-05 (session 4) — mc/md OOP: orchestrator + state objects (ADR 0014)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** a client-driven readability/OOP deep-dive on `adsorption/mc.py`,
+  extended to keep `adsorption/md.py` structurally parallel. Behaviour-
+  preserving throughout, gated on seeded golden hashes.
+- **Landed (2 PRs, squash-merged to `main`, CI green):**
+  - **#122** — reshaped both pipeline-stage modules to one OOP shape and
+    recorded it as **ADR 0014**:
+    - `run_mc` decomposed into a high-level assembly — move helpers
+      `_propose_pose` / `_confine_pose`, pure `_anneal_schedule`, factory
+      classmethods `_Substrate.build` / `_Search.seed`, behaviour on the state
+      (`_Search.accept`, was the free `_metropolis_update`, curing an anemic
+      model), and `MCResult.from_search`. Cognitive complexity **7 → 1**.
+    - `md.py` mirrored: `_Substrate.build` (caches metal positions + symbols),
+      `_RdfAccumulator` (`for_donors` / `record` / `bin_centres` / `normalized`,
+      replacing the external `hist_o += …; nframes += 1` mutation),
+      `MDResult.from_run`, and `_mean_energy` extracted as a pure helper.
+      `run_md` cognitive complexity **24 → 5**.
+    - promoted the `ase.Atoms` import out of the `TYPE_CHECKING` guard in both
+      modules (it is constructed at runtime in `combined`; the guarded form
+      deferred nothing since `surface.py` already imports ase eagerly).
+    - verification: seeded `run_mc` **and** `run_md` byte-identical before/after
+      (2 seeds × 2 slab sizes each). New `tests/test_mc.py` + extended
+      `tests/test_md.py`; suite **129 → 155**.
+  - **#123** — added the **sentence-case comment** rule to CLAUDE.md §2.2
+    (capitalize the first word; acronyms/proper nouns keep their case; a terse
+    fragment needs no terminal period; docstrings already comply) and applied it
+    to `mc.py` / `md.py`. Filed **#124** for the codebase-wide sweep.
+- **Decisions:** **ADR 0014** — pipeline-stage module shape (free `run_*`
+  orchestrator + factory classmethods + behaviour on the state object;
+  stateless numerics stay free functions). It **defers the swappable
+  energy-model Strategy to #40** rather than building it speculatively.
+- **Considered and declined (with reasons):** further OOP in `mc.py` — assessed
+  as at equilibrium. The only remaining seam is a `_Scorer` / energy-model,
+  deliberately parked for #40. Rejected a `_MonteCarloSearch.run()` method
+  object ("function in disguise") and turning the stateless numerics into
+  methods (would couple them to state they don't use).
+- **Ratchet:** `run_mc` 7 → 1, `run_md` 24 → 5; `complexipy-snapshot.json`
+  untouched (`make_figures.main` 18 remains the only frozen entry).
+- **Aside (not a repo change):** fixed the VS Code parameter *underline* — it
+  came from the Real IntelliJ Light theme's TextMate `variable.parameter` rule,
+  not semantic tokens — via `editor.tokenColorCustomizations` in the user's
+  settings.
+- **Pending:** two comment-hygiene sweeps now pair up — **#124** (sentence-case
+  codebase-wide, new) and **#119** (Stage-N purge; `md.py`'s *module* docstring
+  still says "Stage-3"); do them together. **#40** chemisorption E_ads is now
+  also the home for the energy-model Strategy seam (per ADR 0014). Unchanged
+  feature scope: **#72** Generalization & Validation (#53 per-paper presets /
+  #54 data-driven library), **#71** Deployment (#66 Colab / #67 GHCR+PyPI / #68
+  Pages), **#109/#110** report/pipeline docs restructure; first release tag
+  gated on #67. Upstream candidate not yet filed: the sentence-case comment rule
+  could extend the solid-ai-templates readability guidance.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
