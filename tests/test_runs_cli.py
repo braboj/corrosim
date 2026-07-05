@@ -21,14 +21,47 @@ def test_parse_molecules_strips_and_drops_blanks():
     assert _cli.parse_molecules("") == []
 
 
-def test_add_molecules_arg_defaults_to_the_preset_list():
+def test_resolve_case_fills_unset_molecules_from_the_case():
     p = argparse.ArgumentParser()
+    _cli.add_case_arg(p)
     _cli.add_molecules_arg(p)
     args = p.parse_args([])
+    _cli.resolve_case(args)
     assert _cli.parse_molecules(args.molecules) == list(ARGHEL.molecules)
     # and an explicit override still flows through
     over = p.parse_args(["--molecules", "caffeine,phenol"])
+    _cli.resolve_case(over)
     assert _cli.parse_molecules(over.molecules) == ["caffeine", "phenol"]
+
+
+def test_resolve_case_fills_metal_label_or_element():
+    def parse(metal_mode, argv):
+        p = argparse.ArgumentParser()
+        _cli.add_case_arg(p)
+        p.add_argument("--metal", default=None)
+        args = p.parse_args(argv)
+        _cli.resolve_case(args, metal=metal_mode)
+        return args.metal
+
+    # label mode keeps the facet (Fe(110)); element mode strips it (Fe)
+    assert parse("label", []) == ARGHEL.metal
+    assert parse("element", []) == ARGHEL.metal_element
+    # an explicit --metal always wins over the case default
+    assert parse("element", ["--metal", "Cu"]) == "Cu"
+
+
+def test_resolve_case_selects_by_name_and_rejects_unknown():
+    p = argparse.ArgumentParser()
+    _cli.add_case_arg(p)
+    _cli.add_molecules_arg(p)
+    # the "argel" alias resolves to the same shipped study
+    args = p.parse_args(["--case", "argel"])
+    assert _cli.resolve_case(args) is ARGHEL
+    assert _cli.parse_molecules(args.molecules) == list(ARGHEL.molecules)
+    # an unknown case name is a hard error, not a silent default
+    bad = p.parse_args(["--case", "nope"])
+    with pytest.raises(KeyError):
+        _cli.resolve_case(bad)
 
 
 def test_write_json_then_read_json_roundtrip(tmp_path):

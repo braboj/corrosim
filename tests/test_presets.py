@@ -22,12 +22,14 @@ def test_case_study_lookup():
 
 
 def test_drivers_share_the_preset_list():
-    # the run drivers must derive their molecule default from ARGHEL via the one
+    # the run drivers must derive their defaults from the case study via the one
     # shared _cli helper, not re-declare the list (issues #64 single-sourcing)
     import argparse
 
     from corrosim.runs import (
         _cli,
+        compare_geometry,
+        make_figures,
         make_report,
         run_dft,
         run_fukui,
@@ -36,12 +38,17 @@ def test_drivers_share_the_preset_list():
         run_pka,
     )
 
-    # the shared --molecules argument defaults to exactly the preset list
+    # an unset --molecules resolves to exactly the default case-study list
     p = argparse.ArgumentParser()
+    _cli.add_case_arg(p)
     _cli.add_molecules_arg(p)
-    assert _cli.parse_molecules(p.parse_args([]).molecules) == list(ARGHEL.molecules)
+    args = p.parse_args([])
+    _cli.resolve_case(args)
+    assert _cli.parse_molecules(args.molecules) == list(ARGHEL.molecules)
 
-    # every molecule-taking driver wires that one helper (no private default)
+    # every molecule-taking driver wires the shared helpers (no private default)
     for drv in (run_dft, run_fukui, run_mc, run_md, run_pka):
         assert drv.add_molecules_arg is _cli.add_molecules_arg
-    assert make_report.ORDER == list(ARGHEL.molecules)
+    for drv in (run_dft, run_fukui, run_mc, run_md, run_pka,
+                make_report, make_figures, compare_geometry):
+        assert drv.resolve_case is _cli.resolve_case

@@ -23,14 +23,11 @@ import pandas as pd
 from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.adsorption.md import run_md
-from corrosim.presets import ARGHEL
 from corrosim.qm.fukui import FukuiResult
 from corrosim.report import figures
 from corrosim.report.report_layout import figure_path
-from corrosim.runs._cli import read_json
+from corrosim.runs._cli import add_case_arg, read_json, resolve_case
 from corrosim.runs._cli import stderr_log as log
-
-ORDER = ARGHEL.molecule_list()
 
 
 def _fukui_from_json(path):
@@ -57,6 +54,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success).
     """
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
+    add_case_arg(p)
     p.add_argument("--outdir", default="report/figures")
     p.add_argument("--datadir", default="results",
                    help="Where the descriptor/Fukui data live.")
@@ -65,6 +63,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--steps-mc", type=int, default=5000)
     p.add_argument("--steps-md", type=int, default=6000)
     args = p.parse_args(argv)
+    case = resolve_case(args)
+    order = case.molecule_list()
     os.makedirs(args.outdir, exist_ok=True)
 
     def out(f):
@@ -74,15 +74,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return path
 
     log("Fig 1: structures")
-    figures.plot_structures(ORDER, out=out("fig1_structures.png"))
+    figures.plot_structures(order, out=out("fig1_structures.png"))
 
     if os.path.exists(f"{args.datadir}/dft_descriptors_ff.csv"):
         log("Fig 2/3: FMO energy diagram, descriptors, protonation effect")
         df = pd.read_csv(f"{args.datadir}/dft_descriptors_ff.csv")
         naq = (df[(df.form == "neutral") & (df.phase == "aqueous")]
-               .set_index("name").loc[ORDER].reset_index())
+               .set_index("name").loc[order].reset_index())
         rows = naq.to_dict("records")
-        figures.plot_mo_energy_diagram(rows, metal=ARGHEL.metal,
+        figures.plot_mo_energy_diagram(rows, metal=case.metal,
                                        out=out("fig2_mo_diagram.png"))
         figures.plot_descriptor_comparison(rows,
                                            out=out("fig3_descriptors.png"))
@@ -91,14 +91,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         opt_csv = f"{args.datadir}/dft_descriptors_opt.csv"
         if os.path.exists(opt_csv):
             figures.plot_protonation_effect(
-                pd.read_csv(opt_csv), ORDER, out=out("fig3b_protonation.png"),
+                pd.read_csv(opt_csv), order, out=out("fig3b_protonation.png"),
                 geometry_label="DFT-optimised, B3LYP/6-311++G(d,p)")
         else:
             figures.plot_protonation_effect(
-                df, ORDER, out=out("fig3b_protonation.png"))
+                df, order, out=out("fig3b_protonation.png"))
 
     log("Fig 4: Fukui maps")
-    for name in ORDER:
+    for name in order:
         jf = f"{args.datadir}/{name}_fukui.json"
         if os.path.exists(jf):
             figures.plot_fukui(
@@ -107,17 +107,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 title=f"{name} — condensed Fukui (B3LYP/6-31G(d))")
 
     log("Fig 5/6: MC pose + annealing, MD RDF (re-running)")
-    for name in ORDER:
+    for name in order:
         m = build_molecule(name)
-        mc = run_mc(m, metal=ARGHEL.metal_element, n_steps=args.steps_mc)
+        mc = run_mc(m, metal=case.metal_element, n_steps=args.steps_mc)
         figures.plot_adsorption_pose(mc, out=out(f"fig5_{name}_mc_pose.png"))
         figures.plot_mc_energy(mc, out=out(f"fig5_{name}_mc_energy.png"))
-        md = run_md(m, metal=ARGHEL.metal_element, n_steps=args.steps_md,
+        md = run_md(m, metal=case.metal_element, n_steps=args.steps_md,
                     start_positions=mc.best_positions)
         figures.plot_rdf(md, out=out(f"fig6_{name}_rdf.png"))
 
     log("Fig 2b: HOMO/LUMO isosurfaces (from existing cubes)")
-    for name in ORDER:
+    for name in order:
         for which in ("homo", "lumo"):
             cube = f"{args.cubedir}/{name}_{which}.cube"
             if os.path.exists(cube):
@@ -126,7 +126,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     title=f"{name} {which.upper()}")
 
     log("Fig 7: ESP / MEP maps (from existing density+esp cubes)")
-    for name in ORDER:
+    for name in order:
         dens = f"{args.cubedir}/{name}_density.cube"
         esp = f"{args.cubedir}/{name}_esp.cube"
         if os.path.exists(dens) and os.path.exists(esp):

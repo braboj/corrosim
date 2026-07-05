@@ -52,7 +52,6 @@ from corrosim.molecules import (
     enumerate_protonation_sites,
     write_xyz,
 )
-from corrosim.presets import ARGHEL
 from corrosim.qm.engines import (
     min_check_fields,
     optimize_geometry,
@@ -61,9 +60,11 @@ from corrosim.qm.engines import (
     thermo_correction,
 )
 from corrosim.runs._cli import (
+    add_case_arg,
     add_molecules_arg,
     parse_molecules,
     print_table,
+    resolve_case,
     write_json,
 )
 
@@ -218,10 +219,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         description="Production DFT descriptor matrix (M1).",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     add_molecules_arg(p)
+    add_case_arg(p)
     p.add_argument("--engine", default="pyscf",
                    choices=["pyscf", "xtb", "orca", "gaussian"])
-    p.add_argument("--metal", default=ARGHEL.metal)
-    p.add_argument("--medium", default=ARGHEL.medium,
+    p.add_argument("--metal", default=None)
+    p.add_argument("--medium", default=None,
                    help="Medium label (e.g. '1 M HCl'); checked against "
                         "--forms to flag a protonation/medium mismatch.")
     p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
@@ -270,6 +272,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--out-csv", default=None,
                    help="Also write the table to CSV.")
     args = p.parse_args(argv)
+    resolve_case(args, metal="label")
 
     molecules = parse_molecules(args.molecules)
     forms = "neutral" if args.no_protonated else args.forms

@@ -22,12 +22,14 @@ import matplotlib
 matplotlib.use("Agg")
 import pandas as pd
 
-from corrosim.presets import ARGHEL
 from corrosim.report import figures
+from corrosim.runs._cli import (
+    add_case_arg,
+    resolve_case,
+    strip_protonation_suffix,
+)
 from corrosim.runs._cli import stderr_log as log
-from corrosim.runs._cli import strip_protonation_suffix
 
-ORDER = ARGHEL.molecule_list()
 KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]
 
 
@@ -42,14 +44,15 @@ def _select(df, order, form, phase):
     return sub.set_index("_base").loc[present]
 
 
-def _compare_form(ff_full, opt_full, form, phase):
+def _compare_form(ff_full, opt_full, form, phase, order):
     """Build the FF-vs-opt delta table and gap/ΔN ranking check for a ``form``.
     Returns (comp_rows, order, ranking_summary_str) or (None, [], msg) if the
-    form is absent from either matrix.
+    form is absent from either matrix. ``order`` is the case-study molecule
+    order to report in.
     """
-    f = _select(ff_full, ORDER, form, phase)
-    o = _select(opt_full, ORDER, form, phase)
-    order = [n for n in ORDER if n in f.index and n in o.index]
+    f = _select(ff_full, order, form, phase)
+    o = _select(opt_full, order, form, phase)
+    order = [n for n in order if n in f.index and n in o.index]
     if not order:
         return None, [], f"  (no {form} rows in both matrices — skipped)"
     f, o = f.loc[order], o.loc[order]
@@ -91,6 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success).
     """
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
+    add_case_arg(p)
     p.add_argument("--ff", default="results/dft_descriptors_ff.csv",
                    help="Force-field-geometry descriptor matrix.")
     p.add_argument("--opt", default="results/dft_descriptors_opt.csv",
@@ -100,13 +104,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--out-fig",
                    default="report/figures/fig8_geometry_comparison.png")
     args = p.parse_args(argv)
+    case_order = resolve_case(args).molecule_list()
 
     ff_full, opt_full = pd.read_csv(args.ff), pd.read_csv(args.opt)
 
     all_rows, neutral_order = [], []
     for form in ("neutral", "protonated"):
         comp_rows, order, summary = _compare_form(
-            ff_full, opt_full, form, args.phase)
+            ff_full, opt_full, form, args.phase, case_order)
         print(summary)
         if comp_rows:
             all_rows += comp_rows

@@ -23,13 +23,15 @@ import pandas as pd
 
 from corrosim import report
 from corrosim.medium import parse_medium
-from corrosim.presets import ARGHEL
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
-from corrosim.runs._cli import read_json, strip_protonation_suffix
+from corrosim.runs._cli import (
+    add_case_arg,
+    read_json,
+    resolve_case,
+    strip_protonation_suffix,
+)
 from corrosim.runs._cli import stderr_log as log
-
-ORDER = ARGHEL.molecule_list()
 
 
 def _load_json(path: str):
@@ -46,6 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success; 1 if descriptors are missing).
     """
     p = argparse.ArgumentParser(prog="corrosim-make-report")
+    add_case_arg(p)
     p.add_argument("--descriptors", default="results/dft_descriptors_ff.csv")
     p.add_argument("--opt-descriptors",
                    default="results/dft_descriptors_opt.csv",
@@ -67,9 +70,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--tablesdir", default="report/tables",
                    help="Copy the report's source CSV/JSON tables here for the "
                         "bundle (nested into per-stage subfolders).")
-    p.add_argument("--metal", default=ARGHEL.metal)
-    p.add_argument("--medium", default=ARGHEL.medium)
+    p.add_argument("--metal", default=None)
+    p.add_argument("--medium", default=None)
     args = p.parse_args(argv)
+    order = resolve_case(args, metal="label").molecule_list()
 
     if not os.path.exists(args.descriptors):
         log(f"error: {args.descriptors} not found — run run_dft first.")
@@ -77,7 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     df = pd.read_csv(args.descriptors)
     naq = df[(df.form == "neutral") & (df.phase == "aqueous")]
-    present = [n for n in ORDER if n in set(naq["name"])]
+    present = [n for n in order if n in set(naq["name"])]
     rows = naq.set_index("name").loc[present].reset_index().to_dict("records")
 
     # In an acidic medium the inhibitor protonates; surface the cation
@@ -128,7 +132,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if os.path.exists(args.opt_descriptors):
         odf = pd.read_csv(args.opt_descriptors)
         on = odf[(odf.form == "neutral") & (odf.phase == "aqueous")]
-        on_present = [n for n in ORDER if n in set(on["name"])]
+        on_present = [n for n in order if n in set(on["name"])]
         opt_neutral_rows = (on.set_index("name").loc[on_present].reset_index()
                             .to_dict("records") or None)
         if spec.acidic:
