@@ -35,8 +35,20 @@ METAL_LATTICE = {
     "Al": ("fcc", 4.0495),
 }
 
-# Conventional inhibitor-study facet per metal (what build_slab produces).
-SURFACE_FACET = {"Fe": "(110)", "Cu": "(111)", "Al": "(111)"}
+# The ASE builder and its conventional inhibitor-study facet label, per crystal
+# type — a single table so build_slab and SURFACE_FACET can never disagree on
+# which surface is produced. Add a crystal here to support a new lattice.
+CRYSTAL_BUILDER = {
+    "bcc": (bcc110, "(110)"),
+    "fcc": (fcc111, "(111)"),
+}
+
+# Conventional inhibitor-study facet per metal, derived from the crystal so the
+# label cannot drift from what build_slab actually builds.
+SURFACE_FACET = {
+    metal: CRYSTAL_BUILDER[crystal][1]
+    for metal, (crystal, _a) in METAL_LATTICE.items()
+}
 
 # UFF nonbonded parameters (Rappe et al. 1992):
 # element -> (x_vdw [A], D [kcal/mol]).
@@ -60,13 +72,30 @@ EV_TO_KJMOL = 96.485
 MIN_PAIR_DISTANCE_A = 0.3
 
 
+def _metal_element(metal: str) -> str:
+    """Bare element symbol from a possibly facet-qualified metal string.
+
+    ``"Fe(110)" -> "Fe"``; a bare ``"Fe"`` is returned unchanged. Lets
+    build_slab accept either the canonical pipeline metal (facet-qualified) or
+    the plain element, making that contract explicit rather than implicit.
+
+    Args:
+        metal: A metal symbol, optionally facet-qualified (e.g. 'Fe(110)').
+
+    Returns:
+        The element symbol (the part before any '(').
+    """
+    return metal.split("(")[0].strip()
+
+
 def build_slab(metal: str = "Fe",
                size: tuple[int, int, int] = (6, 6, 4),
                vacuum: float = 15.0) -> Atoms:
     """Build a periodic metal slab with the conventional inhibitor facet.
 
     Args:
-        metal: Metal symbol; one of :data:`METAL_LATTICE` (Fe/Cu/Al).
+        metal: Metal symbol, bare ('Fe') or facet-qualified ('Fe(110)'); the
+            element must be one of :data:`METAL_LATTICE` (Fe/Cu/Al).
         size: Slab repetitions ``(nx, ny, layers)``.
         vacuum: Vacuum padding added along z (Å).
 
@@ -74,19 +103,15 @@ def build_slab(metal: str = "Fe",
         The periodic ASE slab — bcc(110) for Fe, fcc(111) for Cu/Al.
 
     Raises:
-        ValueError: If ``metal`` has no lattice entry.
+        ValueError: If the metal element has no lattice entry.
     """
-    if metal not in METAL_LATTICE:
+    element = _metal_element(metal)
+    if element not in METAL_LATTICE:
         raise ValueError(
             f"Unknown metal '{metal}'. Known: {list(METAL_LATTICE)}")
-    crystal, a = METAL_LATTICE[metal]
-    if crystal == "bcc":
-        # Fe -> (110)
-        slab = bcc110(metal, size=size, a=a, vacuum=vacuum)
-    else:
-        # Cu, Al -> (111)
-        slab = fcc111(metal, size=size, a=a, vacuum=vacuum)
-    return slab
+    crystal, a = METAL_LATTICE[element]
+    builder, _facet = CRYSTAL_BUILDER[crystal]
+    return builder(element, size=size, a=a, vacuum=vacuum)
 
 
 def orient_flat(coords: npt.ArrayLike) -> np.ndarray:

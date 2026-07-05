@@ -62,6 +62,27 @@ def test_uff_vdw_forces_match_energy_and_finite_difference():
             assert np.isclose(f[i, k], -de, rtol=1e-5, atol=1e-10)
 
 
+def test_surface_facet_is_derived_from_the_crystal_table():
+    # SURFACE_FACET is single-sourced from METAL_LATTICE + CRYSTAL_BUILDER, so
+    # every metal's label matches the facet its builder actually produces
+    for metal, (crystal, _a) in surface.METAL_LATTICE.items():
+        assert surface.SURFACE_FACET[metal] == \
+            surface.CRYSTAL_BUILDER[crystal][1]
+
+
+def test_build_slab_accepts_facet_qualified_metal():
+    # the canonical pipeline metal "Fe(110)" builds the same slab as bare "Fe"
+    bare = surface.build_slab("Fe", size=(4, 4, 2))
+    qualified = surface.build_slab("Fe(110)", size=(4, 4, 2))
+    assert bare.get_chemical_symbols() == qualified.get_chemical_symbols()
+    assert np.allclose(bare.get_positions(), qualified.get_positions())
+
+
+def test_build_slab_unknown_metal_reports_the_input():
+    with pytest.raises(ValueError, match=r"Xx\(999\)"):
+        surface.build_slab("Xx(999)")
+
+
 def test_initial_adsorption_pose_centers_and_lifts():
     slab = surface.build_slab("Fe", size=(4, 4, 2))
     cell = slab.get_cell()
