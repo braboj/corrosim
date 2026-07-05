@@ -23,6 +23,19 @@ Coords = Sequence[Sequence[float]]
 HARTREE_TO_EV = 27.211386245988
 ANG_TO_BOHR = 1.8897259886
 
+# ddCOSMO's built-in water dielectric; set explicitly so a solvent change is
+# visible at the call site rather than buried in a PySCF default.
+WATER_EPS = 78.3553
+
+# An orbital counts as occupied above this occupation number — 0.5 cleanly
+# splits filled (~2 e-) from empty for both the xTB and ORCA outputs.
+OCCUPIED_MIN = 0.5
+
+# PySCF encodes an imaginary vibrational mode as a negative real part or a
+# non-zero imaginary part; this tolerance rejects the numerical-noise imaginary
+# component of a genuine real mode.
+IMAG_FREQ_TOL = 1e-6
+
 # How relax_to_minimum drives a floppy geometry to a verified minimum: a finer
 # DFT integration grid (level 4) plus imaginary-mode-displaced restarts. Named
 # once so both drivers' geometry-provenance strings stay in step.
@@ -52,6 +65,44 @@ class EngineResult:
         return self.lumo_ev - self.homo_ev
 
 
+# --- Shared PySCF / thermochemistry helpers -------------------------------
+
+def _build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
+               charge: int, solvent: str | None,
+               grid_level: int | None = None) -> Any:
+    """Configure an unkerneled PySCF RKS mean field (grid + ddCOSMO)."""
+    from pyscf import dft, gto
+    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                basis=basis, charge=charge, verbose=0)
+    mf = dft.RKS(mol)
+    mf.xc = xc
+    if grid_level is not None:
+        # set on the base RKS, before any solvent wrap
+        mf.grids.level = grid_level
+    if solvent:
+        from pyscf import solvent as pyscf_solvent  # noqa: F401
+        mf = mf.ddCOSMO()
+        # ddCOSMO default eps is water already; set it explicitly
+        mf.with_solvent.eps = WATER_EPS
+    return mf
+
+
+def _level_label(xc: str, basis: str, solvent: str | None) -> str:
+    """Human-readable 'XC/BASIS (solvent)' level-of-theory descriptor."""
+    return (f"{xc.upper()}/{basis}"
+            + (f" (ddCOSMO:{solvent})" if solvent else " (gas)"))
+
+
+def _imaginary_mask(freq_cm: np.ndarray) -> np.ndarray:
+    """Boolean mask of imaginary vibrational modes in a frequency array.
+
+    PySCF encodes an imaginary mode as a negative real part or a non-zero
+    imaginary part; both are flagged while a real mode's numerical noise is not.
+    """
+    fw = np.asarray(freq_cm)
+    return (fw.real < 0) | (np.abs(fw.imag) > IMAG_FREQ_TOL)
+
+
 def run_xtb(symbols: Sequence[str], coords: Coords,
             charge: int = 0) -> EngineResult:
     """GFN2-xTB single point.
@@ -75,7 +126,7 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
     orb = np.asarray(res.get("orbital-energies"))
     occ = np.asarray(res.get("orbital-occupations"))
     e_total = float(res.get("energy"))
-    homo_i = np.where(occ > 0.5)[0].max()
+    homo_i = np.where(occ > OCCUPIED_MIN)[0].max()
     homo = orb[homo_i]
     lumo = orb[homo_i + 1]
     # tblite exposes Mulliken charges for GFN2-xTB; guard only the narrow case
@@ -117,16 +168,7 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
     Returns:
         The single-point :class:`EngineResult`.
     """
-    from pyscf import dft, gto
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    if solvent:
-        from pyscf import solvent as pyscf_solvent  # noqa: F401
-        mf = mf.ddCOSMO()
-        # ddCOSMO default eps is water already; set it explicitly
-        mf.with_solvent.eps = 78.3553
+    mf = _build_rks(symbols, coords, basis, xc, charge, solvent)
     e_total = mf.kernel()
     occ = mf.mo_occ
     mo = mf.mo_energy
@@ -139,8 +181,7 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
         charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
     except (IndexError, TypeError, ValueError):
         charges = None
-    level = (f"{xc.upper()}/{basis}"
-             + (f" (ddCOSMO:{solvent})" if solvent else " (gas)"))
+    level = _level_label(xc, basis, solvent)
     return EngineResult("pyscf", level,
                         float(e_total) * HARTREE_TO_EV,
                         float(homo) * HARTREE_TO_EV,
@@ -179,19 +220,9 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords,
         ``(symbols, coords_angstrom)`` for the relaxed structure; atom order
         is preserved.
     """
-    from pyscf import dft, gto
     from pyscf.geomopt.geometric_solver import optimize
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    if grid_level is not None:
-        # set on the base RKS, before any solvent wrap
-        mf.grids.level = grid_level
-    if solvent:
-        from pyscf import solvent as pyscf_solvent  # noqa: F401
-        mf = mf.ddCOSMO()
-        mf.with_solvent.eps = 78.3553
+    mf = _build_rks(symbols, coords, basis, xc, charge, solvent,
+                    grid_level=grid_level)
     conv = {"convergence_set": convergence_set} if convergence_set else {}
     mol_eq = optimize(mf, maxsteps=maxsteps, **conv)
     opt_symbols = [mol_eq.atom_symbol(i) for i in range(mol_eq.natm)]
@@ -233,31 +264,19 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
         the correction is unreliable and the caller should re-optimise;
         ``freq_cm`` / ``norm_mode`` let a caller step off a saddle.
     """
-    from pyscf import dft, gto
     from pyscf.hessian import thermo
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
-    mf.xc = xc
-    if grid_level is not None:
-        # set on the base RKS, before any solvent wrap
-        mf.grids.level = grid_level
-    if solvent:
-        from pyscf import solvent as pyscf_solvent  # noqa: F401
-        mf = mf.ddCOSMO()
-        mf.with_solvent.eps = 78.3553
+    mf = _build_rks(symbols, coords, basis, xc, charge, solvent,
+                    grid_level=grid_level)
     e_elec = mf.kernel()
     hess = mf.Hessian().kernel()
-    ha = thermo.harmonic_analysis(mol, hess)
+    ha = thermo.harmonic_analysis(mf.mol, hess)
     fw = np.asarray(ha["freq_wavenumber"])
-    # imaginary modes surface as a negative real part or a non-zero imaginary
-    n_imag = int(np.sum((fw.real < 0) | (np.abs(fw.imag) > 1e-6)))
+    n_imag = int(np.sum(_imaginary_mask(fw)))
     info = thermo.thermo(mf, ha["freq_au"], temperature, pressure)
     # total Gibbs (Hartree), incl. E_elec
     g_tot = float(info["G_tot"][0])
     zpe = float(info["ZPE"][0])
-    level = (f"{xc.upper()}/{basis}"
-             + (f" (ddCOSMO:{solvent})" if solvent else " (gas)"))
+    level = _level_label(xc, basis, solvent)
     return {
         "g_corr_ev": (g_tot - float(e_elec)) * HARTREE_TO_EV,
         "zpe_ev": zpe * HARTREE_TO_EV,
@@ -289,7 +308,7 @@ def imaginary_mode(freq_cm: np.ndarray,
     """
     fw = np.asarray(freq_cm)
     nm = np.asarray(norm_mode)
-    imag = np.where((fw.real < 0) | (np.abs(fw.imag) > 1e-6))[0]
+    imag = np.where(_imaginary_mask(fw))[0]
     if imag.size == 0:
         return None
     # softest = most-negative frequency
@@ -398,11 +417,9 @@ def min_check_fields(thermo: dict | None) -> dict:
     if not thermo:
         return {}
     fw = np.asarray(thermo["freq_cm"])
-    # PySCF encodes an imaginary mode as a negative real OR a non-zero
-    # imaginary part; report a signed wavenumber (negative = imaginary) so the
-    # softest mode ranks correctly and agrees with n_imag, matching the
-    # convention in imaginary_mode().
-    imag = (fw.real < 0) | (np.abs(fw.imag) > 1e-6)
+    imag = _imaginary_mask(fw)
+    # report a signed wavenumber (negative = imaginary) so the softest mode
+    # ranks correctly and agrees with n_imag and imaginary_mode()
     signed = np.where(imag, -np.abs(fw), fw.real)
     return {
         "n_imag": int(thermo["n_imag"]),
@@ -446,6 +463,35 @@ def run_engine(symbols: Sequence[str], coords: Coords, engine: str = "xtb",
 # executable via orca_cmd / gaussian_cmd or the ORCA_CMD / GAUSSIAN_CMD env
 # vars.
 
+def _xyz_block(symbols: Sequence[str], coords: Coords) -> list[str]:
+    """Aligned 'element x y z' geometry lines (Angstrom) for an input deck."""
+    return [f" {s:2s} {x:16.8f} {y:16.8f} {z:16.8f}"
+            for s, (x, y, z) in zip(symbols, coords)]
+
+
+def _run_external_engine(cmd: str, prefix: str, in_ext: str, out_ext: str,
+                         deck: str, workdir: str | None = None) -> str:
+    """Write a deck, run a local QM binary, and return its output text.
+
+    Shared by run_orca / run_gaussian: resolve a scratch dir, write the input
+    deck, run the fixed-argv (no-shell) binary, and read the log back.
+    """
+    import os
+    import subprocess  # nosec B404
+    import tempfile
+    workdir = workdir or tempfile.mkdtemp(prefix=prefix)
+    inp = os.path.join(workdir, f"job.{in_ext}")
+    out = os.path.join(workdir, f"job.{out_ext}")
+    with open(inp, "w") as f:
+        f.write(deck)
+    with open(out, "w") as f:
+        # fixed argv (QM binary + generated input); no shell, no untrusted input
+        subprocess.run([cmd, inp], stdout=f,  # nosec B603
+                       stderr=subprocess.STDOUT, check=True)
+    with open(out) as f:
+        return f.read()
+
+
 def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str,
                      charge: int = 0, mult: int = 1,
                      solvent: str | None = "water", nprocs: int = 4) -> str:
@@ -469,8 +515,7 @@ def write_orca_input(symbols: Sequence[str], coords: Coords, keywords: str,
     if nprocs > 1:
         lines += ["%pal", f"  nprocs {nprocs}", "end"]
     lines.append(f"* xyz {charge} {mult}")
-    for s, (x, y, z) in zip(symbols, coords):
-        lines.append(f" {s:2s} {x:16.8f} {y:16.8f} {z:16.8f}")
+    lines += _xyz_block(symbols, coords)
     lines.append("*")
     return "\n".join(lines) + "\n"
 
@@ -489,25 +534,26 @@ def parse_orca_output(text: str) -> tuple[float, float]:
     """
     lines = text.splitlines()
     try:
-        i = next(k for k, l in enumerate(lines) if "ORBITAL ENERGIES" in l)
+        i = next(k for k, line in enumerate(lines)
+                 if "ORBITAL ENERGIES" in line)
     except StopIteration:
         raise ValueError("No 'ORBITAL ENERGIES' section found in ORCA output.")
-    occ, ev = [], []
-    for l in lines[i:]:
-        p = l.split()
-        if len(p) >= 4 and p[0].isdigit():
+    occ, energies_ev = [], []
+    for line in lines[i:]:
+        cols = line.split()
+        if len(cols) >= 4 and cols[0].isdigit():
             try:
                 # occupation in col 2, E(eV) in col 4
-                occ.append(float(p[1]))
-                ev.append(float(p[3]))
+                occ.append(float(cols[1]))
+                energies_ev.append(float(cols[3]))
             except ValueError:
                 continue
-        elif ev and not p:
+        elif energies_ev and not cols:
             break
-    if not ev:
+    if not energies_ev:
         raise ValueError("Could not parse orbital energies from ORCA output.")
-    homo_i = max(k for k, o in enumerate(occ) if o > 0.5)
-    return ev[homo_i], ev[homo_i + 1]
+    homo_i = max(k for k, occ_val in enumerate(occ) if occ_val > OCCUPIED_MIN)
+    return energies_ev[homo_i], energies_ev[homo_i + 1]
 
 
 def run_orca(symbols: Sequence[str], coords: Coords,
@@ -532,20 +578,11 @@ def run_orca(symbols: Sequence[str], coords: Coords,
         The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
     """
     import os
-    import subprocess  # nosec B404
-    import tempfile
     orca_cmd = orca_cmd or os.environ.get("ORCA_CMD", "orca")
-    workdir = workdir or tempfile.mkdtemp(prefix="orca_")
-    inp = os.path.join(workdir, "job.inp")
-    out = os.path.join(workdir, "job.out")
-    with open(inp, "w") as f:
-        f.write(write_orca_input(symbols, coords, keywords, charge, mult,
-                                 solvent, nprocs))
-    with open(out, "w") as f:
-        # fixed argv (QM binary + generated input); no shell, no untrusted input
-        subprocess.run([orca_cmd, inp], stdout=f,  # nosec B603
-                       stderr=subprocess.STDOUT, check=True)
-    homo, lumo = parse_orca_output(open(out).read())
+    deck = write_orca_input(symbols, coords, keywords, charge, mult,
+                            solvent, nprocs)
+    text = _run_external_engine(orca_cmd, "orca_", "inp", "out", deck, workdir)
+    homo, lumo = parse_orca_output(text)
     level = f"{keywords}" + (f" CPCM({solvent})" if solvent else "")
     return EngineResult("orca", level, float("nan"), homo, lumo)
 
@@ -574,8 +611,7 @@ def write_gaussian_input(symbols: Sequence[str], coords: Coords, route: str,
         r += f" SCRF=(PCM,solvent={solvent})"
     head = [f"%nprocshared={nprocs}", f"%mem={mem}", f"# {r}", "",
             "corrosim job", "", f"{charge} {mult}"]
-    body = [f" {s:2s} {x:16.8f} {y:16.8f} {z:16.8f}"
-            for s, (x, y, z) in zip(symbols, coords)]
+    body = _xyz_block(symbols, coords)
     return "\n".join(head + body) + "\n\n"
 
 
@@ -592,11 +628,11 @@ def parse_gaussian_output(text: str) -> tuple[float, float]:
         ValueError: If the Alpha occ./virt. eigenvalue lines are missing.
     """
     occ, virt = [], []
-    for l in text.splitlines():
-        if "Alpha  occ. eigenvalues" in l:
-            occ += [float(v) for v in l.split("--")[1].split()]
-        elif "Alpha virt. eigenvalues" in l:
-            virt += [float(v) for v in l.split("--")[1].split()]
+    for line in text.splitlines():
+        if "Alpha  occ. eigenvalues" in line:
+            occ += [float(v) for v in line.split("--")[1].split()]
+        elif "Alpha virt. eigenvalues" in line:
+            virt += [float(v) for v in line.split("--")[1].split()]
     if not occ or not virt:
         raise ValueError(
             "Could not find Alpha occ./virt. eigenvalues in Gaussian log.")
@@ -627,19 +663,11 @@ def run_gaussian(symbols: Sequence[str], coords: Coords,
         The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
     """
     import os
-    import subprocess  # nosec B404
-    import tempfile
     gaussian_cmd = gaussian_cmd or os.environ.get("GAUSSIAN_CMD", "g16")
-    workdir = workdir or tempfile.mkdtemp(prefix="g16_")
-    gjf = os.path.join(workdir, "job.gjf")
-    log = os.path.join(workdir, "job.log")
-    with open(gjf, "w") as f:
-        f.write(write_gaussian_input(symbols, coords, route, charge, mult,
-                                     solvent, nprocs, mem))
-    with open(log, "w") as f:
-        # fixed argv (QM binary + generated input); no shell, no untrusted input
-        subprocess.run([gaussian_cmd, gjf], stdout=f,  # nosec B603
-                       stderr=subprocess.STDOUT, check=True)
-    homo, lumo = parse_gaussian_output(open(log).read())
+    deck = write_gaussian_input(symbols, coords, route, charge, mult,
+                                solvent, nprocs, mem)
+    text = _run_external_engine(gaussian_cmd, "g16_", "gjf", "log", deck,
+                                workdir)
+    homo, lumo = parse_gaussian_output(text)
     level = route + (f" PCM({solvent})" if solvent else "")
     return EngineResult("gaussian", level, float("nan"), homo, lumo)
