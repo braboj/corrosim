@@ -52,15 +52,5 @@
         "complexity": 18
       }
     ]
-  },
-  {
-    "path": "corrosim/runs/make_report.py",
-    "file_name": "make_report.py",
-    "functions": [
-      {
-        "name": "main",
-        "complexity": 38
-      }
-    ]
   }
 ]
