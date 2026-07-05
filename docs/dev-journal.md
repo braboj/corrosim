@@ -798,4 +798,82 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   release tag post-#67. Cosmetic loose end unchanged: #66–#68 still cite retired
   epic #65.
 
+## 2026-07-05 (session 3) — #70 per-module sweep completed; epics #69/#70 closed
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** finish the #70 per-module refactor sequence from session 2's
+  Pending, then close the standards/refactor epics.
+- **Landed (9 PRs, all squash-merged to `main`, each behaviour-preserving and
+  verified byte-identical against a captured golden):**
+  - **#61 / PR #108** — engines.py: extracted `build_rks` (promoted from a
+    private helper to the public shared-SCF home, per the #57 precedent) +
+    `_level_label`/`_imaginary_mask`/`_xyz_block`/`_run_external_engine`;
+    named `WATER_EPS`/`IMAG_FREQ_TOL`/`OCCUPIED_MIN`; fixed both
+    `open(out).read()` handle leaks; +4 QM-light tests (writers/parsers).
+  - **#60 / PR #111** — figures.py: `_cube_scf` (delegates to `build_rks`,
+    killed the 4th `78.3553`), `_read_cube_grid`/`_draw_bonds`/`_style_3d_axes`
+    (`BOND_CUTOFF_ANG`)/`_atom_index_structure`; `render_orbital` **17 → gate**;
+    +1 synthetic-cube test.
+  - **#55 / PR #112** — md.py: decomposed `run_md` (cc **24**) into
+    `_langevin_step`/`_confine_z`/`_closest_contact_hist`/`_first_peak` (rng
+    order preserved); named `_MAX_DRIFT`/`_RDF_MAX_A`/`_RDF_BIN_WIDTH_A`;
+    removed the 4 dead `*_Fe*` back-compat aliases + their assertions.
+  - **#58 / PR #113** — fukui.py: extracted `_mulliken_charges` (unwound the
+    `_scf(...)[1].mulliken_pop()[1]` chain); `c`→`mo_coeff`/`coords`;
+    charge-sign comment; new `tests/test_fukui.py` (first offline dispatch
+    coverage, SCF mocked).
+  - **#48 / PR #114** — surface.py: `CRYSTAL_BUILDER` single-sources the facet
+    (SURFACE_FACET derived); `_metal_element` lets `build_slab` accept the
+    canonical `"Fe(110)"`; +3 tests.
+  - **#102 / PR #115** — cli.py: decomposed `read_input_csv` (cc **31**, the
+    worst in the tree) into `_nonempty_rows`/`_cell`/`_molecules_from_header`/
+    `_molecules_headerless`; +5 tests over 7 input shapes.
+  - **#103 / PR #116** — report_docx.py: decomposed `build_docx_report`
+    (cc **26**) into 11 `_*_section` builders + `_equation_groups`; dropped the
+    inaccurate `# noqa: C901`; **also dropped `_scientific_basis` (16)** under
+    the gate. Golden = full+minimal docx structure byte-identical.
+  - **#56 / PR #117** — mc.py (polish): named `_STEP_DECAY`/`_ROT_STEP_RAD`/
+    `_TRANS_STEP_A`; `c2`→`trial_com`.
+  - **#59 / PR #118** — report.py (style-only): `rank_inhibitors` cryptic
+    locals + `score/3` → `sum/len(components)`; split `plot_homo_lumo`
+    semicolons; `_number_headings` `c`→`counts`, `m`→`match`.
+- **Complexity ratchet:** over-threshold functions **6 → 1**. The only entry
+  left in `complexipy-snapshot.json` is `make_figures.main` (18), deliberately
+  frozen. Eliminated this session: `read_input_csv` (31), `build_docx_report`
+  (26), `run_md` (24), `render_orbital` (17), `_scientific_basis` (16).
+- **Epics:** closed **#69** (Standards & Foundations — its 5 tickets were done
+  earlier) and **#70** (Per-module refactors — all 11 tickets now landed);
+  updated #70's body with the ticket→PR map. Verified auto-close of every
+  per-module issue.
+- **Verification discipline:** each behavioural refactor gated on a
+  pre-refactor golden (seeded MC/MD run hashes, docx paragraph/table/equation
+  structure, full pipeline HTML, CSV shapes, engine geometry) — all matched
+  post-refactor. Test count **111 → 129** (+18, all QM-light). ruff + mypy +
+  complexipy + pytest green on every merge; `results/` and the `report/` bundle
+  untouched throughout.
+- **Process:** every branch cut from `main`, PR opened, CI watched to green,
+  squash-merged, `main` fast-forwarded — no stacked-PR issues this session.
+- **Readability-rule addendum (PR #120):** a client-driven mc.py readability
+  pass surfaced two new conventions, added to CLAUDE.md §2.2 and applied to
+  `adsorption/mc.py` as the exemplar — **(1) no "Stage 1/2/3" in any docstring
+  or comment** (name the actual work; stage labels rot, already dropped from
+  the reports per ADR 0010), **(2) a module docstring SHOULD carry a small
+  ASCII diagram** when the flow isn't obvious. mc.py gained a stage-free
+  docstring + an ASCII diagram of the annealed Metropolis step; fixed a latent
+  bug folded in from the client edit (`combined` used `Atoms(...)` with only
+  the TYPE_CHECKING import → NameError; runtime import restored); run_mc
+  byte-identical. **Filed #119** for the codebase-wide Stage-N purge (~44
+  mentions across ~16 files, docstrings/comments only — report narrative in
+  `report_content.py` excluded, as rephrasing it changes report output).
+- **Pending:** the entire standards + per-module refactor program is done and
+  the ratchet is effectively cleared. Next up: **#119** (deferred this session)
+  — purge the remaining ~44 "Stage 1/2/3" docstring/comment mentions
+  codebase-wide (behaviour-preserving; verify report goldens). Then feature
+  scope: **#72** Generalization & Validation (P-next candidate — #53 per-paper
+  validation presets ties into the approved Arghel/Mohammed 2014 source; #54
+  data-driven library), **#71** Deployment (#66 Colab / #67 GHCR+PyPI / #68
+  Pages), **#40** chemisorption E_ads, **#109/#110** report/pipeline docs
+  restructure. First release tag is gated on #67. Cosmetic loose end unchanged:
+  #66–#68 still cite retired epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
