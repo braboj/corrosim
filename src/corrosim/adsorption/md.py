@@ -66,13 +66,13 @@ class MDResult:
     e_mean_ev: float
     e_mean_kjmol: float
     rdf_r: list[float]
-    # metal–O closest-contact distribution (per-frame nearest O–metal)
+    # Metal–O closest-contact distribution (per-frame nearest O–metal)
     rdf_metal_O: list[float]
-    # metal–N closest-contact distribution (per-frame nearest N–metal)
+    # Metal–N closest-contact distribution (per-frame nearest N–metal)
     rdf_metal_N: list[float]
-    # adsorption distance via the O donors
+    # Adsorption distance via the O donors
     first_peak_metal_O: float | None
-    # adsorption distance via the N donors
+    # Adsorption distance via the N donors
     first_peak_metal_N: float | None
     energies: list[float] = field(repr=False, default_factory=list)
     final_positions: np.ndarray = field(repr=False, default=None)
@@ -341,7 +341,7 @@ class _RdfAccumulator:
         """
         o_idx = [i for i, s in enumerate(mol_symbols) if s == "O"]
         n_idx = [i for i, s in enumerate(mol_symbols) if s == "N"]
-        # the +ε stop keeps the closing 6.0 edge (np.arange excludes the stop)
+        # The +ε stop keeps the closing 6.0 edge (np.arange excludes the stop)
         edges = np.arange(
             0.0, _RDF_MAX_A + _RDF_BIN_WIDTH_A / 10, _RDF_BIN_WIDTH_A
         )
@@ -432,7 +432,7 @@ def run_md(molecule: Molecule, metal: str = "Fe",
     x_mix, D_mix = uff_mixing(mol_symbols, substrate.symbols)
     rdf = _RdfAccumulator.for_donors(mol_symbols, substrate)
 
-    # start pose: caller-supplied, else the flat lifted pose
+    # Start pose: caller-supplied, else the flat lifted pose
     if start_positions is not None:
         pos = np.array(start_positions, float).copy()
     else:

@@ -136,6 +136,10 @@ duplicate.
   on the right (tool directives like `# noqa` excepted); split by complexity,
   not line count; one parameter per line for wrapped signatures (trailing
   comma).
+- Comments are sentence-cased: capitalize the first word (acronyms and proper
+  nouns keep their real case — `UFF`, `Mulliken`, `ddCOSMO`); a terse fragment
+  needs no terminal period. Applies to inline/block comments; docstrings are
+  already full sentences.
 - Comments are self-sufficient — never cite a ticket/PR/ADR *number* in a
   comment (those rot). Scientific-comment exception to "a name that needs a
   comment is wrong": non-obvious physics or derivations MUST carry a short
