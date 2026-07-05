@@ -53,18 +53,24 @@ def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         ``df`` sorted best-first with a ``score`` column (higher = better).
     """
-    d = df.copy()
-    def z(s, invert=False):
-        sd = s.std(ddof=0)
-        if sd == 0:
-            return s * 0
-        zz = (s - s.mean()) / sd
-        return -zz if invert else zz
-    score = (z(d["gap_ev"], invert=True)
-             + z(d["hardness_ev"], invert=True)
-             + z(d["softness_inv_ev"]))
-    d["score"] = (score / 3).round(3)
-    return d.sort_values("score", ascending=False).reset_index(drop=True)
+    ranked = df.copy()
+
+    def zscore(series, invert=False):
+        std = series.std(ddof=0)
+        if std == 0:
+            return series * 0
+        z = (series - series.mean()) / std
+        return -z if invert else z
+
+    # smaller gap + lower hardness + higher softness => stronger inhibition;
+    # the mean of the equally-weighted components keeps score O(1) as they grow
+    components = [
+        zscore(ranked["gap_ev"], invert=True),
+        zscore(ranked["hardness_ev"], invert=True),
+        zscore(ranked["softness_inv_ev"]),
+    ]
+    ranked["score"] = (sum(components) / len(components)).round(3)
+    return ranked.sort_values("score", ascending=False).reset_index(drop=True)
 
 
 def _fig_to_b64(fig) -> str:
@@ -88,8 +94,10 @@ def plot_homo_lumo(df: pd.DataFrame) -> object:
     ax.bar([i - 0.2 for i in x], df["homo_ev"], width=0.4, label="HOMO", color="#2b6cb0")
     ax.bar([i + 0.2 for i in x], df["lumo_ev"], width=0.4, label="LUMO", color="#dd6b20")
     ax.axhline(0, color="grey", lw=0.6)
-    ax.set_xticks(list(x)); ax.set_xticklabels(df["name"], rotation=20, ha="right")
-    ax.set_ylabel("Energy (eV)"); ax.set_title("Frontier orbital energies")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(df["name"], rotation=20, ha="right")
+    ax.set_ylabel("Energy (eV)")
+    ax.set_title("Frontier orbital energies")
     ax.legend()
     return fig
 
@@ -260,17 +268,17 @@ def _number_headings(html: str) -> str:
     headings are left unnumbered. Mirrors report_docx's numbering so the HTML and
     Word reports carry the same section numbers.
     """
-    c = {"h2": 0, "h3": 0}
+    counts = {"h2": 0, "h3": 0}
 
-    def repl(m: re.Match) -> str:
-        tag, inner = m.group(1), m.group(2)
+    def repl(match: re.Match) -> str:
+        tag, inner = match.group(1), match.group(2)
         if tag == "h2":
-            c["h2"] += 1
-            c["h3"] = 0
-            num = f"{c['h2']}. "
+            counts["h2"] += 1
+            counts["h3"] = 0
+            num = f"{counts['h2']}. "
         else:
-            c["h3"] += 1
-            num = f"{c['h2']}.{c['h3']} "
+            counts["h3"] += 1
+            num = f"{counts['h2']}.{counts['h3']} "
         return f"<{tag}>{num}{inner}</{tag}>"
 
     return re.sub(r"<(h2|h3)>(.*?)</\1>", repl, html, flags=re.DOTALL)
