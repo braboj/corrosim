@@ -1,16 +1,27 @@
 """corrosim.mc.
 
-Stage-2 Monte Carlo adsorption: a Metropolis / simulated-annealing pose search
-of a rigid inhibitor over a metal slab, scored with the UFF van-der-Waals
+Monte Carlo adsorption: a Metropolis / simulated-annealing pose search of a
+rigid inhibitor over a metal slab, scored with the UFF van-der-Waals
 interaction (adsorption.py). An open-source analog of the Adsorption-Locator
 step the methodology template uses, replacing the single-orientation height
-scan in `estimate_adsorption_energy` with a real configurational search.
+scan in ``estimate_adsorption_energy`` with a real configurational search.
 
-Still a physisorption proxy (vdW, rigid bodies, no charge transfer). The
-*regime* matches the Arghel experiment (physical adsorption), but the magnitude
-stays conservative; the chemisorption-capable quantitative E_ads is the Stage-3
-MD hand-off. What MC adds over the height scan: full rotational+translational
-sampling, the best pose, and an adsorption-energy distribution.
+Still a physisorption proxy (vdW, rigid bodies, no charge transfer): the
+magnitude stays conservative, and the chemisorption-capable quantitative E_ads
+is reserved for the MD hand-off. What MC adds over the height scan is full
+rotational + translational sampling, the best pose, and an adsorption-energy
+distribution.
+
+One annealed Metropolis step (move sizes shrink as kT cools)::
+
+    current pose --rotate+translate--> trial --confine--> score (UFF vdW)
+        ^                                                     |
+        +------------ accept?  E_trial < E  or ---------------+
+                      random() < exp(-(E_trial - E) / kT)
+
+    confine box:  min_height <= (nearest-atom z - top) <= max_height,
+                  the molecule centroid stays over the slab footprint (x, y).
+    kT anneals geometrically kT_hi -> kT_lo; the lowest-E pose is kept.
 """
 from __future__ import annotations
 
@@ -37,6 +48,7 @@ if TYPE_CHECKING:
 # Starting gap (Å) between the slab top and the molecule's lowest atom; the
 # annealing then samples heights in [min_height, max_height].
 MC_START_HEIGHT_A = 3.0
+
 # Move-size schedule: the trial rotation (rad) and translation (Å) both shrink
 # from these amplitudes as the search cools, by the linear factor
 # (1 - _STEP_DECAY * frac), so late steps refine rather than explore.
@@ -51,15 +63,25 @@ class MCResult:
     (e_ads in eV/kJ·mol⁻¹, height in Å).
     """
 
+    # substrate: metal symbol + the facet label it maps to (via SURFACE_FACET)
     metal: str
     surface: str
+
+    # best-pose energetics + the nearest-atom gap above the slab top
     e_ads_ev: float
     e_ads_kjmol: float
     best_height_A: float
+
+    # best pose: the molecule's element symbols and atom positions (Å)
     mol_symbols: list[str]
     best_positions: np.ndarray
+
+    # heavy artefacts kept for plotting/analysis but out of the repr, so a
+    # printed MCResult does not dump whole coordinate tables
     slab: Atoms = field(repr=False, default=None)
     energies: list[float] = field(repr=False, default_factory=list)
+
+    # search diagnostics
     n_accept: int = 0
     n_steps: int = 0
 
@@ -70,19 +92,29 @@ class MCResult:
         Returns:
             The combined slab+adsorbate cell for plot_adsorption_pose.
         """
+        # Atoms is only imported for typing at module load; import it here for
+        # the runtime construction.
         from ase import Atoms
-        mol = Atoms(symbols=self.mol_symbols, positions=self.best_positions)
-        c = self.slab + mol
-        c.set_cell(self.slab.get_cell())
-        c.set_pbc(self.slab.get_pbc())
-        return c
+        molecule = Atoms(symbols=self.mol_symbols,
+                         positions=self.best_positions)
+        combined = self.slab + molecule
+        combined.set_cell(self.slab.get_cell())
+        combined.set_pbc(self.slab.get_pbc())
+        return combined
 
 
-def run_mc(molecule: Molecule, metal: str = "Fe",
-           size: tuple[int, int, int] = (5, 5, 3), vacuum: float = 10.0,
-           n_steps: int = 4000, seed: int = 0, kT_hi: float = 0.05,
-           kT_lo: float = 0.003, min_height: float = 2.0,
-           max_height: float = 5.0) -> MCResult:
+def run_mc(
+    molecule: Molecule,
+    metal: str = "Fe",
+    size: tuple[int, int, int] = (5, 5, 3),
+    vacuum: float = 10.0,
+    n_steps: int = 4000,
+    seed: int = 0,
+    kT_hi: float = 0.05,
+    kT_lo: float = 0.003,
+    min_height: float = 2.0,
+    max_height: float = 5.0,
+) -> MCResult:
     """Simulated-annealing Monte Carlo search for the lowest-energy pose.
 
     kT is in eV, annealed geometrically from ``kT_hi`` to ``kT_lo``.
@@ -105,13 +137,14 @@ def run_mc(molecule: Molecule, metal: str = "Fe",
     Raises:
         ValueError: If the molecule carries an element with no UFF params.
     """
+    # build the slab and read its top-layer z
     rng = np.random.default_rng(seed)
     slab = build_slab(metal, size=size, vacuum=vacuum)
     s_pos = slab.get_positions()
     cell = slab.get_cell()
     top = s_pos[:, 2].max()
 
-    # UFF pair parameters + the flat starting pose above the slab centre.
+    # UFF pair parameters + the flat starting pose above the slab centre
     m_sym = list(molecule.symbols)
     x_mix, D_mix = uff_mixing(m_sym, slab.get_chemical_symbols())
     pos = initial_adsorption_pose(molecule.coords, cell, top, MC_START_HEIGHT_A)
@@ -121,6 +154,7 @@ def run_mc(molecule: Molecule, metal: str = "Fe",
     n_accept = 0
     com = pos.mean(0)
 
+    # annealed Metropolis search; move sizes shrink as kT cools
     for i in range(n_steps):
         # geometric anneal + shrinking move sizes as the search cools
         frac = i / n_steps
@@ -147,9 +181,15 @@ def run_mc(molecule: Molecule, metal: str = "Fe",
         energies.append(e)
 
     return MCResult(
-        metal=metal, surface=SURFACE_FACET.get(metal, ""),
+        metal=metal,
+        surface=SURFACE_FACET.get(metal, ""),
         e_ads_ev=round(best_e, 4),
         e_ads_kjmol=round(best_e * EV_TO_KJMOL, 2),
         best_height_A=round(float(best_pos[:, 2].min() - top), 2),
-        mol_symbols=m_sym, best_positions=best_pos, slab=slab,
-        energies=energies, n_accept=n_accept, n_steps=n_steps)
+        mol_symbols=m_sym,
+        best_positions=best_pos,
+        slab=slab,
+        energies=energies,
+        n_accept=n_accept,
+        n_steps=n_steps,
+    )
