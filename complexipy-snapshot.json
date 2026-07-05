@@ -1,15 +1,5 @@
 [
   {
-    "path": "corrosim/adsorption/md.py",
-    "file_name": "md.py",
-    "functions": [
-      {
-        "name": "run_md",
-        "complexity": 24
-      }
-    ]
-  },
-  {
     "path": "corrosim/cli.py",
     "file_name": "cli.py",
     "functions": [

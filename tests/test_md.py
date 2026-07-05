@@ -1,5 +1,5 @@
 """Substrate-agnostic Stage-3 MD: the metal threads through to the slab and the
-RDF, and the back-compat Fe-named aliases mirror the generic fields."""
+RDF."""
 from corrosim import build_molecule
 from corrosim.adsorption.md import run_md
 
@@ -12,10 +12,9 @@ def test_md_metal_threads_to_slab_and_rdf():
     assert cu.surface == "(111)"                    # Cu -> fcc(111), not Fe(110)
     assert set(cu.slab.get_chemical_symbols()) == {"Cu"}   # slab really is Cu
 
-    # generic field names are the source of truth; legacy Fe* names alias them
-    assert cu.first_peak_FeO == cu.first_peak_metal_O
-    assert cu.first_peak_FeN == cu.first_peak_metal_N
-    assert cu.rdf_FeO == cu.rdf_metal_O
+    # the metal–O/N contact distributions align with the shared distance grid
+    assert len(cu.rdf_metal_O) == len(cu.rdf_r)
+    assert len(cu.rdf_metal_N) == len(cu.rdf_r)
 
 
 def test_md_surface_differs_by_metal():
