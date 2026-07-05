@@ -1,15 +1,5 @@
 [
   {
-    "path": "corrosim/cli.py",
-    "file_name": "cli.py",
-    "functions": [
-      {
-        "name": "read_input_csv",
-        "complexity": 31
-      }
-    ]
-  },
-  {
     "path": "corrosim/report/report_docx.py",
     "file_name": "report_docx.py",
     "functions": [

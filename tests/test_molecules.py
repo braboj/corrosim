@@ -47,6 +47,38 @@ def test_csv_headerless(tmp_path):
     assert mols == ["kaempferol", "quercetin"]
 
 
+def test_csv_name_only_header(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text("name\nkaempferol\nquercetin\n")
+    assert read_input_csv(str(p)) == ["kaempferol", "quercetin"]
+
+
+def test_csv_smiles_only_header(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text("smiles\nCCO\nc1ccccc1\n")
+    assert read_input_csv(str(p)) == ["CCO", "c1ccccc1"]
+
+
+def test_csv_falls_back_to_name_when_smiles_cell_missing(tmp_path):
+    # a short row (no smiles cell) uses the name; a present smiles wins
+    p = tmp_path / "m.csv"
+    p.write_text("name,smiles\nkaempferol\nquercetin,CCO\n")
+    assert read_input_csv(str(p)) == ["kaempferol", "CCO"]
+
+
+def test_csv_skips_blank_rows(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text("name,smiles\n\nkaempferol,\n , \nquercetin,\n")
+    assert read_input_csv(str(p)) == ["kaempferol", "quercetin"]
+
+
+def test_csv_empty_file_raises(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text("\n \n")
+    with pytest.raises(SystemExit):
+        read_input_csv(str(p))
+
+
 def test_write_xyz_writes_valid_named_block(tmp_path):
     # #36: persist the (would-be DFT-optimised) geometry as a standard XYZ file.
     mol = build_molecule("kaempferol")

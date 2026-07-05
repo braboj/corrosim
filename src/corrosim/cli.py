@@ -25,6 +25,67 @@ import sys
 from collections.abc import Sequence
 
 
+def _nonempty_rows(path: str) -> list[list[str]]:
+    """Read a CSV, keeping only rows with at least one non-blank cell.
+
+    Args:
+        path: Path to the input CSV.
+
+    Returns:
+        The retained rows (each a list of raw cell strings), in file order.
+    """
+    with open(path, newline="") as f:
+        return [r for r in csv.reader(f) if any(c.strip() for c in r)]
+
+
+def _cell(row: list[str], i: int | None) -> str:
+    """A stripped cell value, or '' when the column is absent or out of range.
+
+    Args:
+        row: The CSV row.
+        i: The column index, or None when that column is not present.
+
+    Returns:
+        ``row[i]`` stripped, or '' if ``i`` is None or past the row's end.
+    """
+    if i is None or i >= len(row):
+        return ""
+    return row[i].strip()
+
+
+def _molecules_from_header(rows: list[list[str]],
+                           header: list[str]) -> list[str]:
+    """Molecule values from a headered CSV: prefer 'smiles', else 'name'.
+
+    Args:
+        rows: The non-empty rows, header included at index 0.
+        header: The lower-cased header cells.
+
+    Returns:
+        The non-blank molecule values from the data rows, in file order.
+    """
+    name_i = header.index("name") if "name" in header else None
+    smi_i = header.index("smiles") if "smiles" in header else None
+    out = []
+    for r in rows[1:]:
+        val = _cell(r, smi_i) or _cell(r, name_i)
+        if val:
+            out.append(val)
+    return out
+
+
+def _molecules_headerless(rows: list[list[str]]) -> list[str]:
+    """Molecule values from a headerless CSV: the non-blank first column.
+
+    Args:
+        rows: The non-empty rows.
+
+    Returns:
+        The stripped first-column values, in file order.
+    """
+    return [r[0].strip() for r in rows if r[0].strip()]
+
+
 def read_input_csv(path: str) -> list[str]:
     """Read molecules from a CSV.
 
@@ -40,27 +101,14 @@ def read_input_csv(path: str) -> list[str]:
     Raises:
         SystemExit: If no molecules can be read from ``path``.
     """
-    with open(path, newline="") as f:
-        rows = [r for r in csv.reader(f) if any(c.strip() for c in r)]
+    rows = _nonempty_rows(path)
     if not rows:
         raise SystemExit(f"No molecules found in {path}")
-
     header = [c.strip().lower() for c in rows[0]]
-    out = []
     if "name" in header or "smiles" in header:
-        name_i = header.index("name") if "name" in header else None
-        smi_i = header.index("smiles") if "smiles" in header else None
-        for r in rows[1:]:
-            smi = (r[smi_i].strip()
-                   if smi_i is not None and smi_i < len(r) else "")
-            nm = (r[name_i].strip()
-                  if name_i is not None and name_i < len(r) else "")
-            val = smi or nm
-            if val:
-                out.append(val)
+        out = _molecules_from_header(rows, header)
     else:
-        # headerless: first column is the molecule
-        out = [r[0].strip() for r in rows if r[0].strip()]
+        out = _molecules_headerless(rows)
     if not out:
         raise SystemExit(f"No molecules found in {path}")
     return out
