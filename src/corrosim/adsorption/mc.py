@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
+from ase import Atoms
 
 from .surface import (
     EV_TO_KJMOL,
@@ -41,8 +42,6 @@ from .surface import (
 )
 
 if TYPE_CHECKING:
-    from ase import Atoms
-
     from corrosim.molecules import Molecule
 
 # Starting gap (Å) between the slab top and the molecule's lowest atom; the
@@ -92,15 +91,249 @@ class MCResult:
         Returns:
             The combined slab+adsorbate cell for plot_adsorption_pose.
         """
-        # Atoms is only imported for typing at module load; import it here for
-        # the runtime construction.
-        from ase import Atoms
         molecule = Atoms(symbols=self.mol_symbols,
                          positions=self.best_positions)
         combined = self.slab + molecule
         combined.set_cell(self.slab.get_cell())
         combined.set_pbc(self.slab.get_pbc())
         return combined
+
+    @classmethod
+    def from_search(
+        cls,
+        metal: str,
+        substrate: _Substrate,
+        search: _Search,
+        mol_symbols: list[str],
+        n_steps: int,
+    ) -> MCResult:
+        """Assemble the result from a finished Monte Carlo search.
+
+        Args:
+            metal: Slab metal symbol.
+            substrate: The slab context; its top-layer z sets the reported
+                height.
+            search: The finished search state (best pose + energy trace).
+            mol_symbols: The molecule's element symbols, in order.
+            n_steps: The number of Metropolis steps run.
+
+        Returns:
+            The best pose and energetics as an :class:`MCResult`.
+        """
+        best_height = float(search.best_pos[:, 2].min() - substrate.top)
+        return cls(
+            metal=metal,
+            surface=SURFACE_FACET.get(metal, ""),
+            e_ads_ev=round(search.best_e, 4),
+            e_ads_kjmol=round(search.best_e * EV_TO_KJMOL, 2),
+            best_height_A=round(best_height, 2),
+            mol_symbols=mol_symbols,
+            best_positions=search.best_pos,
+            slab=substrate.slab,
+            energies=search.energies,
+            n_accept=search.n_accept,
+            n_steps=n_steps,
+        )
+
+
+@dataclass
+class _Substrate:
+    """Fixed slab context the search reads every step.
+
+    Bundles the ASE slab with the three geometry values the Metropolis loop
+    needs on the hot path — the cached atom positions (Å) it scores against,
+    the cell, and the top-layer z (Å) — so they travel as one object.
+    """
+
+    slab: Atoms
+    positions: np.ndarray
+    cell: np.ndarray
+    top: float
+
+    @classmethod
+    def build(
+        cls,
+        metal: str,
+        size: tuple[int, int, int],
+        vacuum: float,
+    ) -> _Substrate:
+        """Build the metal slab and cache the geometry the search reads.
+
+        Args:
+            metal: Slab metal symbol (Fe/Cu/Al).
+            size: Slab repetitions ``(nx, ny, layers)``.
+            vacuum: Vacuum padding along z (Å).
+
+        Returns:
+            The slab plus its cached positions, cell, and top-layer z (Å).
+        """
+        slab = build_slab(metal, size=size, vacuum=vacuum)
+        s_pos = slab.get_positions()
+        return cls(slab, s_pos, slab.get_cell(), s_pos[:, 2].max())
+
+
+@dataclass
+class _Search:
+    """Evolving state of the annealed Metropolis walk.
+
+    :meth:`accept` mutates this in place: the current pose seeds the next
+    proposal, and the best pose is snapshotted whenever the energy improves.
+    """
+
+    pos: np.ndarray
+    e: float
+    com: np.ndarray
+    best_e: float
+    best_pos: np.ndarray
+    n_accept: int
+    energies: list[float]
+
+    @classmethod
+    def seed(
+        cls,
+        molecule: Molecule,
+        substrate: _Substrate,
+        x_mix: np.ndarray,
+        D_mix: np.ndarray,
+    ) -> _Search:
+        """Seed the search with the flat starting pose above the slab centre.
+
+        Args:
+            molecule: The inhibitor to dock (symbols + coords).
+            substrate: The slab context to place the pose over.
+            x_mix: UFF vdW distances for the molecule–slab atom pairs (Å).
+            D_mix: UFF vdW well depths for the molecule–slab atom pairs (eV).
+
+        Returns:
+            The initial state, with the current pose as the best.
+        """
+        pos = initial_adsorption_pose(
+            molecule.coords, substrate.cell, substrate.top, MC_START_HEIGHT_A
+        )
+        e = uff_vdw_energy(pos, substrate.positions, x_mix, D_mix)
+        return cls(
+            pos=pos,
+            e=e,
+            com=pos.mean(0),
+            best_e=e,
+            best_pos=pos.copy(),
+            n_accept=0,
+            energies=[e],
+        )
+
+    def accept(
+        self,
+        trial: np.ndarray,
+        e_trial: float,
+        kT: float,
+        rng: np.random.Generator,
+    ) -> None:
+        """Accept or reject a scored trial pose, tracking the best seen.
+
+        On a Metropolis accept the trial becomes the current pose, and whenever
+        the energy improves it is snapshotted as the best. The accepted energy
+        is appended to the trace every step.
+
+        Args:
+            trial: The proposed pose ``(natom, 3)``, Å.
+            e_trial: The trial's UFF vdW energy (eV).
+            kT: The current temperature (eV).
+            rng: The trajectory RNG. ``rng.random`` is drawn only on an uphill
+                move — the short-circuit that keeps the seeded trajectory
+                reproducible.
+        """
+        if e_trial < self.e or rng.random() < np.exp(-(e_trial - self.e) / kT):
+            self.pos, self.e, self.com = trial, e_trial, trial.mean(0)
+            self.n_accept += 1
+            if self.e < self.best_e:
+                self.best_e, self.best_pos = self.e, self.pos.copy()
+        self.energies.append(self.e)
+
+
+def _anneal_schedule(
+    step: int,
+    n_steps: int,
+    kT_hi: float,
+    kT_lo: float,
+) -> tuple[float, float]:
+    """Temperature and move-size factor for one annealing step.
+
+    Args:
+        step: Current step index (0-based).
+        n_steps: Total number of steps.
+        kT_hi: Starting temperature (eV).
+        kT_lo: Final temperature (eV).
+
+    Returns:
+        ``(kT, scale)``: the geometrically annealed temperature (eV) and the
+        move-size factor in ``(0, 1]`` that shrinks the trial moves as the
+        search cools.
+    """
+    frac = step / n_steps
+    kT = kT_hi * (kT_lo / kT_hi) ** frac
+    scale = 1.0 - _STEP_DECAY * frac
+    return kT, scale
+
+
+def _propose_pose(
+    pos: np.ndarray,
+    com: np.ndarray,
+    scale: float,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Propose a rigid Metropolis trial: rotate about the centroid, translate.
+
+    Args:
+        pos: Current pose positions ``(natom, 3)``, Å.
+        com: Current pose centroid ``(3,)``, Å — the rotation pivot.
+        scale: Move-size factor in ``(0, 1]`` that shrinks both amplitudes as
+            the anneal cools.
+        rng: The trajectory RNG. Its three draws — rotation axis, rotation
+            angle, then translation — MUST stay in this order to keep the
+            seeded trajectory reproducible.
+
+    Returns:
+        The trial positions ``(natom, 3)``, Å, as a fresh array (``pos`` is not
+        mutated).
+    """
+    step_rot = rot(rng.normal(size=3), rng.normal(0, _ROT_STEP_RAD * scale))
+    trial = (pos - com) @ step_rot.T + com
+    trial += rng.normal(0, _TRANS_STEP_A * scale, size=3)
+    return trial
+
+
+def _confine_pose(
+    trial: np.ndarray,
+    top: float,
+    cell: np.ndarray,
+    min_height: float,
+    max_height: float,
+) -> np.ndarray:
+    """Confine a trial pose to the sampling box.
+
+    Clamps the nearest-atom height into ``[top + min_height, top + max_height]``
+    (Å) and shifts the centroid back over the slab footprint in x and y.
+
+    Args:
+        trial: Trial positions ``(natom, 3)``, Å; shifted in place.
+        top: Slab-top z coordinate (Å).
+        cell: The slab cell; ``cell[0, 0]`` / ``cell[1, 1]`` bound the
+            footprint in x and y.
+        min_height: Lower bound on the nearest-atom height above the top (Å).
+        max_height: Upper bound on the nearest-atom height above the top (Å).
+
+    Returns:
+        The (in-place shifted) trial positions.
+    """
+    # clamp the nearest atom into the adsorbed-state height window
+    zmin = trial[:, 2].min()
+    trial[:, 2] += np.clip(zmin, top + min_height, top + max_height) - zmin
+
+    # keep the centroid over the slab footprint (x, y)
+    trial_com = trial.mean(0)
+    trial[:, 0] += np.clip(trial_com[0], 0, cell[0, 0]) - trial_com[0]
+    trial[:, 1] += np.clip(trial_com[1], 0, cell[1, 1]) - trial_com[1]
+    return trial
 
 
 def run_mc(
@@ -137,59 +370,25 @@ def run_mc(
     Raises:
         ValueError: If the molecule carries an element with no UFF params.
     """
-    # build the slab and read its top-layer z
+    # build the slab and seed the search from the flat starting pose
     rng = np.random.default_rng(seed)
-    slab = build_slab(metal, size=size, vacuum=vacuum)
-    s_pos = slab.get_positions()
-    cell = slab.get_cell()
-    top = s_pos[:, 2].max()
+    substrate = _Substrate.build(metal, size, vacuum)
 
-    # UFF pair parameters + the flat starting pose above the slab centre
-    m_sym = list(molecule.symbols)
-    x_mix, D_mix = uff_mixing(m_sym, slab.get_chemical_symbols())
-    pos = initial_adsorption_pose(molecule.coords, cell, top, MC_START_HEIGHT_A)
-    e = uff_vdw_energy(pos, s_pos, x_mix, D_mix)
-    best_e, best_pos = e, pos.copy()
-    energies = [e]
-    n_accept = 0
-    com = pos.mean(0)
-
-    # annealed Metropolis search; move sizes shrink as kT cools
-    for i in range(n_steps):
-        # geometric anneal + shrinking move sizes as the search cools
-        frac = i / n_steps
-        kT = kT_hi * (kT_lo / kT_hi) ** frac
-        scale = 1.0 - _STEP_DECAY * frac
-
-        # propose a rigid rotation + translation, then confine to the box
-        step_rot = rot(rng.normal(size=3), rng.normal(0, _ROT_STEP_RAD * scale))
-        trial = (pos - com) @ step_rot.T + com
-        trial += rng.normal(0, _TRANS_STEP_A * scale, size=3)
-        zmin = trial[:, 2].min()
-        trial[:, 2] += np.clip(zmin, top + min_height, top + max_height) - zmin
-        trial_com = trial.mean(0)
-        trial[:, 0] += np.clip(trial_com[0], 0, cell[0, 0]) - trial_com[0]
-        trial[:, 1] += np.clip(trial_com[1], 0, cell[1, 1]) - trial_com[1]
-
-        # Metropolis accept/reject; track the best pose seen
-        et = uff_vdw_energy(trial, s_pos, x_mix, D_mix)
-        if et < e or rng.random() < np.exp(-(et - e) / kT):
-            pos, e, com = trial, et, trial.mean(0)
-            n_accept += 1
-            if e < best_e:
-                best_e, best_pos = e, pos.copy()
-        energies.append(e)
-
-    return MCResult(
-        metal=metal,
-        surface=SURFACE_FACET.get(metal, ""),
-        e_ads_ev=round(best_e, 4),
-        e_ads_kjmol=round(best_e * EV_TO_KJMOL, 2),
-        best_height_A=round(float(best_pos[:, 2].min() - top), 2),
-        mol_symbols=m_sym,
-        best_positions=best_pos,
-        slab=slab,
-        energies=energies,
-        n_accept=n_accept,
-        n_steps=n_steps,
+    # UFF pair parameters for the molecule against the slab
+    mol_symbols = list(molecule.symbols)
+    x_mix, D_mix = uff_mixing(
+        mol_symbols, substrate.slab.get_chemical_symbols()
     )
+    search = _Search.seed(molecule, substrate, x_mix, D_mix)
+
+    # annealed walk: anneal -> propose -> confine -> score -> accept
+    for step in range(n_steps):
+        kT, scale = _anneal_schedule(step, n_steps, kT_hi, kT_lo)
+        trial = _propose_pose(search.pos, search.com, scale, rng)
+        trial = _confine_pose(
+            trial, substrate.top, substrate.cell, min_height, max_height
+        )
+        e_trial = uff_vdw_energy(trial, substrate.positions, x_mix, D_mix)
+        search.accept(trial, e_trial, kT, rng)
+
+    return MCResult.from_search(metal, substrate, search, mol_symbols, n_steps)

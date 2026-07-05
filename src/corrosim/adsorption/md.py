@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
+from ase import Atoms
 
 from .surface import (
     EV_TO_KJMOL,
@@ -31,8 +32,6 @@ from .surface import (
 )
 
 if TYPE_CHECKING:
-    from ase import Atoms
-
     from corrosim.molecules import Molecule
 
 # Boltzmann constant, eV/K.
@@ -87,12 +86,59 @@ class MDResult:
         Returns:
             The combined slab+adsorbate cell for plot_adsorption_pose.
         """
-        from ase import Atoms
         mol = Atoms(symbols=self.mol_symbols, positions=self.final_positions)
         c = self.slab + mol
         c.set_cell(self.slab.get_cell())
         c.set_pbc(self.slab.get_pbc())
         return c
+
+    @classmethod
+    def from_run(
+        cls,
+        metal: str,
+        substrate: _Substrate,
+        rdf: _RdfAccumulator,
+        energies: list[float],
+        final_positions: np.ndarray,
+        mol_symbols: list[str],
+        temperature: float,
+        equil: int,
+    ) -> MDResult:
+        """Assemble the result from a finished MD trajectory.
+
+        Args:
+            metal: Slab metal symbol.
+            substrate: The slab context (kept for the combined-pose plot).
+            rdf: The finished contact-histogram accumulator.
+            energies: The per-step interaction energies (eV).
+            final_positions: The molecule's final pose ``(natom, 3)``, Å.
+            mol_symbols: The molecule's element symbols, in order.
+            temperature: Thermostat temperature (K).
+            equil: Steps discarded before the RDF / mean-energy averaging.
+
+        Returns:
+            The RDFs, first-peak distances, mean energy and final pose as an
+            :class:`MDResult`.
+        """
+        r = rdf.bin_centres()
+        rdf_o, rdf_n = rdf.normalized()
+        e_mean = _mean_energy(energies, equil)
+        return cls(
+            metal=metal,
+            surface=SURFACE_FACET.get(metal, ""),
+            temperature=temperature,
+            e_mean_ev=round(e_mean, 4),
+            e_mean_kjmol=round(e_mean * EV_TO_KJMOL, 2),
+            rdf_r=r.tolist(),
+            rdf_metal_O=rdf_o.tolist(),
+            rdf_metal_N=rdf_n.tolist(),
+            first_peak_metal_O=_first_peak(r, rdf_o, RDF_PEAK_WINDOW_A),
+            first_peak_metal_N=_first_peak(r, rdf_n, RDF_PEAK_WINDOW_A),
+            energies=energies,
+            final_positions=final_positions,
+            mol_symbols=mol_symbols,
+            slab=substrate.slab,
+        )
 
 
 def _langevin_step(pos: np.ndarray, forces: np.ndarray, kT: float,
@@ -197,6 +243,151 @@ def _first_peak(r: np.ndarray, g: np.ndarray,
     return float(r[win][int(np.argmax(g[win]))]) if g[win].any() else None
 
 
+def _mean_energy(energies: list[float], equil: int) -> float:
+    """Thermal-mean interaction energy past the pre-equilibration transient.
+
+    Args:
+        energies: The per-step interaction energies (eV).
+        equil: Steps to discard before averaging; ignored when the run did not
+            exceed it.
+
+    Returns:
+        The mean energy (eV) over the post-equilibration steps, or over all
+        steps when the run is no longer than ``equil``.
+    """
+    if len(energies) > equil:
+        return float(np.mean(energies[equil:]))
+    return float(np.mean(energies))
+
+
+@dataclass
+class _Substrate:
+    """Fixed slab context the trajectory reads every step.
+
+    Bundles the ASE slab with the cached positions and symbols, the metal-only
+    positions the RDF measures against, the cell, and the top-layer z (Å).
+    """
+
+    slab: Atoms
+    positions: np.ndarray
+    symbols: np.ndarray
+    metal_positions: np.ndarray
+    cell: np.ndarray
+    top: float
+
+    @classmethod
+    def build(
+        cls,
+        metal: str,
+        size: tuple[int, int, int],
+        vacuum: float,
+    ) -> _Substrate:
+        """Build the metal slab and cache the geometry the trajectory reads.
+
+        Args:
+            metal: Slab metal symbol (Fe/Cu/Al).
+            size: Slab repetitions ``(nx, ny, layers)``.
+            vacuum: Vacuum padding along z (Å).
+
+        Returns:
+            The slab plus its cached positions/symbols, the metal-atom
+            positions, the cell, and the top-layer z (Å).
+        """
+        slab = build_slab(metal, size=size, vacuum=vacuum)
+        s_pos = slab.get_positions()
+        s_sym = np.array(slab.get_chemical_symbols())
+        return cls(
+            slab,
+            s_pos,
+            s_sym,
+            s_pos[s_sym == metal],
+            slab.get_cell(),
+            s_pos[:, 2].max(),
+        )
+
+
+@dataclass
+class _RdfAccumulator:
+    """Running metal–donor closest-contact histograms over recorded frames.
+
+    Holds the O and N donor-atom indices, the metal positions and the shared
+    bin edges, and adds one closest-contact count per frame via :meth:`record`;
+    :meth:`normalized` divides the histograms by the recorded-frame count.
+    """
+
+    o_idx: list[int]
+    n_idx: list[int]
+    metal_positions: np.ndarray
+    edges: np.ndarray
+    hist_o: np.ndarray
+    hist_n: np.ndarray
+    nframes: int = 0
+
+    @classmethod
+    def for_donors(
+        cls,
+        mol_symbols: list[str],
+        substrate: _Substrate,
+    ) -> _RdfAccumulator:
+        """Build a zeroed accumulator for a molecule's O/N donors over a slab.
+
+        Args:
+            mol_symbols: The molecule's element symbols, in order.
+            substrate: The slab context whose metal atoms are measured against.
+
+        Returns:
+            An accumulator keyed to the O and N donor indices, on the shared
+            0..6 Å contact grid.
+        """
+        o_idx = [i for i, s in enumerate(mol_symbols) if s == "O"]
+        n_idx = [i for i, s in enumerate(mol_symbols) if s == "N"]
+        # the +ε stop keeps the closing 6.0 edge (np.arange excludes the stop)
+        edges = np.arange(
+            0.0, _RDF_MAX_A + _RDF_BIN_WIDTH_A / 10, _RDF_BIN_WIDTH_A
+        )
+        nbins = len(edges) - 1
+        return cls(
+            o_idx,
+            n_idx,
+            substrate.metal_positions,
+            edges,
+            np.zeros(nbins),
+            np.zeros(nbins),
+        )
+
+    def record(self, pos: np.ndarray) -> None:
+        """Add this frame's closest O– and N–metal contacts to the histograms.
+
+        Args:
+            pos: The molecule's atom positions this frame ``(natom, 3)``, Å.
+        """
+        self.hist_o += _closest_contact_hist(
+            pos, self.o_idx, self.metal_positions, self.edges
+        )
+        self.hist_n += _closest_contact_hist(
+            pos, self.n_idx, self.metal_positions, self.edges
+        )
+        self.nframes += 1
+
+    def bin_centres(self) -> np.ndarray:
+        """Bin-centre distances (Å), aligned with the RDF values.
+
+        Returns:
+            The midpoint of each histogram bin.
+        """
+        return 0.5 * (self.edges[:-1] + self.edges[1:])
+
+    def normalized(self) -> tuple[np.ndarray, np.ndarray]:
+        """Per-frame-averaged O and N contact distributions.
+
+        Returns:
+            ``(rdf_o, rdf_n)``, each histogram divided by the recorded-frame
+            count (or by 1 when no frames were recorded).
+        """
+        norm = max(self.nframes, 1)
+        return self.hist_o / norm, self.hist_n / norm
+
+
 def run_md(molecule: Molecule, metal: str = "Fe",
            size: tuple[int, int, int] = (5, 5, 3), vacuum: float = 10.0,
            n_steps: int = 4000, equil: int = 1000, temperature: float = 298.0,
@@ -234,65 +425,37 @@ def run_md(molecule: Molecule, metal: str = "Fe",
     """
     kT = KB_EV * temperature
     rng = np.random.default_rng(seed)
-    slab = build_slab(metal, size=size, vacuum=vacuum)
-    slab_pos = slab.get_positions()
-    slab_sym = np.array(slab.get_chemical_symbols())
-    metal_pos = slab_pos[slab_sym == metal]
-    cell = slab.get_cell()
-    top = slab_pos[:, 2].max()
+    substrate = _Substrate.build(metal, size, vacuum)
 
-    # UFF pair parameters + the donor-atom indices whose metal contact the RDF
-    # tracks.
-    m_sym = list(molecule.symbols)
-    x_mix, D_mix = uff_mixing(m_sym, slab_sym)
-    o_idx = [i for i, s in enumerate(m_sym) if s == "O"]
-    n_idx = [i for i, s in enumerate(m_sym) if s == "N"]
+    # UFF pair parameters + the O/N donor contact histograms the RDF tracks
+    mol_symbols = list(molecule.symbols)
+    x_mix, D_mix = uff_mixing(mol_symbols, substrate.symbols)
+    rdf = _RdfAccumulator.for_donors(mol_symbols, substrate)
 
     # start pose: caller-supplied, else the flat lifted pose
     if start_positions is not None:
         pos = np.array(start_positions, float).copy()
     else:
         pos = initial_adsorption_pose(
-            molecule.coords, cell, top, MD_START_HEIGHT_A)
+            molecule.coords, substrate.cell, substrate.top, MD_START_HEIGHT_A)
 
-    # closest-contact histogram grid (Å) and per-donor accumulators; the +ε
-    # stop keeps the closing 6.0 edge (np.arange excludes the stop).
-    edges = np.arange(0.0, _RDF_MAX_A + _RDF_BIN_WIDTH_A / 10, _RDF_BIN_WIDTH_A)
-    r = 0.5 * (edges[:-1] + edges[1:])
-    hist_o = np.zeros(len(r))
-    hist_n = np.zeros(len(r))
-    nframes = 0
+    # Langevin trajectory: force -> move -> confine; record contacts post-equil
     energies = []
-
     for step in range(n_steps):
-        # vdW force field -> one Langevin move -> confine to the window
-        E, forces = uff_vdw_forces(pos, slab_pos, x_mix, D_mix)
+        E, forces = uff_vdw_forces(pos, substrate.positions, x_mix, D_mix)
         energies.append(E)
         pos = _langevin_step(pos, forces, kT, D_t, D_r, rng)
-        pos = _confine_z(pos, top, min_height, max_height)
-
-        # accumulate the closest-contact distances once equilibrated
+        pos = _confine_z(pos, substrate.top, min_height, max_height)
         if step >= equil:
-            hist_o += _closest_contact_hist(pos, o_idx, metal_pos, edges)
-            hist_n += _closest_contact_hist(pos, n_idx, metal_pos, edges)
-            nframes += 1
+            rdf.record(pos)
 
-    norm = max(nframes, 1)
-    rdf_o = hist_o / norm
-    rdf_n = hist_n / norm
-
-    # thermal mean discards the pre-equilibration transient when there is one
-    if len(energies) > equil:
-        e_mean = float(np.mean(energies[equil:]))
-    else:
-        e_mean = float(np.mean(energies))
-    return MDResult(
-        metal=metal, surface=SURFACE_FACET.get(metal, ""),
-        temperature=temperature,
-        e_mean_ev=round(e_mean, 4),
-        e_mean_kjmol=round(e_mean * EV_TO_KJMOL, 2),
-        rdf_r=r.tolist(), rdf_metal_O=rdf_o.tolist(),
-        rdf_metal_N=rdf_n.tolist(),
-        first_peak_metal_O=_first_peak(r, rdf_o, RDF_PEAK_WINDOW_A),
-        first_peak_metal_N=_first_peak(r, rdf_n, RDF_PEAK_WINDOW_A),
-        energies=energies, final_positions=pos, mol_symbols=m_sym, slab=slab)
+    return MDResult.from_run(
+        metal,
+        substrate,
+        rdf,
+        energies,
+        pos,
+        mol_symbols,
+        temperature,
+        equil,
+    )
