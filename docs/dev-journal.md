@@ -729,4 +729,73 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   the four unticketed offenders get tickets). Then #72 → #71 → #40; first
   release tag post-#67. Cosmetic: #66–#68 still cite retired epic #65.
 
+## 2026-07-05 (session 2) — --case flag, #70 re-scope, run_dft + make_report decompositions
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** resume the #70 per-module refactor sequence from the previous
+  session's Pending (the #70 re-scope), then execute the top refactors.
+- **Landed (merged to `main`):**
+  - **#99** — the prior session's cognitive-complexity journal wrap (merged
+    first, as the session's opening action).
+  - **#100 / PR #101** — `--case <name>` threaded through all eight run drivers
+    via a shared `_cli.resolve_case`; drivers derive `--molecules/--metal/`
+    `--medium` from the resolved `presets.CaseStudy` instead of referencing
+    `ARGHEL` directly (ARGHEL now lives only in presets.py / molecules.py).
+    Behaviour-preserving: run_mc pre/post byte-identical, report.html
+    byte-identical, `--case argel` == default; the complexity-frozen driver
+    `main()`s gained only non-branching statements (snapshot unchanged).
+  - **#63 / PR #105** — decomposed `run_dft.analyse_matrix` (cognitive **47**,
+    the worst function in the tree) + `main` (16) into
+    `_geometry_tag`/`_species_forms`/`_optimize_species`/`_single_points` +
+    `_build_parser`/`_warn_medium_mismatch`/`_opt_geom_dir`/`_write_outputs`;
+    run_dft.py now has zero over-threshold functions. Folded in **#50**:
+    self-safety `optimize = optimize or check_minimum or to_minimum`
+    (+ regression test), deliberate separation from `run_pka._relax_and_thermo`
+    (noted in the docstring), and single-sourced the true-minimum recipe via
+    `engines.MIN_RECIPE` (chosen "grid 4, imag-mode refined" to keep
+    results/pka.json byte-identical). Rule-5: dropped #41/#34 from the module
+    docstring (a docstring ticket-ref the comment-only gate can't see).
+  - **#62 / PR #106** — decomposed `make_report.main` (cognitive **38**,
+    second-worst) into seven stage loaders (`_neutral_rows`/`_acid_cation_rows`/
+    `_speciation_summary`/`_computed_pkah`/`_opt_geometry_rows`/`_render_reports`/
+    `_bundle_tables`) + `_build_parser`; nested `_rank`/`_bundle` lifted to
+    module-level `_rank_blend`/`_bundle_one`. Byte-identical report.html.
+- **#70 re-scope (grooming):** audited every per-module ticket against the swept
+  tree. Key finding — **#57 already landed** (adsorption/surface.py is the
+  shared home of `EV_TO_KJMOL` + `uff_mixing`/`uff_vdw_energy`/`uff_vdw_forces`),
+  so the cross-module UFF/units duplication that dominated #55/#56 is resolved.
+  Posted the measured verdict table as a #70 comment; rewrote the epic body
+  (priority order; #56 near-closeable; #59 downgraded to style-only since
+  `build_pipeline_report` is cognitively under 15; #50 subsumed into #63). Filed
+  **#102** (cli.read_input_csv cc 31) and **#103** (report_docx.build_docx_report
+  cc 26) for the two worth-improving unticketed offenders; left
+  `make_figures.main` (18) + `report_docx._scientific_basis` (16) frozen.
+- **#72 update:** added a case-study-agnostic acceptance criterion (report
+  narrative + `speciation.FLAVONOID_CARBONYL_PKAH` fold into the `CaseStudy`
+  schema under #53/#54); #100 checked off.
+- **Ratchet progress:** over-threshold functions down **9 → 6**; the two worst
+  (analyse_matrix 47, make_report.main 38) eliminated. Remaining:
+  read_input_csv 31 (#102), build_docx_report 26 (#103), run_md 24 (#55),
+  make_figures.main 18 (frozen), render_orbital 17 (#60),
+  _scientific_basis 16 (frozen).
+- **Issues:** closed #100 / #63 / #62 / #50; created #100 / #102 / #103.
+- **Verification:** every refactor behaviour-preserving and independently
+  checked — stubbed-QM goldens (test_run_dft) green with identical
+  geometry-tag strings + provenance; report.html byte-identical (modulo the
+  generation timestamp) for both #100 and #62; ruff + mypy + complexipy
+  (snapshots refreshed: run_dft + make_report entries removed) + pytest
+  (**111 passed, 1 skipped**) on merged `main`. `results/` and `report/`
+  untouched throughout.
+- **Process note:** a stacked PR (#104, #63 on the #100 branch) auto-closed
+  when its base branch was deleted on merge; rebuilt cleanly on `main` via
+  cherry-pick as #105. Prefer branching refactors directly off `main`, or merge
+  the base before the stack.
+- **Pending:** #70 sequence continues at **#61** (engines.py dedup: 78.3553×3,
+  `_build_rks`, ORCA/Gaussian — Docker-gated, so verify via the stubbed tests)
+  → **#60** figures.py (consumes #61's shared SCF home) → **#55** md.py
+  (run_md cc 24 + dead `rdf_FeO`/`first_peak_FeO` aliases) → light **#58**/**#48**
+  → the two new offender tickets **#102**/**#103**. Then #72 → #71 → #40; first
+  release tag post-#67. Cosmetic loose end unchanged: #66–#68 still cite retired
+  epic #65.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
