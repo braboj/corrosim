@@ -62,25 +62,25 @@ class MCResult:
     (e_ads in eV/kJ·mol⁻¹, height in Å).
     """
 
-    # substrate: metal symbol + the facet label it maps to (via SURFACE_FACET)
+    # Substrate: metal symbol + the facet label it maps to (via SURFACE_FACET)
     metal: str
     surface: str
 
-    # best-pose energetics + the nearest-atom gap above the slab top
+    # Best-pose energetics + the nearest-atom gap above the slab top
     e_ads_ev: float
     e_ads_kjmol: float
     best_height_A: float
 
-    # best pose: the molecule's element symbols and atom positions (Å)
+    # Best pose: the molecule's element symbols and atom positions (Å)
     mol_symbols: list[str]
     best_positions: np.ndarray
 
-    # heavy artefacts kept for plotting/analysis but out of the repr, so a
+    # Heavy artefacts kept for plotting/analysis but out of the repr, so a
     # printed MCResult does not dump whole coordinate tables
     slab: Atoms = field(repr=False, default=None)
     energies: list[float] = field(repr=False, default_factory=list)
 
-    # search diagnostics
+    # Search diagnostics
     n_accept: int = 0
     n_steps: int = 0
 
@@ -325,11 +325,11 @@ def _confine_pose(
     Returns:
         The (in-place shifted) trial positions.
     """
-    # clamp the nearest atom into the adsorbed-state height window
+    # Clamp the nearest atom into the adsorbed-state height window
     zmin = trial[:, 2].min()
     trial[:, 2] += np.clip(zmin, top + min_height, top + max_height) - zmin
 
-    # keep the centroid over the slab footprint (x, y)
+    # Keep the centroid over the slab footprint (x, y)
     trial_com = trial.mean(0)
     trial[:, 0] += np.clip(trial_com[0], 0, cell[0, 0]) - trial_com[0]
     trial[:, 1] += np.clip(trial_com[1], 0, cell[1, 1]) - trial_com[1]
@@ -370,7 +370,7 @@ def run_mc(
     Raises:
         ValueError: If the molecule carries an element with no UFF params.
     """
-    # build the slab and seed the search from the flat starting pose
+    # Build the slab and seed the search from the flat starting pose
     rng = np.random.default_rng(seed)
     substrate = _Substrate.build(metal, size, vacuum)
 
@@ -381,7 +381,7 @@ def run_mc(
     )
     search = _Search.seed(molecule, substrate, x_mix, D_mix)
 
-    # annealed walk: anneal -> propose -> confine -> score -> accept
+    # Annealed walk: anneal -> propose -> confine -> score -> accept
     for step in range(n_steps):
         kT, scale = _anneal_schedule(step, n_steps, kT_hi, kT_lo)
         trial = _propose_pose(search.pos, search.com, scale, rng)
