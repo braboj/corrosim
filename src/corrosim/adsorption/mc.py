@@ -37,6 +37,12 @@ if TYPE_CHECKING:
 # Starting gap (Å) between the slab top and the molecule's lowest atom; the
 # annealing then samples heights in [min_height, max_height].
 MC_START_HEIGHT_A = 3.0
+# Move-size schedule: the trial rotation (rad) and translation (Å) both shrink
+# from these amplitudes as the search cools, by the linear factor
+# (1 - _STEP_DECAY * frac), so late steps refine rather than explore.
+_STEP_DECAY = 0.7
+_ROT_STEP_RAD = 0.6
+_TRANS_STEP_A = 0.4
 
 
 @dataclass
@@ -119,17 +125,17 @@ def run_mc(molecule: Molecule, metal: str = "Fe",
         # geometric anneal + shrinking move sizes as the search cools
         frac = i / n_steps
         kT = kT_hi * (kT_lo / kT_hi) ** frac
-        scale = 1.0 - 0.7 * frac
+        scale = 1.0 - _STEP_DECAY * frac
 
         # propose a rigid rotation + translation, then confine to the box
-        step_rot = rot(rng.normal(size=3), rng.normal(0, 0.6 * scale))
+        step_rot = rot(rng.normal(size=3), rng.normal(0, _ROT_STEP_RAD * scale))
         trial = (pos - com) @ step_rot.T + com
-        trial += rng.normal(0, 0.4 * scale, size=3)
+        trial += rng.normal(0, _TRANS_STEP_A * scale, size=3)
         zmin = trial[:, 2].min()
         trial[:, 2] += np.clip(zmin, top + min_height, top + max_height) - zmin
-        c2 = trial.mean(0)
-        trial[:, 0] += np.clip(c2[0], 0, cell[0, 0]) - c2[0]
-        trial[:, 1] += np.clip(c2[1], 0, cell[1, 1]) - c2[1]
+        trial_com = trial.mean(0)
+        trial[:, 0] += np.clip(trial_com[0], 0, cell[0, 0]) - trial_com[0]
+        trial[:, 1] += np.clip(trial_com[1], 0, cell[1, 1]) - trial_com[1]
 
         # Metropolis accept/reject; track the best pose seen
         et = uff_vdw_energy(trial, s_pos, x_mix, D_mix)
