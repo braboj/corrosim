@@ -17,11 +17,12 @@ from collections.abc import Sequence
 from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.adsorption.md import run_md
-from corrosim.presets import ARGHEL
 from corrosim.runs._cli import (
+    add_case_arg,
     add_molecules_arg,
     parse_molecules,
     print_table,
+    resolve_case,
     stderr_log,
     write_json,
 )
@@ -43,13 +44,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-run-md",
                                 description="Brownian MD -> RDF (M4).")
     add_molecules_arg(p)
-    p.add_argument("--metal", default=ARGHEL.metal_element)
+    add_case_arg(p)
+    p.add_argument("--metal", default=None)
     p.add_argument("--steps", type=int, default=6000)
     p.add_argument("--equil", type=int, default=1500)
     p.add_argument("--temperature", type=float, default=298.0)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
+    resolve_case(args, metal="element")
     os.makedirs(args.outdir, exist_ok=True)
 
     summary = []

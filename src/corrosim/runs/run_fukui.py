@@ -19,8 +19,10 @@ from collections.abc import Sequence
 from corrosim import build_molecule
 from corrosim.qm.fukui import compute_fukui
 from corrosim.runs._cli import (
+    add_case_arg,
     add_molecules_arg,
     parse_molecules,
+    resolve_case,
     stderr_log,
     write_json,
 )
@@ -39,6 +41,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="corrosim-run-fukui",
         description="Condensed Fukui / dual descriptor (M2).")
     add_molecules_arg(p)
+    add_case_arg(p)
     p.add_argument("--basis", default="6-31G(d)",
                    help="Valence basis; diffuse sets break Mulliken-condensed "
                         "Fukui.")
@@ -48,6 +51,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "difference.")
     p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
+    resolve_case(args)
     os.makedirs(args.outdir, exist_ok=True)
 
     for name in parse_molecules(args.molecules):

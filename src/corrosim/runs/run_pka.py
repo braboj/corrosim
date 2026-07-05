@@ -44,7 +44,13 @@ from corrosim.qm.engines import (
     thermo_correction,
 )
 from corrosim.qm.pka import G_AQ_PROTON_EV, estimate_pka
-from corrosim.runs._cli import add_molecules_arg, parse_molecules, write_json
+from corrosim.runs._cli import (
+    add_case_arg,
+    add_molecules_arg,
+    parse_molecules,
+    resolve_case,
+    write_json,
+)
 from corrosim.runs.run_dft import _best_protonation_site
 
 
@@ -182,6 +188,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="corrosim-run-pka")
     add_molecules_arg(p)
+    add_case_arg(p)
     p.add_argument("--basis", default="6-311++G(d,p)")
     p.add_argument("--xc", default="b3lyp")
     p.add_argument("--select-engine", default="xtb")
@@ -198,6 +205,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--temperature", type=float, default=298.15)
     p.add_argument("--out-json", default=None)
     args = p.parse_args(argv)
+    resolve_case(args)
 
     molecules = parse_molecules(args.molecules)
     rows = compute_pka_rows(molecules, basis=args.basis, xc=args.xc,

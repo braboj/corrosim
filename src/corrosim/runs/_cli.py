@@ -16,7 +16,7 @@ import sys
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from corrosim.presets import ARGHEL
+from corrosim.presets import CaseStudy, case_study
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -25,16 +25,59 @@ if TYPE_CHECKING:
 # explicit default of None in :func:`read_json`.
 _REQUIRED = object()
 
+# The case study a driver screens when --case is not given.
+_DEFAULT_CASE = "arghel"
 
-def add_molecules_arg(parser: argparse.ArgumentParser) -> None:
-    """Add the shared ``--molecules`` argument (the Arghel set as default).
+
+def add_case_arg(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``--case`` argument (selects a named case study).
 
     Args:
         parser: The argparse parser to add the argument to.
     """
     parser.add_argument(
-        "--molecules", default=",".join(ARGHEL.molecule_list()),
-        help="Comma-separated molecule names or SMILES.")
+        "--case", default=_DEFAULT_CASE,
+        help="Named case study from presets.CASE_STUDIES (default: arghel); "
+             "its molecule set / metal / medium fill any unset "
+             "--molecules / --metal / --medium.")
+
+
+def add_molecules_arg(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``--molecules`` argument (unset -> the case-study set).
+
+    Args:
+        parser: The argparse parser to add the argument to.
+    """
+    parser.add_argument(
+        "--molecules", default=None,
+        help="Comma-separated molecule names or SMILES; unset uses the "
+             "--case study's set.")
+
+
+def resolve_case(args: argparse.Namespace, metal: str = "label") -> CaseStudy:
+    """Resolve ``--case`` and backfill unset molecule/metal/medium arguments.
+
+    Reads ``args.case`` and fills ``args.molecules``, ``args.metal`` and
+    ``args.medium`` from that case study wherever the driver left them unset,
+    so an explicit flag always overrides the case default.
+
+    Args:
+        args: The parsed argument namespace (mutated in place).
+        metal: ``"label"`` fills ``args.metal`` with the facet label
+            (``Fe(110)``); ``"element"`` fills the bare symbol (``Fe``) used by
+            the slab/RDF drivers.
+
+    Returns:
+        The resolved case study.
+    """
+    case = case_study(getattr(args, "case", _DEFAULT_CASE))
+    if hasattr(args, "molecules") and args.molecules is None:
+        args.molecules = ",".join(case.molecule_list())
+    if hasattr(args, "metal") and args.metal is None:
+        args.metal = case.metal if metal == "label" else case.metal_element
+    if hasattr(args, "medium") and args.medium is None:
+        args.medium = case.medium
+    return case
 
 
 def parse_molecules(spec: str) -> list[str]:
@@ -124,7 +167,9 @@ def strip_protonation_suffix(names: pd.Series) -> pd.Series:
 
 
 __all__ = [
+    "add_case_arg",
     "add_molecules_arg",
+    "resolve_case",
     "parse_molecules",
     "stderr_log",
     "write_json",
