@@ -45,14 +45,15 @@ from corrosim.qm.engines import (
     thermo_correction,
 )
 from corrosim.qm.pka import G_AQ_PROTON_EV, estimate_pka
+from corrosim.qm.protonation import best_protonation_site
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
     parse_molecules,
     resolve_case,
+    stderr_log,
     write_json,
 )
-from corrosim.runs.run_dft import _best_protonation_site
 
 
 def _relax_and_thermo(symbols, coords, charge, opt_basis, opt_xc, temperature,
@@ -107,7 +108,7 @@ def compute_pka_rows(molecules: Sequence[str], basis: str = "6-311++G(d,p)",
         print(f"[{name}]", file=sys.stderr)
         neutral = build_molecule(name)
         print("  selecting protonation site ...", file=sys.stderr)
-        _, cation = _best_protonation_site(name, select_engine)
+        _, cation = best_protonation_site(name, select_engine, log=stderr_log)
         nb_sym: list[str]
         cb_sym: list[str]
         nb_xyz: Coords

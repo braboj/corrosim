@@ -50,8 +50,6 @@ from corrosim.medium import parse_medium
 from corrosim.molecules import (
     Molecule,
     build_molecule,
-    build_protonated,
-    enumerate_protonation_sites,
     write_xyz,
 )
 from corrosim.qm.engines import (
@@ -59,42 +57,18 @@ from corrosim.qm.engines import (
     min_check_fields,
     optimize_geometry,
     relax_to_minimum,
-    run_engine,
     thermo_correction,
 )
+from corrosim.qm.protonation import best_protonation_site
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
     parse_molecules,
     print_table,
     resolve_case,
+    stderr_log,
     write_json,
 )
-
-
-def _best_protonation_site(name: str, select_engine: str = "xtb"):
-    """Return (site_idx, protonated Molecule) for the best conjugate acid.
-
-    All protonation isomers share the same atoms, so total energies are
-    directly comparable; the most stable cation is the preferred protonation
-    site.
-    """
-    best = None
-    for idx in enumerate_protonation_sites(name):
-        try:
-            mol = build_protonated(name, idx)
-            res = run_engine(mol.symbols, mol.coords, engine=select_engine,
-                             charge=mol.charge)
-        except Exception as exc:
-            # skip sites RDKit / the engine reject
-            print(f"    site {idx}: skipped ({exc})", file=sys.stderr)
-            continue
-        print(f"    site {idx}: E = {res.e_total_ev:.3f} eV", file=sys.stderr)
-        if best is None or res.e_total_ev < best[1]:
-            best = (idx, res.e_total_ev, mol)
-    if best is None:
-        raise RuntimeError(f"No usable protonation site for {name!r}")
-    return best[0], best[2]
 
 
 def _geometry_tag(
@@ -150,7 +124,7 @@ def _species_forms(
         pairs.append(("neutral", build_molecule(name)))
     if forms in ("both", "protonated"):
         print("  selecting protonation site ...", file=sys.stderr)
-        _, prot = _best_protonation_site(name, select_engine)
+        _, prot = best_protonation_site(name, select_engine, log=stderr_log)
         pairs.append(("protonated", prot))
     return pairs
 

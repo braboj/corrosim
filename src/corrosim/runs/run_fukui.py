@@ -13,15 +13,13 @@ Container use:
 from __future__ import annotations
 
 import argparse
-import os
 from collections.abc import Sequence
 
-from corrosim import build_molecule
 from corrosim.qm.fukui import compute_fukui
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
-    parse_molecules,
+    iter_molecules,
     resolve_case,
     stderr_log,
     write_json,
@@ -52,11 +50,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
     resolve_case(args)
-    os.makedirs(args.outdir, exist_ok=True)
 
-    for name in parse_molecules(args.molecules):
+    for name, m in iter_molecules(args):
         stderr_log(f"[{name}] computing Fukui ({args.method}) ...")
-        m = build_molecule(name)
         fk = compute_fukui(m, basis=args.basis, xc=args.xc, method=args.method)
         write_json(f"{args.outdir}/{name}_fukui.json", fk.as_rows())
         stderr_log("  top donor (f-) sites — the metal-binding atoms:")
