@@ -31,6 +31,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 from . import equations as _eq
 from . import report_content as _content
+from .render import render_blocks
 from .report import prepare_report_data, rank_inhibitors, results_dataframe
 from .report_layout import figure_path
 
@@ -192,30 +193,42 @@ def _set_cell(cell, text, *, bold: bool = False) -> None:
             run.font.size = Pt(8.5)
 
 
-def _equation_groups(d: _Doc) -> None:
-    """The governing-equation set in scientific form: each group as a level-3
-    subsection with its equations rendered in order.
+class _DocxBasis:
+    """Adapts :class:`_Doc` to the shared BasisRenderer Protocol (render.py) so
+    the Scientific-basis block list renders to Word through the one walker.
     """
-    for group_heading, group in _eq.EQUATION_GROUPS:
-        d.heading(group_heading, level=3)
-        for eq in group:
-            d.equation(eq.key)
+
+    def __init__(self, doc: _Doc) -> None:
+        self._d = doc
+
+    def subheading(self, text: str) -> None:
+        """Render a Scientific-basis subsection heading (level 2)."""
+        self._d.heading(text, level=2)
+
+    def paragraph(self, text: str) -> None:
+        """Render a Scientific-basis prose paragraph."""
+        self._d.para(text)
+
+    def table(self, payload: dict) -> None:
+        """Render a Scientific-basis content table."""
+        self._d.content_table(payload)
+
+    def equation_groups(self) -> None:
+        """Render the governing-equation set: each group a level-3 subsection
+        with its equations in order.
+        """
+        for group_heading, group in _eq.EQUATION_GROUPS:
+            self._d.heading(group_heading, level=3)
+            for eq in group:
+                self._d.equation(eq.key)
 
 
 def _scientific_basis(d: _Doc) -> None:
-    """The shared 'Scientific basis & validation' section (report_content), with
-    the equation set injected in scientific form at the ``eqgroups`` marker.
+    """The shared 'Scientific basis & validation' section (report_content),
+    walked to Word by the one render_blocks dispatcher (render.py).
     """
     d.heading("Scientific basis & validation", level=1)
-    for kind, payload in _content.SCIENTIFIC_BASIS:
-        if kind == "h3" and isinstance(payload, str):
-            d.heading(payload, level=2)
-        elif kind == "p" and isinstance(payload, str):
-            d.para(payload)
-        elif kind == "table" and isinstance(payload, dict):
-            d.content_table(payload)
-        elif kind == "eqgroups":
-            _equation_groups(d)
+    render_blocks(_content.SCIENTIFIC_BASIS, _DocxBasis(d))
 
 
 def _speciation_section(d: _Doc, summary: dict | None, medium: str,
@@ -269,14 +282,9 @@ def _docx_header(d: _Doc, prep: PreparedReport, metal: str, medium: str,
     d.para(f"Substrate: {metal}  |  Medium: {medium}  |  DFT level: "
            f"{prep.level}  |  Generated {ts}", muted=True)
     d.note(_content.HEADLINE_CAVEAT)
-    if len(prep.ranked):
-        _lead = prep.ranked.iloc[0]
-        _eads = _lead.get("e_ads_kjmol")
-        d.note(_content.bottom_line(
-            len(prep.df), str(_lead["name"]), float(_lead["score"]),
-            float(_lead["gap_ev"]),
-            float(_eads) if _eads is not None and pd.notna(_eads) else None,
-            prep.m_elem))
+    bl = prep.bottom_line()
+    if bl:
+        d.note(bl)
 
 
 def _overview_section(d: _Doc, figdir: str) -> None:

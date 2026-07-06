@@ -1036,4 +1036,45 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **#72** Generalization/Validation (#54→#53), **#71** Deployment (#66–#68),
   **#40** chemisorption E_ads.
 
+## 2026-07-06 (session 7) — report render seam: shared walker + PreparedReport factory (epic #126 → 8/8)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** execute the last epic-#126 item, **#127** — the HTML/docx render
+  seam. Continues session 6's Pending line. Behaviour-preserving throughout: the
+  report golden (PR #147) is the gate.
+- **#127 — one walker for the data-driven section.** New `report/render.py`:
+  a four-method `BasisRenderer` Protocol (`subheading`/`paragraph`/`table`/
+  `equation_groups`) + `render_blocks(blocks, renderer)` with an `else: raise`.
+  Replaces the two byte-duplicated `if kind == …` chains in
+  `report._scientific_basis_section` and `report_docx._scientific_basis` that
+  **both lacked an `else`** and silently dropped an unknown block kind. HTML
+  (`_HtmlBasis`) and Word (`_DocxBasis`) are the two impls; the scope stays the
+  one data-driven section (the hand-authored sections remain two renderers).
+- **`PreparedReport.bottom_line()`.** The byte-duplicated lead extraction (top
+  ranked row → headline) moves onto the DTO; each renderer wraps the returned
+  prose in its own note box.
+- **HTML section decomposition.** `build_pipeline_report`'s ~100-line list
+  literal becomes `_header/_overview/_summary/_dft/_fukui/_esp/_mc/_md/_method`
+  section helpers mirroring `report_docx`'s `_*_section` builders, so the two
+  outlines diff side by side. The document shell + `_number_headings` stay in the
+  entry point.
+- **`PreparedReport.derive(...)`.** Construction moves to a factory classmethod
+  (ADR 0014); `prepare_report_data` stays the stable public wrapper delegating to
+  it.
+- **ADR 0016** — report render seam: the shared walker covers only the
+  data-driven Scientific-basis section; the hand-authored, format-specific
+  sections stay two renderers (ADR 0010). Whole-report block model rejected;
+  `_number_headings` → `_Html`-builder retirement deferred.
+- **Tests** — new `tests/test_render_blocks.py` (per-kind dispatch, the
+  `else: raise` exhaustiveness, `bottom_line` None-branch); +6 tests.
+- **Verification:** report golden byte-identical (HTML) + section-for-section
+  (docx); pytest **169 passed / 1 skipped**; ruff + mypy (40 files) + complexipy
+  (all < 15, `derive` = 11, snapshot `[]`) green.
+- **Pending:** epic **#126** is **complete (8/8)**. Deferred inside #127: retire
+  `_number_headings` for an `_Html` builder mirroring `_Doc` (issue #127 P2,
+  optional). Longer threads unchanged: **#133 P3** (`add_metal_arg` /
+  `add_medium_arg` help-text single-source), **#119/#124** comment sweeps,
+  **#72** Generalization/Validation (#54→#53), **#71** Deployment (#66–#68),
+  **#40** chemisorption E_ads.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
