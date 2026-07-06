@@ -24,6 +24,8 @@ env/
 # the curated multiscale report bundle is tracked (report.html + report.docx +
 # figures/ + tables/; see runs/make_report.py)
 !report/report.html
+# report render goldens are tracked test fixtures (tests/test_report_golden.py)
+!tests/goldens/*.html
 *.cif
 *.cube
 *_slab.xyz
