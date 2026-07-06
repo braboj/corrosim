@@ -50,13 +50,17 @@ MIN_RECIPE = "grid 4, imag-mode refined"
 class EngineResult:
     """Engine-agnostic single-point result (all energies in eV)."""
 
+    # Engine identity: backend name and its theory level
+    # (e.g. "GFN2-xTB" or "B3LYP/6-31G")
     engine: str
-    # e.g. "GFN2-xTB" or "B3LYP/6-31G"
     level: str
+
+    # Single-point energies (eV)
     e_total_ev: float
     homo_ev: float
     lumo_ev: float
-    # per-atom partial charges (Mulliken), if available
+
+    # Per-atom Mulliken partial charges, if the engine provides them
     charges: list[float] | None = None
 
     @property

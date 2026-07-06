@@ -40,15 +40,20 @@ class FukuiResult:
     softness.
     """
 
+    # Atom identity, aligned with every per-atom list below
     symbols: list[str]
-    # nucleophilic (electron-accepting)
+
+    # Condensed Fukui functions: f+ (nucleophilic), f- (electrophilic),
+    # and the dual descriptor f+ - f-
     f_plus: list[float]
-    # electrophilic (electron-donating)
     f_minus: list[float]
-    # f+ - f-
     dual: list[float]
+
+    # Local softness s± = f± · global softness
     s_plus: list[float]
     s_minus: list[float]
+
+    # Basis-set label
     basis: str = ""
 
     @classmethod
