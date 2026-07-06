@@ -1,12 +1,1 @@
-[
-  {
-    "path": "corrosim/runs/make_figures.py",
-    "file_name": "make_figures.py",
-    "functions": [
-      {
-        "name": "main",
-        "complexity": 18
-      }
-    ]
-  }
-]
+[]
