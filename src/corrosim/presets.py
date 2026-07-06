@@ -17,6 +17,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+def metal_element(metal: str) -> str:
+    """Bare element symbol from a possibly facet-qualified metal label.
+
+    The single home for the facet strip (kept here, a stdlib-only leaf, so the
+    slab/report/facade code can share it without a heavy import).
+
+    Args:
+        metal: A metal label, optionally facet-qualified (e.g. ``"Fe(110)"``).
+
+    Returns:
+        The element symbol before any facet suffix (e.g. ``"Fe"``).
+    """
+    return metal.split("(")[0].strip()
+
+
 @dataclass(frozen=True)
 class CaseStudy:
     """A named screening case study: molecule set + substrate metal + medium."""
@@ -38,7 +53,7 @@ class CaseStudy:
             The metal symbol with any facet suffix stripped, e.g.
             ``Fe(110)`` -> ``Fe``.
         """
-        return self.metal.split("(")[0].strip()
+        return metal_element(self.metal)
 
     def molecule_list(self) -> list[str]:
         """Return a fresh mutable copy of the molecule set.

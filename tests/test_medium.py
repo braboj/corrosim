@@ -1,5 +1,5 @@
 """Medium parsing + the acid -> protonation selection logic (issue #8 / ADR 0003)."""
-from corrosim.medium import parse_medium, relevant_forms
+from corrosim.medium import parse_medium
 
 
 def test_parse_strong_acid_molarity_gives_low_ph_and_acidic():
@@ -33,5 +33,5 @@ def test_parse_unknown_medium_never_raises():
 
 
 def test_relevant_forms_tracks_acidity():
-    assert relevant_forms(parse_medium("1 M HCl")) == {"neutral", "protonated"}
-    assert relevant_forms(parse_medium("pH 7 buffer")) == {"neutral"}
+    assert parse_medium("1 M HCl").relevant_forms() == {"neutral", "protonated"}
+    assert parse_medium("pH 7 buffer").relevant_forms() == {"neutral"}

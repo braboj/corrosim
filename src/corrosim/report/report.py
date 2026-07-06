@@ -16,6 +16,7 @@ from typing import NamedTuple
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from ..presets import metal_element
 from ..qm.descriptors import DESCRIPTOR_META
 from . import equations as _eq
 from . import report_content as _content
@@ -564,8 +565,7 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
     if order:
         df = (df.set_index("name").loc[[n for n in order if n in set(df["name"])]]
               .reset_index())
-    # "Fe(110)" -> "Fe"
-    m_elem = str(metal).split("(")[0].strip()
+    m_elem = metal_element(str(metal))
     mc_by = {r["name"]: r for r in mc_rows}
     md_by = {r["name"]: r for r in md_rows}
 

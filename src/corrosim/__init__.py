@@ -26,7 +26,7 @@ from .molecules import (
     build_protonated,
     enumerate_protonation_sites,
 )
-from .presets import ARGHEL, CaseStudy, case_study
+from .presets import ARGHEL, CaseStudy, case_study, metal_element
 from .qm import (
     METAL_WORK_FUNCTION,
     EngineResult,
@@ -53,7 +53,7 @@ __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
 
 def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
                      engine: str = "xtb", adsorption: bool = False,
-                     **engine_kwargs: Any) -> dict:
+                     **engine_kwargs: Any) -> dict[str, Any]:
     """Full Stage-1 analysis of a pre-built Molecule.
 
     Respects mol.charge (e.g. +1 for a protonated inhibitor in acid) and
@@ -79,7 +79,7 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
     row["e_total_ev"] = res.e_total_ev
     row["tnc"] = total_negative_charge(res.charges)
     if adsorption:
-        metal_symbol = metal.split("(")[0]
+        metal_symbol = metal_element(metal)
         try:
             ads = estimate_adsorption_energy(mol, metal=metal_symbol)
             row["e_ads_kjmol"] = ads["e_ads_kjmol"]
@@ -92,7 +92,8 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
 
 def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
                 engine: str = "xtb", ff: str = "MMFF",
-                adsorption: bool = False, **engine_kwargs: Any) -> dict:
+                adsorption: bool = False,
+                **engine_kwargs: Any) -> dict[str, Any]:
     """Build a single inhibitor from a name/SMILES, then analyse it (Stage 1).
 
     Args:

@@ -28,6 +28,8 @@ from ase import Atoms
 from ase.build import bcc110, fcc111
 from ase.cell import Cell
 
+from corrosim.presets import metal_element
+
 # Lattice constants (Angstrom) and crystal type per metal.
 METAL_LATTICE = {
     "Fe": ("bcc", 2.8665),
@@ -72,22 +74,6 @@ EV_TO_KJMOL = 96.485
 MIN_PAIR_DISTANCE_A = 0.3
 
 
-def _metal_element(metal: str) -> str:
-    """Bare element symbol from a possibly facet-qualified metal string.
-
-    ``"Fe(110)" -> "Fe"``; a bare ``"Fe"`` is returned unchanged. Lets
-    build_slab accept either the canonical pipeline metal (facet-qualified) or
-    the plain element, making that contract explicit rather than implicit.
-
-    Args:
-        metal: A metal symbol, optionally facet-qualified (e.g. 'Fe(110)').
-
-    Returns:
-        The element symbol (the part before any '(').
-    """
-    return metal.split("(")[0].strip()
-
-
 def build_slab(metal: str = "Fe",
                size: tuple[int, int, int] = (6, 6, 4),
                vacuum: float = 15.0) -> Atoms:
@@ -105,7 +91,8 @@ def build_slab(metal: str = "Fe",
     Raises:
         ValueError: If the metal element has no lattice entry.
     """
-    element = _metal_element(metal)
+    # Accept the facet-qualified pipeline metal ("Fe(110)") or a bare element.
+    element = metal_element(metal)
     if element not in METAL_LATTICE:
         raise ValueError(
             f"Unknown metal '{metal}'. Known: {list(METAL_LATTICE)}")
