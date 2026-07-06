@@ -83,14 +83,12 @@ def place_molecule(slab: Atoms, symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The combined slab+molecule cell.
     """
-    coords = np.asarray(coords, dtype=float)
-    # centre, then orient the principal plane parallel to the surface
-    coords = coords - coords.mean(axis=0)
-    mol = Atoms(symbols=symbols, positions=coords)
-    cell = slab.get_cell()
-    cx, cy = cell[0, 0] / 2.0, cell[1, 1] / 2.0
+    # The shared flat-oriented placement (orient_flat + centre on the cell +
+    # lift), so the exported pose matches the one the estimate/MC/MD scorers
+    # use instead of leaving the molecule in its arbitrary embedded orientation.
     top_z = slab.get_positions()[:, 2].max()
-    mol.translate((cx, cy, top_z + height - mol.get_positions()[:, 2].min()))
+    pos = initial_adsorption_pose(coords, slab.get_cell(), top_z, height)
+    mol = Atoms(symbols=symbols, positions=pos)
     combined = slab + mol
     combined.set_cell(slab.get_cell())
     combined.set_pbc(slab.get_pbc())
