@@ -11,11 +11,15 @@ engine-agnostic. Energies in the result are reported in eV.
 """
 from __future__ import annotations
 
+import os
+import subprocess  # nosec B404
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+from ase.data import atomic_numbers
 
 # A molecular geometry: (x, y, z) triples in Angstrom (or an ndarray).
 Coords = Sequence[Sequence[float]]
@@ -90,16 +94,16 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
         The configured (unkerneled) PySCF RKS mean-field object; call its
         ``.kernel()`` to run the SCF.
     """
-    from pyscf import dft, gto
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, verbose=0)
-    mf = dft.RKS(mol)
+    from . import _backend_pyscf as _pyscf
+    mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                       basis=basis, charge=charge, verbose=0)
+    mf = _pyscf.dft.RKS(mol)
     mf.xc = xc
     if grid_level is not None:
         # set on the base RKS, before any solvent wrap
         mf.grids.level = grid_level
     if solvent:
-        from pyscf import solvent as pyscf_solvent  # noqa: F401
+        # _backend_pyscf imported pyscf.solvent at load, registering ddCOSMO
         mf = mf.ddCOSMO()
         # ddCOSMO default eps is water already; set it explicitly
         mf.with_solvent.eps = WATER_EPS
@@ -134,11 +138,10 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
     Returns:
         The single-point :class:`EngineResult`.
     """
-    from ase.data import atomic_numbers
-    from tblite.interface import Calculator
+    from . import _backend_tblite as _tblite
     Z = np.array([atomic_numbers[s] for s in symbols])
     xyz_bohr = np.asarray(coords, dtype=float) * ANG_TO_BOHR
-    calc = Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
+    calc = _tblite.Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
     calc.set("verbosity", 0)
     res = calc.singlepoint()
     # orbital energies (Hartree) + occupations
@@ -239,11 +242,11 @@ def optimize_geometry(symbols: Sequence[str], coords: Coords,
         ``(symbols, coords_angstrom)`` for the relaxed structure; atom order
         is preserved.
     """
-    from pyscf.geomopt.geometric_solver import optimize
+    from . import _backend_pyscf as _pyscf
     mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                     grid_level=grid_level)
     conv = {"convergence_set": convergence_set} if convergence_set else {}
-    mol_eq = optimize(mf, maxsteps=maxsteps, **conv)
+    mol_eq = _pyscf.optimize(mf, maxsteps=maxsteps, **conv)
     opt_symbols = [mol_eq.atom_symbol(i) for i in range(mol_eq.natm)]
     opt_coords = [tuple(float(x) for x in r)
                   for r in mol_eq.atom_coords(unit="Angstrom")]
@@ -283,15 +286,15 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
         the correction is unreliable and the caller should re-optimise;
         ``freq_cm`` / ``norm_mode`` let a caller step off a saddle.
     """
-    from pyscf.hessian import thermo
+    from . import _backend_pyscf as _pyscf
     mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                     grid_level=grid_level)
     e_elec = mf.kernel()
     hess = mf.Hessian().kernel()
-    ha = thermo.harmonic_analysis(mf.mol, hess)
+    ha = _pyscf.thermo.harmonic_analysis(mf.mol, hess)
     fw = np.asarray(ha["freq_wavenumber"])
     n_imag = int(np.sum(_imaginary_mask(fw)))
-    info = thermo.thermo(mf, ha["freq_au"], temperature, pressure)
+    info = _pyscf.thermo.thermo(mf, ha["freq_au"], temperature, pressure)
     # total Gibbs (Hartree), incl. E_elec
     g_tot = float(info["G_tot"][0])
     zpe = float(info["ZPE"][0])
@@ -495,9 +498,6 @@ def _run_external_engine(cmd: str, prefix: str, in_ext: str, out_ext: str,
     Shared by run_orca / run_gaussian: resolve a scratch dir, write the input
     deck, run the fixed-argv (no-shell) binary, and read the log back.
     """
-    import os
-    import subprocess  # nosec B404
-    import tempfile
     workdir = workdir or tempfile.mkdtemp(prefix=prefix)
     inp = os.path.join(workdir, f"job.{in_ext}")
     out = os.path.join(workdir, f"job.{out_ext}")
@@ -596,7 +596,6 @@ def run_orca(symbols: Sequence[str], coords: Coords,
     Returns:
         The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
     """
-    import os
     orca_cmd = orca_cmd or os.environ.get("ORCA_CMD", "orca")
     deck = write_orca_input(symbols, coords, keywords, charge, mult,
                             solvent, nprocs)
@@ -681,7 +680,6 @@ def run_gaussian(symbols: Sequence[str], coords: Coords,
     Returns:
         The :class:`EngineResult` (e_total is NaN — HOMO/LUMO only).
     """
-    import os
     gaussian_cmd = gaussian_cmd or os.environ.get("GAUSSIAN_CMD", "g16")
     deck = write_gaussian_input(symbols, coords, route, charge, mult,
                                 solvent, nprocs, mem)

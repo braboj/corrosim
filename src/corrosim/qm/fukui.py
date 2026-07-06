@@ -171,10 +171,10 @@ def _scf(symbols, coords, charge, spin, basis, xc):
     Returns:
         ``(mol, mf)`` — the PySCF molecule and the converged mean field.
     """
-    from pyscf import dft, gto
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, spin=spin, verbose=0)
-    mf = (dft.RKS(mol) if spin == 0 else dft.UKS(mol))
+    from . import _backend_pyscf as _pyscf
+    mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                       basis=basis, charge=charge, spin=spin, verbose=0)
+    mf = (_pyscf.dft.RKS(mol) if spin == 0 else _pyscf.dft.UKS(mol))
     mf.xc = xc
     mf.kernel()
     if not mf.converged:
