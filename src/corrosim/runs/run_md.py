@@ -11,16 +11,14 @@ anywhere.
 from __future__ import annotations
 
 import argparse
-import os
 from collections.abc import Sequence
 
-from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.adsorption.md import run_md
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
-    parse_molecules,
+    iter_molecules,
     print_table,
     resolve_case,
     stderr_log,
@@ -53,13 +51,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--outdir", default="results")
     args = p.parse_args(argv)
     resolve_case(args, metal="element")
-    os.makedirs(args.outdir, exist_ok=True)
 
     summary = []
-    for name in parse_molecules(args.molecules):
+    for name, m in iter_molecules(args):
         stderr_log(f"[{name}] MD ({args.steps} steps, "
                    f"{args.temperature:.0f} K) ...")
-        m = build_molecule(name)
         mc = run_mc(m, metal=args.metal, n_steps=MC_WARMUP_STEPS,
                     seed=args.seed)
         r = run_md(m, metal=args.metal, n_steps=args.steps, equil=args.equil,

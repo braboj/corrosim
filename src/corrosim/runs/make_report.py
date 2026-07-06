@@ -27,9 +27,9 @@ from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
 from corrosim.runs._cli import (
     add_case_arg,
+    form_rows_in_order,
     read_json,
     resolve_case,
-    strip_protonation_suffix,
 )
 from corrosim.runs._cli import stderr_log as log
 
@@ -77,9 +77,9 @@ def _neutral_rows(
         ``(rows, present)`` — the neutral aqueous rows and the molecule names
         actually present, both in ``order``.
     """
-    naq = df[(df.form == "neutral") & (df.phase == "aqueous")]
-    present = [n for n in order if n in set(naq["name"])]
-    rows = naq.set_index("name").loc[present].reset_index().to_dict("records")
+    neutral = form_rows_in_order(df, "neutral", order)
+    present = list(neutral.index)
+    rows = neutral.reset_index(drop=True).to_dict("records")
     return rows, present
 
 
@@ -104,13 +104,8 @@ def _acid_cation_rows(
     """
     if not (spec.acidic and {"form", "phase"} <= set(df.columns)):
         return None
-    paq = df[(df.form == "protonated") & (df.phase == "aqueous")].copy()
-    paq["_base"] = strip_protonation_suffix(paq["name"])
-    paq = paq[paq["_base"].isin(present)]
-    paq["_ord"] = paq["_base"].map({n: i for i, n in enumerate(present)})
-    return (paq.sort_values("_ord")
-            .drop(columns=["_base", "_ord"]).to_dict("records")
-            or None)
+    cations = form_rows_in_order(df, "protonated", present)
+    return cations.reset_index(drop=True).to_dict("records") or None
 
 
 def _speciation_summary(
@@ -185,20 +180,13 @@ def _opt_geometry_rows(
     if not os.path.exists(opt_path):
         return None, None
     odf = pd.read_csv(opt_path)
-    on = odf[(odf.form == "neutral") & (odf.phase == "aqueous")]
-    on_present = [n for n in order if n in set(on["name"])]
-    opt_neutral_rows = (on.set_index("name").loc[on_present].reset_index()
-                        .to_dict("records") or None)
+    neutral = form_rows_in_order(odf, "neutral", order)
+    on_present = list(neutral.index)
+    opt_neutral_rows = neutral.reset_index(drop=True).to_dict("records") or None
     opt_acid_rows = None
     if spec.acidic:
-        op = odf[(odf.form == "protonated")
-                 & (odf.phase == "aqueous")].copy()
-        op["_base"] = strip_protonation_suffix(op["name"])
-        op = op[op["_base"].isin(on_present)]
-        op["_ord"] = op["_base"].map(
-            {n: i for i, n in enumerate(on_present)})
-        opt_acid_rows = (op.sort_values("_ord")
-                         .drop(columns=["_base", "_ord"])
+        cations = form_rows_in_order(odf, "protonated", on_present)
+        opt_acid_rows = (cations.reset_index(drop=True)
                          .to_dict("records") or None)
     return opt_neutral_rows, opt_acid_rows
 

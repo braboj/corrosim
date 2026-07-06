@@ -25,23 +25,12 @@ import pandas as pd
 from corrosim.report import figures
 from corrosim.runs._cli import (
     add_case_arg,
+    form_rows_in_order,
     resolve_case,
-    strip_protonation_suffix,
 )
 from corrosim.runs._cli import stderr_log as log
 
 KEYS = ["gap_ev", "hardness_ev", "softness_inv_ev", "delta_n", "tnc"]
-
-
-def _select(df, order, form, phase):
-    """Rows for ``form``/``phase`` indexed by the BASE molecule name (strips the
-    ``+H+`` protonation suffix), in ``order``. Works for both neutral and
-    protonated rows.
-    """
-    sub = df[(df.form == form) & (df.phase == phase)].copy()
-    sub["_base"] = strip_protonation_suffix(sub["name"])
-    present = [n for n in order if n in set(sub["_base"])]
-    return sub.set_index("_base").loc[present]
 
 
 def _compare_form(ff_full, opt_full, form, phase, order):
@@ -50,8 +39,8 @@ def _compare_form(ff_full, opt_full, form, phase, order):
     form is absent from either matrix. ``order`` is the case-study molecule
     order to report in.
     """
-    f = _select(ff_full, order, form, phase)
-    o = _select(opt_full, order, form, phase)
+    f = form_rows_in_order(ff_full, form, order, phase)
+    o = form_rows_in_order(opt_full, form, order, phase)
     order = [n for n in order if n in f.index and n in o.index]
     if not order:
         return None, [], f"  (no {form} rows in both matrices — skipped)"

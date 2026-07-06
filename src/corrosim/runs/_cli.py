@@ -13,13 +13,15 @@ import argparse
 import json
 import os
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any
 
 from corrosim.presets import CaseStudy, case_study
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from corrosim.molecules import Molecule
 
 # Sentinel distinguishing "no default given" (missing file -> raise) from an
 # explicit default of None in :func:`read_json`.
@@ -166,6 +168,58 @@ def strip_protonation_suffix(names: pd.Series) -> pd.Series:
     return names.str.replace(r"\+H\+$", "", regex=True)
 
 
+def form_rows_in_order(
+    df: pd.DataFrame,
+    form: str,
+    order: Sequence[str],
+    phase: str = "aqueous",
+) -> pd.DataFrame:
+    """Select one ``(form, phase)`` block, keyed by base name, in ``order``.
+
+    Filters ``df`` to the given form and phase, strips the ``+H+`` protonation
+    suffix to a base molecule name, keeps only the molecules named in ``order``
+    that are actually present, and returns them in ``order`` — the row-selection
+    the descriptor consumers (make_report, compare_geometry) share. Works for
+    both neutral and protonated rows: a neutral name has no suffix, so its base
+    is itself.
+
+    Args:
+        df: A descriptor matrix with ``form`` / ``phase`` / ``name`` columns.
+        form: The species form, e.g. ``"neutral"`` or ``"protonated"``.
+        order: The base molecule names to keep, and the order to return them in.
+        phase: The phase to select (``"aqueous"`` or ``"gas"``).
+
+    Returns:
+        The selected rows as a DataFrame indexed by base molecule name, in
+        ``order``; the original columns (including the suffixed ``name``) are
+        retained.
+    """
+    sub = df[(df.form == form) & (df.phase == phase)].copy()
+    sub["_base"] = strip_protonation_suffix(sub["name"])
+    present = [n for n in order if n in set(sub["_base"])]
+    return sub.set_index("_base").loc[present]
+
+
+def iter_molecules(args: argparse.Namespace) -> Iterator[tuple[str, Molecule]]:
+    """Yield ``(name, molecule)`` for each ``--molecules`` entry.
+
+    Ensures ``args.outdir`` exists, then builds each molecule from the parsed
+    ``--molecules`` list — the shared open of the run_mc / run_md / run_fukui
+    per-molecule loops.
+
+    Args:
+        args: Parsed CLI arguments; reads ``args.outdir`` and
+            ``args.molecules``.
+
+    Returns:
+        An iterator of ``(name, molecule)`` pairs, in ``--molecules`` order.
+    """
+    from corrosim import build_molecule
+    os.makedirs(args.outdir, exist_ok=True)
+    for name in parse_molecules(args.molecules):
+        yield name, build_molecule(name)
+
+
 __all__ = [
     "add_case_arg",
     "add_molecules_arg",
@@ -176,4 +230,6 @@ __all__ = [
     "read_json",
     "print_table",
     "strip_protonation_suffix",
+    "form_rows_in_order",
+    "iter_molecules",
 ]
