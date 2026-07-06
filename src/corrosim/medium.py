@@ -42,6 +42,17 @@ class MediumSpec:
     species: str | None = None
     concentration_M: float | None = None
 
+    def relevant_forms(self) -> set[str]:
+        """Protonation forms chemically present in this medium.
+
+        The neutral form always, plus the 'protonated' cation in acid (the
+        basic sites take up H+).
+
+        Returns:
+            The set of relevant form names.
+        """
+        return {"neutral", "protonated"} if self.acidic else {"neutral"}
+
 
 def parse_medium(medium: str) -> MediumSpec:
     """Best-effort parse of a medium label into a :class:`MediumSpec`.
@@ -89,18 +100,3 @@ def _looks_acidic(low: str) -> bool:
     if any(b in low for b in _BASE_OR_NEUTRAL):
         return False
     return any(a in low for a in ("hcl", "h2so4", "hno3", "acid"))
-
-
-def relevant_forms(spec: MediumSpec) -> set[str]:
-    """Protonation forms chemically present in this medium.
-
-    The neutral form always, plus the 'protonated' cation in acid (the basic
-    sites take up H+).
-
-    Args:
-        spec: The parsed medium.
-
-    Returns:
-        The set of relevant form names.
-    """
-    return {"neutral", "protonated"} if spec.acidic else {"neutral"}

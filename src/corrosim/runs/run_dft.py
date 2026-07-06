@@ -46,7 +46,7 @@ from typing import Any, cast
 import pandas as pd
 
 import corrosim
-from corrosim.medium import parse_medium, relevant_forms
+from corrosim.medium import parse_medium
 from corrosim.molecules import (
     Molecule,
     build_molecule,
@@ -407,7 +407,7 @@ def _warn_medium_mismatch(forms: str, medium: str) -> None:
     spec = parse_medium(medium)
     ph_str = f" (pH ~{spec.ph})" if spec.ph is not None else ""
     want_prot = forms in ("both", "protonated")
-    medium_wants_prot = "protonated" in relevant_forms(spec)
+    medium_wants_prot = "protonated" in spec.relevant_forms()
     if want_prot and not medium_wants_prot:
         print(f"warning: --forms includes the protonated cation, but medium "
               f"{medium!r}{ph_str} is not acidic — the cation may not be "
