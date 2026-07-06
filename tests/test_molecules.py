@@ -3,7 +3,12 @@ import os
 import pytest
 
 from corrosim.cli import read_input_csv
-from corrosim.molecules import build_molecule, resolve_smiles, write_xyz
+from corrosim.molecules import (
+    Molecule,
+    build_molecule,
+    resolve_smiles,
+    write_xyz,
+)
 
 
 def test_build_from_library_name():
@@ -17,6 +22,28 @@ def test_build_from_smiles():
     mol = build_molecule("OC(=O)c1cc(O)c(O)c(O)c1")   # gallic acid
     assert mol.n_atoms > 0
     assert all(len(c) == 3 for c in mol.coords)
+
+
+def test_from_smiles_matches_build_molecule():
+    # build_molecule is a thin wrapper over the classmethod: same seeded geometry
+    wrapped = build_molecule("caffeine")
+    direct = Molecule.from_smiles("caffeine")
+    assert direct.symbols == wrapped.symbols
+    assert direct.coords == wrapped.coords
+
+
+def test_formula_without_rdkit_mol_raises_clearly():
+    bare = Molecule(name="x", smiles="C", symbols=["C"],
+                    coords=[(0.0, 0.0, 0.0)])
+    with pytest.raises(ValueError, match="rdkit_mol"):
+        _ = bare.formula
+
+
+def test_molecule_write_xyz_method(tmp_path):
+    mol = build_molecule("caffeine")
+    path = mol.write_xyz(str(tmp_path / "caffeine.xyz"))
+    assert os.path.exists(path)
+    assert int(open(path, encoding="utf-8").read().splitlines()[0]) == mol.n_atoms
 
 
 def test_arghel_is_a_set_not_a_molecule():
