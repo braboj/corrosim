@@ -51,6 +51,69 @@ class FukuiResult:
     s_minus: list[float]
     basis: str = ""
 
+    @classmethod
+    def from_populations(
+        cls,
+        symbols: Sequence[str],
+        f_plus: Sequence[float],
+        f_minus: Sequence[float],
+        softness: float | None,
+        basis: str = "",
+    ) -> FukuiResult:
+        """Build from per-atom f± populations, deriving dual + local softness.
+
+        Args:
+            symbols: Element symbols.
+            f_plus: Per-atom f+ (nucleophilic / electron-accepting).
+            f_minus: Per-atom f- (electrophilic / electron-donating).
+            softness: Global softness (1/eV) scaling s±; 1.0 if None.
+            basis: The basis-set label recorded on the result.
+
+        Returns:
+            The assembled result (``dual = f+ - f-``, ``s± = f± · softness``).
+        """
+        dual = [p - m for p, m in zip(f_plus, f_minus)]
+        s = softness if softness is not None else 1.0
+        return cls(
+            list(symbols),
+            list(f_plus),
+            list(f_minus),
+            dual,
+            [p * s for p in f_plus],
+            [m * s for m in f_minus],
+            basis=basis,
+        )
+
+    @classmethod
+    def from_rows(cls, rows: Sequence[dict]) -> FukuiResult:
+        """Reconstruct from :meth:`as_rows` output (the round-trip inverse).
+
+        Args:
+            rows: Per-atom dicts as produced by :meth:`as_rows` — each with
+                ``idx``, ``symbol``, ``f_plus``, ``f_minus``, ``dual`` and,
+                when present, ``s_plus`` / ``s_minus``.
+
+        Returns:
+            The reconstructed result; ``basis`` is not carried in the rows and
+            defaults to ``""``.
+        """
+        n = max(r["idx"] for r in rows) + 1
+        symbols = [""] * n
+        f_plus = [0.0] * n
+        f_minus = [0.0] * n
+        dual = [0.0] * n
+        s_plus = [0.0] * n
+        s_minus = [0.0] * n
+        for r in rows:
+            i = r["idx"]
+            symbols[i] = r["symbol"]
+            f_plus[i] = r["f_plus"]
+            f_minus[i] = r["f_minus"]
+            dual[i] = r["dual"]
+            s_plus[i] = r.get("s_plus", 0.0)
+            s_minus[i] = r.get("s_minus", 0.0)
+        return cls(symbols, f_plus, f_minus, dual, s_plus, s_minus)
+
     def as_rows(self) -> list[dict]:
         """Per-atom indices as a list of rounded dicts.
 
@@ -139,28 +202,6 @@ def _mulliken_charges(symbols, coords, charge, spin, basis, xc):
     return np.asarray(mf.mulliken_pop(verbose=0)[1])
 
 
-def _result(symbols: Sequence[str], f_plus: Sequence[float],
-            f_minus: Sequence[float], softness: float | None,
-            basis: str) -> FukuiResult:
-    """Assemble a FukuiResult: dual descriptor + local softness from f±.
-
-    Args:
-        symbols: Element symbols.
-        f_plus: Per-atom f+ (nucleophilic / electron-accepting).
-        f_minus: Per-atom f- (electrophilic / electron-donating).
-        softness: Global softness (1/eV) scaling s±; 1.0 if None.
-        basis: The basis-set label recorded on the result.
-
-    Returns:
-        The assembled :class:`FukuiResult`.
-    """
-    dual = [p - m for p, m in zip(f_plus, f_minus)]
-    s = softness if softness is not None else 1.0
-    return FukuiResult(list(symbols), list(f_plus), list(f_minus), dual,
-                       [p * s for p in f_plus], [m * s for m in f_minus],
-                       basis=basis)
-
-
 def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
                   xc: str = "b3lyp", method: str = "fmo",
                   softness: float | None = None) -> FukuiResult:
@@ -192,7 +233,8 @@ def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
         # HOMO population -> donor sites; LUMO population -> acceptor sites
         f_minus = _atom_pop(mol, mf.mo_coeff[:, homo], S).tolist()
         f_plus = _atom_pop(mol, mf.mo_coeff[:, homo + 1], S).tolist()
-        return _result(sym, f_plus, f_minus, softness, f"{basis} (FMO)")
+        return FukuiResult.from_populations(
+            sym, f_plus, f_minus, softness, f"{basis} (FMO)")
     if method == "fd":
         # Yang-Mortier finite differences over N, N-1, N+1 at fixed geometry.
         # mulliken_pop()[1] yields CHARGES (q = Z - population), so the N/N±1
@@ -201,6 +243,7 @@ def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
         qN = _mulliken_charges(sym, coords, q0, 0, basis, xc)
         qcat = _mulliken_charges(sym, coords, q0 + 1, 1, basis, xc)
         qan = _mulliken_charges(sym, coords, q0 - 1, 1, basis, xc)
-        return _result(sym, (qN - qan).tolist(), (qcat - qN).tolist(),
-                       softness, f"{basis} (FD)")
+        return FukuiResult.from_populations(
+            sym, (qN - qan).tolist(), (qcat - qN).tolist(),
+            softness, f"{basis} (FD)")
     raise ValueError(f"Unknown method {method!r}; use 'fmo' or 'fd'.")

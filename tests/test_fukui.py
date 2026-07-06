@@ -1,10 +1,11 @@
 """QM-light Fukui dispatch tests. The SCF is mocked (no PySCF/QM container):
 they exercise the fmo/fd branch wiring, the charge-difference signs, and the
-_result dual/softness math offline."""
+FukuiResult.from_populations dual/softness math offline."""
 import numpy as np
 import pytest
 
 from corrosim.qm import fukui
+from corrosim.qm.fukui import FukuiResult
 
 
 class _FakeMol:
@@ -16,9 +17,9 @@ class _FakeMol:
         self.charge = 0
 
 
-def test_result_builds_dual_and_softness():
-    res = fukui._result(["O", "H"], [0.2, 0.8], [0.7, 0.3],
-                        softness=2.0, basis="6-31G(d)")
+def test_from_populations_builds_dual_and_softness():
+    res = FukuiResult.from_populations(["O", "H"], [0.2, 0.8], [0.7, 0.3],
+                                       softness=2.0, basis="6-31G(d)")
     # dual = f+ - f-
     assert res.dual == pytest.approx([0.2 - 0.7, 0.8 - 0.3])
     # local softness = f± * global softness
@@ -26,10 +27,37 @@ def test_result_builds_dual_and_softness():
     assert res.s_minus == pytest.approx([1.4, 0.6])
 
 
-def test_result_softness_defaults_to_one():
-    res = fukui._result(["O"], [0.5], [0.1], softness=None, basis="")
+def test_from_populations_softness_defaults_to_one():
+    res = FukuiResult.from_populations(["O"], [0.5], [0.1],
+                                       softness=None, basis="")
     assert res.s_plus == pytest.approx([0.5])
     assert res.s_minus == pytest.approx([0.1])
+
+
+def test_from_rows_round_trips_as_rows():
+    # from_rows is the exact inverse of as_rows (to the 4-dp it rounds at)
+    original = FukuiResult.from_populations(
+        ["O", "H", "N"], [0.21, 0.83, 0.11], [0.72, 0.34, 0.05],
+        softness=2.0, basis="6-31G(d)")
+    back = FukuiResult.from_rows(original.as_rows())
+    assert back.symbols == original.symbols
+    assert back.f_plus == pytest.approx(original.f_plus, abs=1e-4)
+    assert back.f_minus == pytest.approx(original.f_minus, abs=1e-4)
+    assert back.dual == pytest.approx(original.dual, abs=1e-4)
+    assert back.s_plus == pytest.approx(original.s_plus, abs=1e-4)
+    assert back.s_minus == pytest.approx(original.s_minus, abs=1e-4)
+
+
+def test_from_rows_tolerates_unordered_and_missing_softness():
+    # rows out of order, and without s_plus/s_minus (older JSON) -> zeros
+    rows = [{"idx": 1, "symbol": "H", "f_plus": 0.8, "f_minus": 0.3,
+             "dual": 0.5},
+            {"idx": 0, "symbol": "O", "f_plus": 0.2, "f_minus": 0.7,
+             "dual": -0.5}]
+    fr = FukuiResult.from_rows(rows)
+    assert fr.symbols == ["O", "H"]
+    assert fr.f_minus == pytest.approx([0.7, 0.3])
+    assert fr.s_plus == [0.0, 0.0] and fr.s_minus == [0.0, 0.0]
 
 
 def test_fmo_maps_homo_to_donor_and_lumo_to_acceptor(monkeypatch):
