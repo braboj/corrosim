@@ -21,6 +21,7 @@ adsorption / mc / md into this module.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
@@ -99,6 +100,53 @@ def build_slab(metal: str = "Fe",
     crystal, a = METAL_LATTICE[element]
     builder, _facet = CRYSTAL_BUILDER[crystal]
     return builder(element, size=size, a=a, vacuum=vacuum)
+
+
+@dataclass
+class Substrate:
+    """Cached metal-slab geometry shared by the adsorption search / dynamics.
+
+    Built once via :meth:`build`; the MC/MD loops read the cached ``positions``
+    (Å) for scoring, the ``cell`` and top-layer z (Å) for confinement, and the
+    metal-only ``metal_positions`` (Å) for the metal–donor RDF.
+    """
+
+    slab: Atoms
+    positions: np.ndarray
+    symbols: np.ndarray
+    metal_positions: np.ndarray
+    cell: np.ndarray
+    top: float
+
+    @classmethod
+    def build(
+        cls,
+        metal: str,
+        size: tuple[int, int, int],
+        vacuum: float,
+    ) -> Substrate:
+        """Build the metal slab and cache the geometry the pipeline reads.
+
+        Args:
+            metal: Slab metal symbol (Fe/Cu/Al), bare or facet-qualified.
+            size: Slab repetitions ``(nx, ny, layers)``.
+            vacuum: Vacuum padding along z (Å).
+
+        Returns:
+            The slab plus its cached positions/symbols, the metal-atom
+            positions, the cell, and the top-layer z (Å).
+        """
+        slab = build_slab(metal, size=size, vacuum=vacuum)
+        pos = slab.get_positions()
+        sym = np.array(slab.get_chemical_symbols())
+        return cls(
+            slab,
+            pos,
+            sym,
+            pos[sym == metal_element(metal)],
+            slab.get_cell(),
+            pos[:, 2].max(),
+        )
 
 
 def orient_flat(coords: npt.ArrayLike) -> np.ndarray:

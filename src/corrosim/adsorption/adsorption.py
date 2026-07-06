@@ -29,6 +29,7 @@ from ase.io import write
 from .surface import (
     EV_TO_KJMOL,
     SURFACE_FACET,
+    Substrate,
     build_slab,
     initial_adsorption_pose,
     uff_mixing,
@@ -150,16 +151,14 @@ def estimate_adsorption_energy(molecule: Molecule, metal: str = "Fe",
     if heights is None:
         heights = np.arange(2.0, 4.01, 0.25)
 
-    slab = build_slab(metal, size=size, vacuum=vacuum)
-    pos_s = slab.get_positions()
-    cell = slab.get_cell()
-    top = pos_s[:, 2].max()
-    x_mix, D_mix = uff_mixing(molecule.symbols, slab.get_chemical_symbols())
+    sub = Substrate.build(metal, size, vacuum)
+    x_mix, D_mix = uff_mixing(molecule.symbols, sub.symbols)
 
     best_e, best_h = float("inf"), None
     for h in heights:
-        p = initial_adsorption_pose(molecule.coords, cell, top, float(h))
-        e = uff_vdw_energy(p, pos_s, x_mix, D_mix)
+        p = initial_adsorption_pose(molecule.coords, sub.cell, sub.top,
+                                    float(h))
+        e = uff_vdw_energy(p, sub.positions, x_mix, D_mix)
         if e < best_e:
             best_e, best_h = e, float(h)
 

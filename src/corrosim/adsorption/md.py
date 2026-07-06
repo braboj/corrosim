@@ -24,7 +24,7 @@ from ase import Atoms
 from .surface import (
     EV_TO_KJMOL,
     SURFACE_FACET,
-    build_slab,
+    Substrate,
     initial_adsorption_pose,
     rot,
     uff_mixing,
@@ -96,7 +96,7 @@ class MDResult:
     def from_run(
         cls,
         metal: str,
-        substrate: _Substrate,
+        substrate: Substrate,
         rdf: _RdfAccumulator,
         energies: list[float],
         final_positions: np.ndarray,
@@ -261,52 +261,6 @@ def _mean_energy(energies: list[float], equil: int) -> float:
 
 
 @dataclass
-class _Substrate:
-    """Fixed slab context the trajectory reads every step.
-
-    Bundles the ASE slab with the cached positions and symbols, the metal-only
-    positions the RDF measures against, the cell, and the top-layer z (Å).
-    """
-
-    slab: Atoms
-    positions: np.ndarray
-    symbols: np.ndarray
-    metal_positions: np.ndarray
-    cell: np.ndarray
-    top: float
-
-    @classmethod
-    def build(
-        cls,
-        metal: str,
-        size: tuple[int, int, int],
-        vacuum: float,
-    ) -> _Substrate:
-        """Build the metal slab and cache the geometry the trajectory reads.
-
-        Args:
-            metal: Slab metal symbol (Fe/Cu/Al).
-            size: Slab repetitions ``(nx, ny, layers)``.
-            vacuum: Vacuum padding along z (Å).
-
-        Returns:
-            The slab plus its cached positions/symbols, the metal-atom
-            positions, the cell, and the top-layer z (Å).
-        """
-        slab = build_slab(metal, size=size, vacuum=vacuum)
-        s_pos = slab.get_positions()
-        s_sym = np.array(slab.get_chemical_symbols())
-        return cls(
-            slab,
-            s_pos,
-            s_sym,
-            s_pos[s_sym == metal],
-            slab.get_cell(),
-            s_pos[:, 2].max(),
-        )
-
-
-@dataclass
 class _RdfAccumulator:
     """Running metal–donor closest-contact histograms over recorded frames.
 
@@ -327,7 +281,7 @@ class _RdfAccumulator:
     def for_donors(
         cls,
         mol_symbols: list[str],
-        substrate: _Substrate,
+        substrate: Substrate,
     ) -> _RdfAccumulator:
         """Build a zeroed accumulator for a molecule's O/N donors over a slab.
 
@@ -425,7 +379,7 @@ def run_md(molecule: Molecule, metal: str = "Fe",
     """
     kT = KB_EV * temperature
     rng = np.random.default_rng(seed)
-    substrate = _Substrate.build(metal, size, vacuum)
+    substrate = Substrate.build(metal, size, vacuum)
 
     # UFF pair parameters + the O/N donor contact histograms the RDF tracks
     mol_symbols = list(molecule.symbols)

@@ -77,13 +77,17 @@ def test_single_source_no_duplicate_definitions():
     import corrosim.adsorption.md as md
     from corrosim.report import equations
 
-    # the facet map / slab builder / vdW machinery are shared, not re-defined
+    # the facet map / vdW machinery are shared, not re-defined
     for mod in (ads, mc, md):
         assert mod.SURFACE_FACET is surface.SURFACE_FACET
-        assert mod.build_slab is surface.build_slab
         assert mod.uff_mixing is surface.uff_mixing
         assert mod.initial_adsorption_pose is surface.initial_adsorption_pose
         assert mod.EV_TO_KJMOL is surface.EV_TO_KJMOL
+    # the slab is built once — adsorption calls build_slab directly, mc/md go
+    # through the shared Substrate; no per-module copy of either
+    assert ads.build_slab is surface.build_slab
+    for mod in (ads, mc, md):
+        assert mod.Substrate is surface.Substrate
     # one LJ implementation: energy (mc, adsorption) + energy-with-forces (md)
     assert mc.uff_vdw_energy is surface.uff_vdw_energy
     assert ads.uff_vdw_energy is surface.uff_vdw_energy
