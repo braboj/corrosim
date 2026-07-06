@@ -19,7 +19,7 @@ import os
 from collections.abc import Sequence
 
 from corrosim import build_molecule
-from corrosim.report import figures
+from corrosim.qm import cubes
 from corrosim.runs._cli import parse_molecules
 from corrosim.runs._cli import stderr_log as log
 
@@ -58,13 +58,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         prefix = os.path.join(args.outdir, name)
         if "orbital" in what:
             log(f"[{name}] HOMO/LUMO cubes ...")
-            paths = figures.write_orbital_cubes(
+            paths = cubes.write_orbital_cubes(
                 m.symbols, m.coords, prefix=prefix, basis=args.basis,
                 xc=args.xc, charge=m.charge, nx=args.nx)
             log(f"    {paths['homo']}, {paths['lumo']}")
         if "esp" in what:
             log(f"[{name}] density + ESP cubes (MEP integral, slow) ...")
-            paths = figures.write_density_esp_cubes(
+            paths = cubes.write_density_esp_cubes(
                 m.symbols, m.coords, prefix=prefix, basis=args.basis,
                 xc=args.xc, charge=m.charge, nx=args.nx)
             log(f"    {paths['density']}, {paths['esp']}")
