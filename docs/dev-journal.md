@@ -930,4 +930,62 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   gated on #67. Upstream candidate not yet filed: the sentence-case comment rule
   could extend the solid-ai-templates readability guidance.
 
+## 2026-07-06 (session 5) — codebase OOP/SOLID audit + 6/8 execution (epic #126)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** a whole-codebase design audit through the OOP / design-pattern /
+  SOLID lens (following the ADR 0014 exemplar and the restraint principle),
+  then execution of the resulting per-module tickets. Continues directly from
+  session 4's mc/md OOP work.
+- **Audit + filing:** reviewed all ~30 modules with **5 parallel design-review
+  agents** (one per subsystem), each applying ADR 0014 + explicit restraint.
+  Most modules came back **already well-structured**; the agents *rejected*
+  more than they proposed (no Strategy hierarchy for the engine/Fukui string
+  dispatch, no Command/base-`Driver` class for the CLI mains, no behaviour on
+  frozen value objects). Filed **epic #126** + **8 curated tickets #127–#134**;
+  two upstream issues on `braboj/solid-ai-templates` (**#739** oop.md
+  "when-not-to-reach-for-a-class" restraint, **#740** testing.md
+  characterization-fingerprint technique); comments on **#119** (Stage-N scope
+  is broader — spans qm/, adsorption/, core) and **#40** (the
+  `UffVdwField`/`EnergyModel` Strategy seam confirmed, correctly deferred).
+- **Executed 6 / 8 (PRs #135–#140, all squash-merged, CI-green):**
+  - **#128 / PR #135** — `FukuiResult.from_populations` (replaces private
+    `_result`) + `.from_rows` (round-trip inverse of `as_rows`, de-anemizing
+    make_figures' by-index loader).
+  - **#132 / PR #136** — decomposed `make_figures.main` (cc 18 → 0) into six
+    `_fig_*` helpers; consumes `FukuiResult.from_rows`. **The complexity
+    ratchet backlog is now fully cleared — `complexipy-snapshot.json` is `[]`.**
+  - **#134 / PR #137** — centralized the `metal_element` facet-strip (4 inline
+    copies → one `presets.metal_element`); `medium.relevant_forms` →
+    `MediumSpec.relevant_forms`; `analyse_*` return hints → `dict[str, Any]`.
+  - **#130 / PR #138** — promoted a shared `Substrate` (with `.build`) into
+    surface.py (was defined twice in mc/md + inlined in the estimate); routes
+    the metal filter through `metal_element`, **fixing the latent `Fe(110)`
+    empty-`metal_positions` → silent all-zero RDF hazard**.
+  - **#131 / PR #139** — **bug fix**: `place_molecule` only centred coords and
+    never oriented flat, so the exported LAMMPS `.xyz`/`.cif` kept the
+    arbitrary embedded orientation; now delegates to `initial_adsorption_pose`.
+    Added a flatness lock-in test.
+  - **#129 / PR #140** — `Molecule.from_smiles` / `.protonated` factories
+    (`_embed_and_relax` → private classmethod); `Molecule.write_xyz` method;
+    `formula` guards a missing `rdkit_mol`. `build_*`/free `write_xyz` stay thin
+    wrappers.
+- **Restraint held:** declined `Descriptors.from_frontier`, `Speciation.at_ph`,
+  `MediumSpec.parse` — stateless value constructors that ADR 0014 §4 keeps as
+  free functions — each with a recorded reason in the PR/commit.
+- **Verification:** every behaviour-preserving refactor gated on a **seeded
+  golden hash** (mc/md byte-identical across 2 seeds × 2 slab sizes); test
+  count 155 → 161; ruff + mypy + complexipy + pytest green on every merge.
+- **Pending:** two tickets remain under epic #126. **#133** (runs shared free
+  helpers: `_form_rows_in_order` ×5 sites, `iter_molecules`, and promoting
+  `run_dft._best_protonation_site` out of a private cross-module reach — the
+  one wrinkle is its stderr logging, plan is an injected `log` callback so the
+  library stays print-free). **#127** (the large P1: a shared HTML/docx
+  `render_blocks` walker + renderer Protocol with an exhaustive `else`,
+  `PreparedReport.bottom_line()`, and mirroring the docx section decomposition
+  on the HTML side — needs an HTML+docx golden). Unchanged longer threads:
+  **#119/#124** paired comment sweeps, **#40** energy-model Strategy,
+  **#72** Generalization/Validation (#53/#54), **#71** Deployment (#66–#68;
+  first release tag gated on #67), **#109/#110** docs restructure.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
