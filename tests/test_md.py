@@ -9,9 +9,9 @@ from corrosim.adsorption.md import (
     MDResult,
     _mean_energy,
     _RdfAccumulator,
-    _Substrate,
     run_md,
 )
+from corrosim.adsorption.surface import Substrate
 
 
 def test_md_metal_threads_to_slab_and_rdf():
@@ -45,10 +45,10 @@ def test_mean_energy_averages_all_when_run_not_longer_than_equil():
     assert _mean_energy([-1.0, -3.0], equil=2) == -2.0
 
 
-# --- _Substrate.build --------------------------------------------------------
+# --- Substrate.build --------------------------------------------------------
 
 def test_substrate_build_caches_metal_positions_and_top():
-    sub = _Substrate.build("Fe", (3, 3, 2), 10.0)
+    sub = Substrate.build("Fe", (3, 3, 2), 10.0)
     assert sub.top == sub.positions[:, 2].max()
     # a single-metal slab: every atom is Fe, so metal_positions is the full set
     assert sub.metal_positions.shape == sub.positions.shape
@@ -95,7 +95,7 @@ def test_rdf_accumulator_bin_centres_are_edge_midpoints():
 
 
 def test_rdf_accumulator_for_donors_keys_o_and_n_indices():
-    sub = _Substrate.build("Fe", (3, 3, 2), 10.0)
+    sub = Substrate.build("Fe", (3, 3, 2), 10.0)
     acc = _RdfAccumulator.for_donors(["O", "C", "N", "O"], sub)
     assert acc.o_idx == [0, 3] and acc.n_idx == [2]
     assert acc.hist_o.shape == acc.hist_n.shape and acc.nframes == 0
@@ -104,7 +104,7 @@ def test_rdf_accumulator_for_donors_keys_o_and_n_indices():
 # --- MDResult.from_run -------------------------------------------------------
 
 def test_from_run_rounds_energy_sets_facet_and_empty_rdf_has_no_peak():
-    sub = _Substrate.build("Fe", (3, 3, 2), 10.0)
+    sub = Substrate.build("Fe", (3, 3, 2), 10.0)
     acc = _RdfAccumulator.for_donors([], sub)       # no donors -> zero RDF
     energies = [-1.11111, -2.22222]
     res = MDResult.from_run("Fe", sub, acc, energies, sub.positions[:1],

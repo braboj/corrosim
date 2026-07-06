@@ -34,7 +34,7 @@ from ase import Atoms
 from .surface import (
     EV_TO_KJMOL,
     SURFACE_FACET,
-    build_slab,
+    Substrate,
     initial_adsorption_pose,
     rot,
     uff_mixing,
@@ -102,7 +102,7 @@ class MCResult:
     def from_search(
         cls,
         metal: str,
-        substrate: _Substrate,
+        substrate: Substrate,
         search: _Search,
         mol_symbols: list[str],
         n_steps: int,
@@ -137,42 +137,6 @@ class MCResult:
 
 
 @dataclass
-class _Substrate:
-    """Fixed slab context the search reads every step.
-
-    Bundles the ASE slab with the three geometry values the Metropolis loop
-    needs on the hot path — the cached atom positions (Å) it scores against,
-    the cell, and the top-layer z (Å) — so they travel as one object.
-    """
-
-    slab: Atoms
-    positions: np.ndarray
-    cell: np.ndarray
-    top: float
-
-    @classmethod
-    def build(
-        cls,
-        metal: str,
-        size: tuple[int, int, int],
-        vacuum: float,
-    ) -> _Substrate:
-        """Build the metal slab and cache the geometry the search reads.
-
-        Args:
-            metal: Slab metal symbol (Fe/Cu/Al).
-            size: Slab repetitions ``(nx, ny, layers)``.
-            vacuum: Vacuum padding along z (Å).
-
-        Returns:
-            The slab plus its cached positions, cell, and top-layer z (Å).
-        """
-        slab = build_slab(metal, size=size, vacuum=vacuum)
-        s_pos = slab.get_positions()
-        return cls(slab, s_pos, slab.get_cell(), s_pos[:, 2].max())
-
-
-@dataclass
 class _Search:
     """Evolving state of the annealed Metropolis walk.
 
@@ -192,7 +156,7 @@ class _Search:
     def seed(
         cls,
         molecule: Molecule,
-        substrate: _Substrate,
+        substrate: Substrate,
         x_mix: np.ndarray,
         D_mix: np.ndarray,
     ) -> _Search:
@@ -372,7 +336,7 @@ def run_mc(
     """
     # Build the slab and seed the search from the flat starting pose
     rng = np.random.default_rng(seed)
-    substrate = _Substrate.build(metal, size, vacuum)
+    substrate = Substrate.build(metal, size, vacuum)
 
     # UFF pair parameters for the molecule against the slab
     mol_symbols = list(molecule.symbols)

@@ -17,8 +17,8 @@ from corrosim.adsorption.mc import (
     _confine_pose,
     _propose_pose,
     _Search,
-    _Substrate,
 )
+from corrosim.adsorption.surface import Substrate
 
 
 def _pdist(p: np.ndarray) -> np.ndarray:
@@ -156,10 +156,10 @@ def test_accept_strong_uphill_rejected_regardless_of_rng():
     assert s.energies == [-2.0, -2.0]
 
 
-# --- factories: _Substrate.build / _Search.seed / MCResult.from_search -------
+# --- factories: Substrate.build / _Search.seed / MCResult.from_search -------
 
 def test_substrate_build_caches_top_and_positions():
-    sub = _Substrate.build("Fe", (3, 3, 2), 10.0)
+    sub = Substrate.build("Fe", (3, 3, 2), 10.0)
     assert sub.top == sub.positions[:, 2].max()
     assert sub.positions.shape == (len(sub.slab), 3)
 
@@ -168,7 +168,7 @@ def test_search_seed_starts_current_pose_as_best():
     from corrosim import build_molecule
     from corrosim.adsorption.surface import uff_mixing
     mol = build_molecule("caffeine")
-    sub = _Substrate.build("Fe", (3, 3, 2), 10.0)
+    sub = Substrate.build("Fe", (3, 3, 2), 10.0)
     x_mix, D_mix = uff_mixing(mol.symbols, sub.slab.get_chemical_symbols())
     s = _Search.seed(mol, sub, x_mix, D_mix)
     assert s.e == s.best_e and s.energies == [s.e] and s.n_accept == 0
@@ -176,8 +176,9 @@ def test_search_seed_starts_current_pose_as_best():
 
 
 def test_from_search_rounds_and_derives_height_and_facet():
-    sub = _Substrate(slab=None, positions=np.zeros((1, 3)),
-                     cell=np.eye(3), top=5.0)
+    sub = Substrate(slab=None, positions=np.zeros((1, 3)),
+                    symbols=np.array(["Fe"]), metal_positions=np.zeros((1, 3)),
+                    cell=np.eye(3), top=5.0)
     pos = np.array([[0.0, 0.0, 8.0]])
     s = _Search(pos=pos, e=-1.0, com=pos.mean(0), best_e=-1.23456,
                 best_pos=pos, n_accept=3, energies=[-1.0, -1.23456])
