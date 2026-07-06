@@ -20,6 +20,7 @@ from ..presets import metal_element
 from ..qm.descriptors import DESCRIPTOR_META
 from . import equations as _eq
 from . import report_content as _content
+from .render import render_blocks
 from .report_layout import figure_path
 
 
@@ -241,26 +242,47 @@ def _content_table_html(payload: dict) -> str:
             f"<tbody>{body}</tbody></table>{caption}")
 
 
+class _HtmlBasis:
+    """Accumulates the Scientific-basis section as HTML fragments, implementing
+    the shared BasisRenderer Protocol (render.py) so the block list renders to
+    HTML through the one walker.
+    """
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+
+    def subheading(self, text: str) -> None:
+        """Render a Scientific-basis subsection heading."""
+        self.parts.append(f"<h3>{text}</h3>")
+
+    def paragraph(self, text: str) -> None:
+        """Render a Scientific-basis prose paragraph."""
+        self.parts.append(_p(text))
+
+    def table(self, payload: dict) -> None:
+        """Render a Scientific-basis content table."""
+        self.parts.append(_content_table_html(payload))
+
+    def equation_groups(self) -> None:
+        """Render the governing-equation set: each group an h4 heading over an
+        eqgrid of the equations rendered inline.
+        """
+        for heading, group in _eq.EQUATION_GROUPS:
+            self.parts.append(f"<h4>{heading}</h4>")
+            self.parts.append('<div class="eqgrid">'
+                              + "".join(_equation_img(e.key) for e in group)
+                              + "</div>")
+
+
 def _scientific_basis_section() -> list[str]:
     """The shared 'Scientific basis & validation' section (report_content):
     woven pipeline.md + validation.md prose, the governing equations rendered in
-    scientific form, and the descriptor / experimental tables.
+    scientific form, and the descriptor / experimental tables. Walked to HTML by
+    the one render_blocks dispatcher (render.py).
     """
-    out = ["<h2>Scientific basis &amp; validation</h2>"]
-    for kind, payload in _content.SCIENTIFIC_BASIS:
-        if kind == "h3" and isinstance(payload, str):
-            out.append(f"<h3>{payload}</h3>")
-        elif kind == "p" and isinstance(payload, str):
-            out.append(_p(payload))
-        elif kind == "table" and isinstance(payload, dict):
-            out.append(_content_table_html(payload))
-        elif kind == "eqgroups":
-            for heading, group in _eq.EQUATION_GROUPS:
-                out.append(f"<h4>{heading}</h4>")
-                out.append('<div class="eqgrid">'
-                           + "".join(_equation_img(e.key) for e in group)
-                           + "</div>")
-    return out
+    basis = _HtmlBasis()
+    render_blocks(_content.SCIENTIFIC_BASIS, basis)
+    return ["<h2>Scientific basis &amp; validation</h2>", *basis.parts]
 
 
 def _number_headings(html: str) -> str:
@@ -527,10 +549,94 @@ class PreparedReport(NamedTuple):
     # (molecule, "O5 (f⁻=0.090), ...")
     fukui_items: list[tuple[str, str]]
 
+    def bottom_line(self) -> str | None:
+        """Data-derived headline naming the top-ranked inhibitor, or None.
+
+        Reads the lead straight off the ranking (never hardcoded), so the
+        sentence stays correct if the molecule set or substrate changes. Both
+        renderers wrap the returned prose in their own note box; the extraction
+        lives here so it is not duplicated. See ``report_content.bottom_line``.
+
+        Returns:
+            The headline sentence (``**bold**`` markup), or None when there are
+            no ranked rows.
+        """
+        if not len(self.ranked):
+            return None
+        lead = self.ranked.iloc[0]
+        eads = lead.get("e_ads_kjmol")
+        return _content.bottom_line(
+            len(self.df),
+            str(lead["name"]),
+            float(lead["score"]),
+            float(lead["gap_ev"]),
+            float(eads) if eads is not None and pd.notna(eads) else None,
+            self.m_elem,
+        )
+
+    @classmethod
+    def derive(cls, neutral_aq_rows: list[dict], mc_rows: list[dict],
+               md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
+               metal: str, order: list[str] | None) -> PreparedReport:
+        """Build the shared report data once, for both renderers.
+
+        Orders the neutral frame, merges the adsorption columns (Monte-Carlo
+        E_ads + Brownian-MD metal-O first peak), ranks, and summarises the Fukui
+        top donors. Construction lives on the type as a factory classmethod
+        (ADR 0014); ``prepare_report_data`` is the stable public wrapper.
+
+        Args:
+            neutral_aq_rows: Neutral aqueous descriptor rows.
+            mc_rows: Monte Carlo adsorption summary rows.
+            md_rows: Brownian-MD RDF summary rows.
+            fukui_by_name: Per-molecule Fukui rows keyed by name.
+            metal: Substrate label.
+            order: Molecule display order, or None to keep the input order.
+
+        Returns:
+            The derived :class:`PreparedReport`.
+        """
+        df = pd.DataFrame(neutral_aq_rows).copy()
+        if order:
+            df = (df.set_index("name").loc[[n for n in order if n in set(df["name"])]]
+                  .reset_index())
+        m_elem = metal_element(str(metal))
+        mc_by = {r["name"]: r for r in mc_rows}
+        md_by = {r["name"]: r for r in md_rows}
+
+        def _md_peak(n):
+            # generic key, legacy fallback
+            row = md_by.get(n) or {}
+            return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
+
+        df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
+        df["ads_dist_A"] = df["name"].map(_md_peak)
+        # coerce first: an all-missing column (no MD data) is object dtype and would
+        # break Series.round on the None values — to_numeric makes it NaN-safe.
+        df["ads_dist_A"] = pd.to_numeric(df["ads_dist_A"], errors="coerce").round(2)
+
+        ranked = rank_inhibitors(df)
+        level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
+        summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
+                          "delta_n", "e_ads_kjmol", "ads_dist_A", "score"]].round(3)
+        summary = summary.rename(columns={**_SUMMARY_LABELS,
+                                          "ads_dist_A": f"{m_elem}–O (Å)"})
+        full = results_dataframe(df.to_dict("records"))
+
+        fukui_items = []
+        for name in df["name"]:
+            rows = fukui_by_name.get(name)
+            if not rows:
+                continue
+            tops = top_donor_sites_of_element(rows, "O", 3)
+            sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
+            fukui_items.append((name, sites))
+        return cls(df, ranked, summary, full, level, m_elem, fukui_items)
+
 
 # Human-readable headers for the headline summary table (display only; the raw
 # result keys stay on the full descriptor table). ads_dist_A is labelled with the
-# actual metal in prepare_report_data.
+# actual metal in PreparedReport.derive.
 _SUMMARY_LABELS = {
     "name": "Inhibitor",
     "gap_ev": "Gap (eV)",
@@ -547,8 +653,8 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
                         metal: str, order: list[str] | None) -> PreparedReport:
     """Derive the shared report data once, for both renderers.
 
-    Builds the ranking, the merged Stage-2/3 adsorption columns and the Fukui
-    top-donor summary. See :class:`PreparedReport`.
+    The stable entry point the drivers import; delegates construction to the
+    factory classmethod :meth:`PreparedReport.derive`.
 
     Args:
         neutral_aq_rows: Neutral aqueous descriptor rows.
@@ -561,42 +667,149 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
     Returns:
         The derived :class:`PreparedReport`.
     """
-    df = pd.DataFrame(neutral_aq_rows).copy()
-    if order:
-        df = (df.set_index("name").loc[[n for n in order if n in set(df["name"])]]
-              .reset_index())
-    m_elem = metal_element(str(metal))
-    mc_by = {r["name"]: r for r in mc_rows}
-    md_by = {r["name"]: r for r in md_rows}
+    return PreparedReport.derive(neutral_aq_rows, mc_rows, md_rows,
+                                 fukui_by_name, metal, order)
 
-    def _md_peak(n):
-        # generic key, legacy fallback
-        row = md_by.get(n) or {}
-        return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
 
-    df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
-    df["ads_dist_A"] = df["name"].map(_md_peak)
-    # coerce first: an all-missing column (no MD data) is object dtype and would
-    # break Series.round on the None values — to_numeric makes it NaN-safe.
-    df["ads_dist_A"] = pd.to_numeric(df["ads_dist_A"], errors="coerce").round(2)
+# The HTML report is assembled section by section (each helper returns its HTML
+# fragments), mirroring report_docx's _*_section builders so the two outlines
+# stay diffable. build_pipeline_report joins them and numbers the headings.
 
-    ranked = rank_inhibitors(df)
-    level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
-    summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                      "delta_n", "e_ads_kjmol", "ads_dist_A", "score"]].round(3)
-    summary = summary.rename(columns={**_SUMMARY_LABELS,
-                                      "ads_dist_A": f"{m_elem}–O (Å)"})
-    full = results_dataframe(df.to_dict("records"))
+def _header_section(metal: str, medium: str, prep: PreparedReport,
+                    generated_at: str | None) -> list[str]:
+    """Title, run-metadata line, headline caveat and the bottom-line note."""
+    ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    bl = prep.bottom_line()
+    return [
+        "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
+        f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
+        f' &nbsp;|&nbsp; DFT level <b>{prep.level}</b>'
+        f" &nbsp;|&nbsp; Generated {ts}</p>",
+        f'<div class="note">{_content.HEADLINE_CAVEAT}</div>',
+        f'<div class="note">{_inline(bl)}</div>' if bl else "",
+    ]
 
-    fukui_items = []
-    for name in df["name"]:
-        rows = fukui_by_name.get(name)
-        if not rows:
-            continue
-        tops = top_donor_sites_of_element(rows, "O", 3)
-        sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
-        fukui_items.append((name, sites))
-    return PreparedReport(df, ranked, summary, full, level, m_elem, fukui_items)
+
+def _overview_section(figdir: str) -> list[str]:
+    """Overview intro + the pipeline diagram."""
+    return [
+        "<h2>Overview</h2>",
+        _p(_content.STAGE_INTROS["overview"]),
+        _explain("pipeline"),
+        _img_block(figdir, "fig0_pipeline.png", "corrosim pipeline"),
+    ]
+
+
+def _summary_section(prep: PreparedReport) -> list[str]:
+    """Summary & ranking table + the score explanation."""
+    return [
+        "<h2>Summary &amp; ranking</h2>",
+        _html_table(prep.summary, best_first_row=True),
+        f'<p class="meta">{_inline(_content.score_explanation(prep.m_elem))}</p>',
+    ]
+
+
+def _dft_section(prep: PreparedReport, figdir: str) -> list[str]:
+    """DFT descriptors: structures, MO diagram, per-molecule HOMO/LUMO
+    isosurfaces, descriptor charts, the full table and the optional
+    geometry-refinement figure.
+    """
+    names = list(prep.df["name"])
+    has_geometry = os.path.exists(
+        figure_path(figdir, "fig8_geometry_comparison.png"))
+    return [
+        "<h2>DFT electronic descriptors</h2>",
+        _p(_content.STAGE_INTROS["dft"]),
+        _grid([
+            _img_block(figdir, "fig1_structures.png", "Modelled flavonoids"),
+            _img_block(figdir, "fig2_mo_diagram.png",
+                       "Frontier-orbital energies vs Fe(110) work function"),
+        ]),
+        _explain("structures"),
+        _explain("mo_diagram"),
+        "<h3>Frontier-orbital isosurfaces (HOMO / LUMO)</h3>",
+        _grid([_img_block(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO")
+               for n in names]),
+        _explain("orbital_homo"),
+        _grid([_img_block(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO")
+               for n in names]),
+        _explain("orbital_lumo"),
+        _grid([
+            _img_block(figdir, "fig3_descriptors.png", "Reactivity descriptors"),
+            _img_block(figdir, "fig3b_protonation.png",
+                       "Protonation effect (DFT-optimised cations, 1 M HCl)"),
+        ]),
+        _explain("descriptors"),
+        _explain("protonation"),
+        "<h3>Full descriptor table (neutral, aqueous)</h3>",
+        _html_table(prep.full),
+        _geometry_block(figdir),
+        _explain("geometry") if has_geometry else "",
+    ]
+
+
+def _fukui_section(prep: PreparedReport, figdir: str) -> list[str]:
+    """Local-reactivity (Fukui) subsection: donor-site list + per-molecule maps.
+
+    Fukui and the ESP map are facets of the isolated-molecule QM analysis, so
+    they are h3 subsections here, not separate pipeline stages.
+    """
+    fukui_summary = (
+        "<ul>" + "".join(f"<li><b>{n}</b>: {s}</li>" for n, s in prep.fukui_items)
+        + "</ul>" if prep.fukui_items else '<p class="meta">No Fukui data found.</p>')
+    return [
+        "<h3>Local reactivity (Fukui)</h3>",
+        _p(_content.STAGE_INTROS["fukui"]),
+        "<p>The strongest electron-donating oxygens (highest f⁻) per molecule:</p>",
+        fukui_summary,
+        _grid([_img_block(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
+               for n in prep.df["name"]]),
+        _explain("fukui"),
+    ]
+
+
+def _esp_section(prep: PreparedReport, figdir: str) -> list[str]:
+    """Electrostatic-potential (ESP) map subsection."""
+    return [
+        "<h3>Electrostatic-potential (ESP) map</h3>",
+        _p(_content.STAGE_INTROS["esp"]),
+        _grid([_img_block(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map")
+               for n in prep.df["name"]]),
+        _explain("esp"),
+    ]
+
+
+def _mc_section(prep: PreparedReport, figdir: str) -> list[str]:
+    """Monte Carlo adsorption: per-molecule pose + annealing figures."""
+    return [
+        "<h2>Monte Carlo adsorption</h2>",
+        _p(_content.STAGE_INTROS["mc"]),
+        _grid([_img_block(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
+               for n in prep.df["name"]]),
+        _explain("mc_pose"),
+        _grid([_img_block(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
+               for n in prep.df["name"]]),
+        _explain("mc_energy"),
+    ]
+
+
+def _md_section(prep: PreparedReport, figdir: str) -> list[str]:
+    """Brownian-MD metal-O RDF subsection."""
+    return [
+        f"<h2>Brownian MD — {prep.m_elem}–O RDF</h2>",
+        _p(_content.STAGE_INTROS["md"]),
+        _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}–O RDF")
+               for n in prep.df["name"]]),
+        _explain("rdf"),
+    ]
+
+
+def _method_section(level: str) -> list[str]:
+    """Method & caveats footer."""
+    return [
+        "<h2>Method &amp; caveats</h2>",
+        f'<p class="meta">DFT level: {level}. {_content.METHOD_CAVEAT}</p>',
+    ]
 
 
 def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
@@ -642,121 +855,28 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     """
     prep = prepare_report_data(neutral_aq_rows, mc_rows, md_rows, fukui_by_name,
                                metal, order)
-    df, summary, full, level, m_elem = (prep.df, prep.summary, prep.full,
-                                        prep.level, prep.m_elem)
 
-    # Data-derived headline: name the top-ranked inhibitor and its key numbers so a
-    # reader gets the takeaway before the detail. Shared with the Word renderer via
-    # report_content.bottom_line; read from the ranking, never hardcoded.
-    if len(prep.ranked):
-        _lead = prep.ranked.iloc[0]
-        _eads = _lead.get("e_ads_kjmol")
-        bottom_line = '<div class="note">' + _inline(_content.bottom_line(
-            len(df), str(_lead["name"]), float(_lead["score"]), float(_lead["gap_ev"]),
-            float(_eads) if _eads is not None and pd.notna(_eads) else None,
-            m_elem)) + "</div>"
-    else:
-        bottom_line = ""
-    fukui_summary = (
-        "<ul>" + "".join(f"<li><b>{n}</b>: {s}</li>" for n, s in prep.fukui_items)
-        + "</ul>" if prep.fukui_items else '<p class="meta">No Fukui data found.</p>')
-
+    # Assemble the document shell + each section in order, then number the
+    # headings once over the joined string. Section order mirrors the Word
+    # builder (report_docx.build_docx_report) so the two outlines stay diffable.
     parts = [
         '<!doctype html><html><head><meta charset="utf-8">',
         "<title>corrosim — multiscale inhibitor report</title>",
         f"<style>{_REPORT_CSS}</style></head><body>",
-        "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
-        f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
-        f' &nbsp;|&nbsp; DFT level <b>{level}</b>'
-        f' &nbsp;|&nbsp; Generated '
-        f'{generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}</p>',
-        f'<div class="note">{_content.HEADLINE_CAVEAT}</div>',
-        bottom_line,
-        "<h2>Overview</h2>",
-        _p(_content.STAGE_INTROS["overview"]),
-        _explain("pipeline"),
-        _img_block(figdir, "fig0_pipeline.png", "corrosim pipeline"),
-
-        # Summary / ranking ------------------------------------------------
-        "<h2>Summary &amp; ranking</h2>",
-        _html_table(summary, best_first_row=True),
-        f'<p class="meta">{_inline(_content.score_explanation(m_elem))}</p>',
-
-        # Stage 1 ----------------------------------------------------------
-        "<h2>DFT electronic descriptors</h2>",
-        _p(_content.STAGE_INTROS["dft"]),
-        _grid([
-            _img_block(figdir, "fig1_structures.png", "Modelled flavonoids"),
-            _img_block(figdir, "fig2_mo_diagram.png",
-                       "Frontier-orbital energies vs Fe(110) work function"),
-        ]),
-        _explain("structures"),
-        _explain("mo_diagram"),
-        "<h3>Frontier-orbital isosurfaces (HOMO / LUMO)</h3>",
-        _grid([_img_block(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO")
-               for n in df["name"]]),
-        _explain("orbital_homo"),
-        _grid([_img_block(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO")
-               for n in df["name"]]),
-        _explain("orbital_lumo"),
-        _grid([
-            _img_block(figdir, "fig3_descriptors.png", "Reactivity descriptors"),
-            _img_block(figdir, "fig3b_protonation.png",
-                       "Protonation effect (DFT-optimised cations, 1 M HCl)"),
-        ]),
-        _explain("descriptors"),
-        _explain("protonation"),
-        "<h3>Full descriptor table (neutral, aqueous)</h3>",
-        _html_table(full),
-        _geometry_block(figdir),
-        _explain("geometry") if os.path.exists(
-            figure_path(figdir, "fig8_geometry_comparison.png")) else "",
+        *_header_section(metal, medium, prep, generated_at),
+        *_overview_section(figdir),
+        *_summary_section(prep),
+        *_dft_section(prep, figdir),
         *_opt_descriptor_block(opt_neutral_rows, opt_acid_rows, order),
         *_acid_cation_block(acid_cation_rows, medium),
         *_speciation_block(speciation_summary, medium, computed_pkah,
                            pka_freq_corrected),
-
-        # Stage 1 (cont.) — local reactivity (Fukui). Fukui and the ESP map are
-        # facets of Stage 1 (the isolated-molecule QM analysis), so they are h3
-        # subsections here, not separate pipeline stages.
-        "<h3>Local reactivity (Fukui)</h3>",
-        _p(_content.STAGE_INTROS["fukui"]),
-        "<p>The strongest electron-donating oxygens (highest f⁻) per molecule:</p>",
-        fukui_summary,
-        _grid([_img_block(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
-               for n in df["name"]]),
-        _explain("fukui"),
-
-        # Stage 1 (cont.) — electrostatic-potential (ESP) map --------------
-        "<h3>Electrostatic-potential (ESP) map</h3>",
-        _p(_content.STAGE_INTROS["esp"]),
-        _grid([_img_block(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map")
-               for n in df["name"]]),
-        _explain("esp"),
-
-        # Stage 2 — Monte Carlo -------------------------------------------
-        "<h2>Monte Carlo adsorption</h2>",
-        _p(_content.STAGE_INTROS["mc"]),
-        _grid([_img_block(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
-               for n in df["name"]]),
-        _explain("mc_pose"),
-        _grid([_img_block(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
-               for n in df["name"]]),
-        _explain("mc_energy"),
-
-        # Stage 3 — MD -----------------------------------------------------
-        f"<h2>Brownian MD — {m_elem}–O RDF</h2>",
-        _p(_content.STAGE_INTROS["md"]),
-        _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {m_elem}–O RDF")
-               for n in df["name"]]),
-        _explain("rdf"),
-
-        # Scientific basis & validation (pipeline.md + validation.md) ------
+        *_fukui_section(prep, figdir),
+        *_esp_section(prep, figdir),
+        *_mc_section(prep, figdir),
+        *_md_section(prep, figdir),
         *_scientific_basis_section(),
-
-        # Method -----------------------------------------------------------
-        "<h2>Method &amp; caveats</h2>",
-        f'<p class="meta">DFT level: {level}. {_content.METHOD_CAVEAT}</p>',
+        *_method_section(prep.level),
         "</body></html>",
     ]
     html = _number_headings("".join(parts))
