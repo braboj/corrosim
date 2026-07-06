@@ -63,6 +63,12 @@ The suite is deliberately QM-light — no DFT, xTB, or Docker — so it stays fa
 Run `pytest -q` in the venv. Every new feature or module ships a test named
 `test_<unit>_<state>_<expected>`.
 
+The full pipeline report (HTML + docx) is pinned by a golden in
+`tests/test_report_golden.py` / `tests/goldens/` (the render-seam safety net,
+ADR 0015 / #127). After an *intentional* report change, regenerate the goldens
+and eyeball the diff before committing:
+`UPDATE_GOLDENS=1 pytest -q tests/test_report_golden.py`.
+
 ### 3.2 Linting (ruff)
 
 Run `ruff check .`. The line length is 80, and `C901` gates cyclomatic

@@ -988,4 +988,52 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **#72** Generalization/Validation (#53/#54), **#71** Deployment (#66–#68;
   first release tag gated on #67), **#109/#110** docs restructure.
 
+## 2026-07-06 (session 6) — QM import boundary, runs helpers, report golden (epic #126 → 7/8)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** finish the epic-#126 `runs` refactor (#133) and, en route, tidy the
+  QM/report layering (two new tech-debt tickets #142/#143 filed and executed),
+  then stand up the report golden that the last epic item (#127) needs. Continues
+  session 5's Pending line.
+- **#142 / PR #144 — QM backend-import boundary (Option B).** The deferred
+  pyscf/tblite imports were correct but scattered across ~8 functions; concentrate
+  them behind `qm/_backend_pyscf.py` + `qm/_backend_tblite.py` (deps at the module
+  top, imported lazily), each call site now one `from . import _backend_pyscf`. A
+  `try/except` at each backend top yields a friendly "runs only in the corrosim-qm
+  image" hint; `import corrosim` still pulls in no QM extra. Hoisted the trivial
+  always-available imports (os/subprocess/tempfile/ase.data/io/matplotlib/ase.io).
+  The pre-existing dataclass field-grouping edits rode along as a `style` commit.
+- **#143 / PR #145 — cube writers → `qm/cubes.py`.** Relocated the HOMO/LUMO,
+  MEP and density+ESP cube writers (+ `_cube_scf`) out of `report/figures.py`
+  (they run a DFT SCF + `cubegen`, i.e. QM production), so `report/figures` is now
+  pure rendering. **Declined** the originally-planned engine-body move (Option C)
+  on restraint — it would force forwarding wrappers duplicating signature +
+  docstring for a marginal gain (recorded on the issue + **ADR 0015**).
+- **#133 / PR #146 — shared `runs` free helpers.** `form_rows_in_order` and
+  `iter_molecules` in `_cli.py` (no Command/Driver hierarchy, ADR 0014); collapsed
+  the 4× make_report + compare_geometry row-selection and the mc/md/fukui molecule
+  loops. Promoted `run_dft._best_protonation_site` → public
+  `qm/protonation.py::best_protonation_site` (stderr logging behind an injected
+  `log` callback), removing the `run_pka → run_dft` reach. Row-selection outputs
+  captured before/after and verified **byte-identical**, so the report is unchanged.
+- **#127 prep / PR #147 — report render golden.** New `tests/test_report_golden.py`
+  with `tests/goldens/`: full pipeline report with every optional section on, pinned
+  HTML **byte-for-byte** (base64 equation-PNG payloads masked — freetype-dependent)
+  and docx as **document-order text**. Mutation-tested (a heading tweak fails the
+  golden). Un-ignored `tests/goldens/*.html`. This is the safety net for #127.
+- **ADR 0015** — QM engine-import boundary (the qm package owns pyscf/tblite;
+  report/runs consume it; engine bodies deliberately stay in `engines.py`).
+- **Verification:** ruff + mypy (39 files) + complexipy + pytest green on every
+  merge; PRs #144–#147 all squash-merged, CI-green; #142/#143/#133 auto-closed.
+- **Pending:** epic **#126** is now **7/8** — only **#127** (the P1 HTML/docx
+  render seam: a shared `render_blocks` walker + renderer Protocol,
+  `PreparedReport.bottom_line`, mirroring the docx section decomposition on the
+  HTML side) remains, and its **golden safety net (PR #147) is now in place**.
+  Start it with a design pass (map both renderers → the shared block model → walk
+  it), keeping the golden byte/text-identical. Deferred: the #133 **P3** note
+  (`add_metal_arg`/`add_medium_arg` to single-source the drifting `--metal` /
+  `--medium` help text). Unchanged longer threads: **#119/#124** comment sweeps,
+  **#72** Generalization/Validation (#54→#53), **#71** Deployment (#66–#68),
+  **#40** chemisorption E_ads.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

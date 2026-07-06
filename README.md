@@ -115,10 +115,13 @@ Windows (see [Development setup](#development-setup)).
 ```text
 src/corrosim/    core package — facade (__init__), cli, molecules, medium,
                  presets at the top; subsystem sub-packages (ADR 0011):
-                   qm/          engines, descriptors, fukui, pka, speciation
+                   qm/          engines, descriptors, fukui, pka, speciation,
+                                protonation, cubes; _backend_pyscf/_tblite hold
+                                the deferred pyscf/tblite imports (ADR 0015)
                    adsorption/  surface, adsorption, mc, md
                    report/      report, report_docx, report_content,
-                                report_layout, figures, equations
+                                report_layout, figures (renders cubes; qm.cubes
+                                writes them), equations
 src/corrosim/runs/  stage drivers — run_dft, run_fukui, run_mc, run_md,
                     run_pka, make_cubes, make_figures, make_report,
                     compare_geometry (+ _cli: shared CLI plumbing, #64)
