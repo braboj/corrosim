@@ -45,25 +45,25 @@ class Descriptors:
     the module docstring for the Koopmans definitions of each field.
     """
 
+    # Frontier-orbital energies and the Koopmans IP/EA
     homo_ev: float
     lumo_ev: float
     gap_ev: float
     ip_ev: float
     ea_ev: float
-    # chi
+
+    # Derived global reactivity descriptors (χ, η, σ, μ, ω)
     electronegativity_ev: float
-    # eta
     hardness_ev: float
-    # sigma
     softness_inv_ev: float
-    # mu
     chemical_potential_ev: float
-    # omega
     electrophilicity_ev: float
-    # fraction of electrons transferred
+
+    # Metal-interaction descriptors: Lukovits ΔN and ΔE back-donation
     delta_n: float
-    # dE_back
     back_donation_ev: float
+
+    # Substrate context feeding ΔN: metal label and its work function Φ
     metal: str
     phi_metal_ev: float
 

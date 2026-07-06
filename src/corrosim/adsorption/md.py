@@ -36,18 +36,22 @@ if TYPE_CHECKING:
 
 # Boltzmann constant, eV/K.
 KB_EV = 8.617333262e-5
+
 # Starting gap (Å) between the slab top and the molecule's lowest atom; the
 # confinement window [min_height, max_height] takes over from the first step.
 MD_START_HEIGHT_A = 2.5
+
 # First-shell search window (Å) for the metal–donor RDF peak = the
 # physisorption adsorption distance. The lower bound clears the unphysical
 # close-contact spike; the upper bound stays within the first coordination
 # shell (peak observed ~3.5 Å).
 RDF_PEAK_WINDOW_A = (1.5, 4.0)
+
 # Per-step clamp on the deterministic drift — translation (Å) and rotation
 # (rad) alike — so a stiff vdW force can't blow up an overdamped step; the
 # Gaussian thermal kick is added on top.
 _MAX_DRIFT = 0.15
+
 # Closest-contact histogram grid (Å): 0..6 Å in 0.1-Å bins.
 _RDF_MAX_A = 6.0
 _RDF_BIN_WIDTH_A = 0.1
@@ -60,20 +64,28 @@ class MDResult:
     final pose.
     """
 
+    # Slab identity: metal symbol and its low-index facet
     metal: str
     surface: str
+
+    # Thermostat temperature (K)
     temperature: float
+
+    # Thermal-mean interaction energy, in eV and kJ/mol
     e_mean_ev: float
     e_mean_kjmol: float
+
+    # Metal–donor RDF: shared bin-centre distances (Å) and the per-frame
+    # O/N closest-contact distributions
     rdf_r: list[float]
-    # Metal–O closest-contact distribution (per-frame nearest O–metal)
     rdf_metal_O: list[float]
-    # Metal–N closest-contact distribution (per-frame nearest N–metal)
     rdf_metal_N: list[float]
-    # Adsorption distance via the O donors
+
+    # First-shell adsorption distances (Å) via the O and N donors
     first_peak_metal_O: float | None
-    # Adsorption distance via the N donors
     first_peak_metal_N: float | None
+
+    # Off-repr trajectory extras, for the combined-pose plot and inspection
     energies: list[float] = field(repr=False, default_factory=list)
     final_positions: np.ndarray = field(repr=False, default=None)
     mol_symbols: list[str] = field(repr=False, default_factory=list)
@@ -269,12 +281,19 @@ class _RdfAccumulator:
     :meth:`normalized` divides the histograms by the recorded-frame count.
     """
 
+    # Donor-atom indices into the molecule (the O and N sets)
     o_idx: list[int]
     n_idx: list[int]
+
+    # Fixed slab metal positions (Å) and the shared histogram bin edges (Å)
     metal_positions: np.ndarray
     edges: np.ndarray
+
+    # Running O/N closest-contact histograms, one count added per frame
     hist_o: np.ndarray
     hist_n: np.ndarray
+
+    # Frames recorded so far (the normalisation divisor)
     nframes: int = 0
 
     @classmethod

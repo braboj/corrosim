@@ -40,15 +40,20 @@ class FukuiResult:
     softness.
     """
 
+    # Atom identity, aligned with every per-atom list below
     symbols: list[str]
-    # nucleophilic (electron-accepting)
+
+    # Condensed Fukui functions: f+ (nucleophilic), f- (electrophilic),
+    # and the dual descriptor f+ - f-
     f_plus: list[float]
-    # electrophilic (electron-donating)
     f_minus: list[float]
-    # f+ - f-
     dual: list[float]
+
+    # Local softness s± = f± · global softness
     s_plus: list[float]
     s_minus: list[float]
+
+    # Basis-set label
     basis: str = ""
 
     @classmethod
@@ -171,10 +176,10 @@ def _scf(symbols, coords, charge, spin, basis, xc):
     Returns:
         ``(mol, mf)`` — the PySCF molecule and the converged mean field.
     """
-    from pyscf import dft, gto
-    mol = gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
-                basis=basis, charge=charge, spin=spin, verbose=0)
-    mf = (dft.RKS(mol) if spin == 0 else dft.UKS(mol))
+    from . import _backend_pyscf as _pyscf
+    mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
+                       basis=basis, charge=charge, spin=spin, verbose=0)
+    mf = (_pyscf.dft.RKS(mol) if spin == 0 else _pyscf.dft.UKS(mol))
     mf.xc = xc
     mf.kernel()
     if not mf.converged:

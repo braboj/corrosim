@@ -9,11 +9,14 @@ the QM container (see write_orbital_cube / write_mep_cube).
 """
 from __future__ import annotations
 
+import io
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from ase.io.cube import read_cube
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -51,7 +54,6 @@ def _cube_scf(symbols, coords, basis, xc, charge, solvent=None):
 
 def _read_cube_grid(path):
     """Read a .cube; return (data, atoms, origin_ang, spacing_ang)."""
-    from ase.io.cube import read_cube
     with open(path) as fh:
         cube = read_cube(fh)
     data = np.asarray(cube["data"], dtype=float)
@@ -377,8 +379,6 @@ def _atom_index_structure(molecule):
     if molecule is None or getattr(molecule, "rdkit_mol", None) is None:
         return None
     try:
-        import io
-
         from PIL import Image
         from rdkit import Chem
         from rdkit.Chem import AllChem
@@ -464,12 +464,12 @@ def write_orbital_cube(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The output .cube path.
     """
-    from pyscf.tools import cubegen
+    from ..qm import _backend_pyscf as _pyscf
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     occ = mf.mo_occ
     idx = int(np.where(occ > 0)[0].max()) if which.lower() == "homo" \
         else int(np.where(occ == 0)[0].min())
-    cubegen.orbital(mol, out, mf.mo_coeff[:, idx])
+    _pyscf.cubegen.orbital(mol, out, mf.mo_coeff[:, idx])
     return out
 
 
@@ -489,9 +489,9 @@ def write_mep_cube(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The output .cube path.
     """
-    from pyscf.tools import cubegen
+    from ..qm import _backend_pyscf as _pyscf
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
-    cubegen.mep(mol, out, mf.make_rdm1())
+    _pyscf.cubegen.mep(mol, out, mf.make_rdm1())
     return out
 
 
@@ -517,16 +517,16 @@ def write_orbital_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The written paths keyed ``'homo'`` / ``'lumo'``.
     """
-    from pyscf.tools import cubegen
+    from ..qm import _backend_pyscf as _pyscf
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     occ = mf.mo_occ
     homo = int(np.where(occ > 0)[0].max())
     lumo = int(np.where(occ == 0)[0].min())
     paths = {"homo": f"{prefix}_homo.cube", "lumo": f"{prefix}_lumo.cube"}
-    cubegen.orbital(mol, paths["homo"], mf.mo_coeff[:, homo],
-                    nx=nx, ny=nx, nz=nx)
-    cubegen.orbital(mol, paths["lumo"], mf.mo_coeff[:, lumo],
-                    nx=nx, ny=nx, nz=nx)
+    _pyscf.cubegen.orbital(mol, paths["homo"], mf.mo_coeff[:, homo],
+                           nx=nx, ny=nx, nz=nx)
+    _pyscf.cubegen.orbital(mol, paths["lumo"], mf.mo_coeff[:, lumo],
+                           nx=nx, ny=nx, nz=nx)
     return paths
 
 
@@ -557,14 +557,15 @@ def write_density_esp_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     Returns:
         The written paths keyed ``'density'`` / ``'esp'``.
     """
-    from pyscf.tools import cubegen
+    from ..qm import _backend_pyscf as _pyscf
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge, solvent=solvent)
     dm = mf.make_rdm1()
     paths = {"density": f"{prefix}_density.cube", "esp": f"{prefix}_esp.cube"}
     # identical (mol, nx, margin) -> identical grid for both cubes
-    cubegen.density(mol, paths["density"], dm, nx=nx, ny=nx, nz=nx,
-                    margin=margin)
-    cubegen.mep(mol, paths["esp"], dm, nx=nx, ny=nx, nz=nx, margin=margin)
+    _pyscf.cubegen.density(mol, paths["density"], dm, nx=nx, ny=nx, nz=nx,
+                           margin=margin)
+    _pyscf.cubegen.mep(mol, paths["esp"], dm, nx=nx, ny=nx, nz=nx,
+                       margin=margin)
     return paths
 
 
@@ -646,7 +647,6 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
         The rendered figure (saved to ``out`` when given). Needs
         scikit-image + scipy.
     """
-    import matplotlib as mpl
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from scipy.ndimage import map_coordinates
     from skimage import measure
