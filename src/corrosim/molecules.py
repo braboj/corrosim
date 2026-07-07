@@ -9,29 +9,55 @@ The built-in library focuses on the major documented constituents of Arghel
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
+from importlib.resources import files
+from typing import Any
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
 # --- Built-in inhibitor library -------------------------------------------
-# Arghel (S. argel) major flavonoids + common reference inhibitors.
-# SMILES are canonicalised by RDKit on load, so these only need to be valid.
-LIBRARY = {
-    # Arghel major flavonoids (aglycones) -- the practical simulation targets
-    "kaempferol":  "O=c1c(O)c(-c2ccc(O)cc2)oc2cc(O)cc(O)c12",
-    "quercetin":   "O=c1c(O)c(-c2ccc(O)c(O)c2)oc2cc(O)cc(O)c12",
-    "isorhamnetin":"O=c1c(O)c(-c2ccc(O)c(OC)c2)oc2cc(O)cc(O)c12",
-    # Reference / benchmark inhibitors (optional comparison)
-    "benzotriazole": "c1ccc2[nH]nnc2c1",
-    "caffeine":      "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+# The library ships as package data (corrosim/data/inhibitors.json) rather than
+# a hardcoded dict, so adding an inhibitor is a data edit and each record keeps
+# its provenance (source / CAS / notes). No network required: the SMILES are
+# embedded and only built into a 3D geometry on demand by RDKit.
+
+
+def _load_inhibitors() -> dict[str, dict[str, Any]]:
+    """Read the packaged inhibitor records from the shipped JSON data file.
+
+    The file (``corrosim/data/inhibitors.json``) is located via
+    ``importlib.resources`` so it resolves the same way from a source checkout
+    or an installed wheel.
+
+    Returns:
+        A ``{name: record}`` mapping; each record carries ``smiles`` plus the
+        ``aliases`` / ``source`` / ``cas`` / ``notes`` provenance fields.
+    """
+    text = (files("corrosim") / "data" / "inhibitors.json").read_text(
+        encoding="utf-8",
+    )
+    return json.loads(text)
+
+
+# Full records (SMILES + provenance), keyed by canonical name.
+INHIBITORS: dict[str, dict[str, Any]] = _load_inhibitors()
+
+# Name -> SMILES view, the long-standing public library API (a dict[str, str]).
+LIBRARY: dict[str, str] = {
+    name: str(rec["smiles"]) for name, rec in INHIBITORS.items()
 }
 
-# Single-molecule synonyms (name -> library key). "arghel"/"argel" is NOT here:
-# Arghel is a *set* of flavonoids, not one molecule — see
-# corrosim.presets.ARGHEL.
-ALIASES: dict[str, str] = {}
+# Alias -> canonical name, folded to lower case (resolve_smiles lower-cases its
+# input). "arghel"/"argel" is deliberately absent: Arghel is a *set* of
+# flavonoids, not one molecule — see corrosim.presets.ARGHEL.
+ALIASES: dict[str, str] = {
+    alias.lower(): name
+    for name, rec in INHIBITORS.items()
+    for alias in rec.get("aliases", [])
+}
 
 
 @dataclass
