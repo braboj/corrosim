@@ -1180,4 +1180,24 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   most narrative is gone), **#109** (pipeline.md per-stage prose), **#72**
   Generalization/Validation, **#71** Deployment, **#40** chemisorption E_ads.
 
+## 2026-07-07 (session 11) — #110 loose ends + session wrap
+
+- **Tool:** Claude Code (Opus 4.8). End-of-session audit follow-ups from #110.
+- **Committed the user's `Molecule` field doc-comments** (fixed 2 lint nits; PR
+  #155, merged).
+- **Dead-dep + doc cleanup after the lean report:** `latex2mathml` +
+  `mathml2omml` were only used by the removed OMML equation rendering, so
+  dropped them from the `report` / `dev` extras in `pyproject.toml` (the `report`
+  extra is now just `python-docx`). Updated `README.md` to describe the lean,
+  stage-keyed report (was "figures, standalone explanations, governing equations
+  and the validation record").
+- **Audit:** pytest 162 passed / 1 skipped; ruff + mypy (39 files) + complexipy
+  (`[]`) green; tree clean on `main`. Epic #126 closed; issues
+  #110/#151/#124/#119 closed; #153 re-scoped smaller by #110.
+- **Pending:** feature backlog only — **#153**, **#109** (pipeline.md per-stage
+  prose), **#72** Generalization/Validation (#54→#53), **#71** Deployment
+  (#66–#68), **#40** chemisorption E_ads. Note: `equations.py` is retained but
+  production-unused (only its own test) — a candidate for removal if equations
+  stay out of the report.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

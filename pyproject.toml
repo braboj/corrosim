@@ -36,18 +36,15 @@ qm = ["tblite", "pyscf", "geometric"]
 viz = ["scikit-image", "scipy", "Pillow"]
 
 # Word (.docx) report output (make_report). Pure-Python, no system binary; the
-# HTML report needs none of this. Equations become native/editable Word equations
-# (OMML) via latex2mathml + mathml2omml; if those are absent make_report still
-# writes the .docx with the matplotlib-rendered equation images.
+# HTML report needs none of this.
 
-report = ["python-docx>=1.0", "latex2mathml>=3.77", "mathml2omml>=0.0.2"]
+report = ["python-docx>=1.0"]
 # Tests / dev (viz + report deps listed explicitly so the renderers are importable).
 # tblite is deliberately NOT here: the suite is QM-light (CLAUDE.md 3.1), and the
 # one xtb smoke test importorskips it. Use `.[dev,qm]` to exercise the xtb path.
 
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
-       "scipy", "Pillow",
-       "python-docx>=1.0", "latex2mathml>=3.77", "mathml2omml>=0.0.2"]
+       "scipy", "Pillow", "python-docx>=1.0"]
 
 [project.scripts]
 corrosim = "corrosim.cli:main"
