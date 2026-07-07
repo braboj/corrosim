@@ -1,6 +1,6 @@
 """corrosim.surface.
 
-Shared Stage-2/3 substrate + van-der-Waals primitives, single-sourced so that
+Shared substrate + van-der-Waals primitives, single-sourced so that
 adsorption / mc / md all agree on the metal surface and the UFF field:
 
   * METAL_LATTICE / SURFACE_FACET — crystal + conventional inhibitor facet
@@ -166,7 +166,7 @@ def orient_flat(coords: npt.ArrayLike) -> np.ndarray:
     R = vt.T
     out = c @ R
     if np.linalg.det(R) < 0:
-        # keep the frame right-handed
+        # Keep the frame right-handed
         out[:, 0] *= -1
     return out
 
@@ -262,7 +262,7 @@ def uff_vdw_forces(
         ``(energy, forces)``: the energy in eV and the (n, 3) forces on the
         molecule atoms in eV/Å (f = -dE/dr).
     """
-    # pairwise displacement (n, m, 3) and floored distance
+    # Pairwise displacement (n, m, 3) and floored distance
     diff = mol_pos[:, None, :] - slab_pos[None, :, :]
     d = np.maximum(np.linalg.norm(diff, axis=2), MIN_PAIR_DISTANCE_A)
     t6 = (x_mix / d) ** 6

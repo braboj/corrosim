@@ -219,7 +219,7 @@ SCIENTIFIC_BASIS: list[tuple[str, object]] = [
      "fixes the protonation state; and the Monte-Carlo and molecular-dynamics "
      "steps quantify adsorption. The full set is collected below."),
 
-    # renderer injects equations.EQUATION_GROUPS here
+    # Renderer injects equations.EQUATION_GROUPS here
     ("eqgroups", None),
 
     ("h3", 'Descriptor results (B3LYP/6-311++G(d,p), neutral, aqueous)'),

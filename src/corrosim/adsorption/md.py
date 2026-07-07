@@ -1,6 +1,6 @@
 """corrosim.md.
 
-Stage-3 (light) molecular dynamics: rigid-body Brownian / overdamped-Langevin
+Light molecular dynamics: rigid-body Brownian / overdamped-Langevin
 dynamics of the inhibitor over the metal slab under the UFF van-der-Waals
 field, at 298 K. Yields the template's MD outputs on an open-source
 classical-vdW level:
@@ -11,7 +11,7 @@ classical-vdW level:
 It is genuine time-evolved dynamics (force/torque-driven, thermostatted), but
 still a physisorption-level vdW model with a fixed slab; the full
 chemisorption-capable MD (metal EAM + organic GAFF/OPLS, explicit solvent)
-remains the LAMMPS Stage-3 hand-off (see adsorption.LAMMPS_HANDOFF_NOTE).
+remains the LAMMPS hand-off (see adsorption.LAMMPS_HANDOFF_NOTE).
 """
 from __future__ import annotations
 

@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 _MUTED = RGBColor(0x71, 0x80, 0x96)
 _FIG_WIDTH = Inches(5.7)
-# per-molecule figures shown a little smaller
+# Per-molecule figures shown a little smaller
 _GRID_WIDTH = Inches(2.9)
 _OMML_MATH_NS = ('xmlns:m="http://schemas.openxmlformats.org/'
                  'officeDocument/2006/math"')
@@ -59,7 +59,7 @@ def _latex_to_omml(latex: str):
     try:
         omml = mathml_to_omml(latex_to_mathml(latex))
         if "xmlns:m=" not in omml:
-            # declare m: so parse_xml resolves it
+            # Declare m: so parse_xml resolves it
             omml = omml.replace("<m:oMath>", f"<m:oMath {_OMML_MATH_NS}>", 1)
         return parse_xml(omml)
     except Exception:
@@ -71,9 +71,9 @@ class _Doc:
 
     def __init__(self) -> None:
         self.doc = Document()
-        # section counter (level 1)
+        # Section counter (level 1)
         self._c1 = 0
-        # subsection counter (level 2)
+        # Subsection counter (level 2)
         self._c2 = 0
 
     # --- text ---------------------------------------------------------------
@@ -116,7 +116,7 @@ class _Doc:
                width: Inches = _FIG_WIDTH) -> None:
         path = figure_path(figdir, fname)
         if not os.path.exists(path):
-            # missing figure: skip silently
+            # Missing figure: skip silently
             return
         self.doc.add_picture(path, width=width)
         self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -137,12 +137,12 @@ class _Doc:
         eq = _eq.EQUATIONS[key]
         omath = _latex_to_omml(eq.latex)
         if omath is not None:
-            # native, editable Word equation
+            # Native, editable Word equation
             p = self.doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p._p.append(omath)
         else:
-            # fallback: rendered image
+            # Fallback: rendered image
             png = io.BytesIO(_eq.render_equation_png(eq.latex))
             self.doc.add_picture(png)
             self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -304,7 +304,7 @@ def _summary_section(d: _Doc, prep: PreparedReport) -> None:
 
 def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
                  names: list[str]) -> None:
-    """Stage 1 DFT descriptors: structures, MO diagram, per-molecule HOMO/LUMO
+    """DFT descriptors: structures, MO diagram, per-molecule HOMO/LUMO
     isosurfaces, descriptor charts, the full table and the optional geometry-
     refinement figure.
     """
@@ -394,7 +394,7 @@ def _esp_section(d: _Doc, figdir: str, names: list[str]) -> None:
 
 
 def _mc_section(d: _Doc, figdir: str, names: list[str]) -> None:
-    """Stage 2 Monte Carlo adsorption: per-molecule pose + annealing figures."""
+    """Monte Carlo adsorption: per-molecule pose + annealing figures."""
     d.heading("Monte Carlo adsorption", level=1)
     d.para(_content.STAGE_INTROS["mc"])
     for n in names:
@@ -407,7 +407,7 @@ def _mc_section(d: _Doc, figdir: str, names: list[str]) -> None:
 
 def _md_section(d: _Doc, prep: PreparedReport, figdir: str,
                 names: list[str]) -> None:
-    """Stage 3 Brownian-MD metal-O RDF subsection."""
+    """Brownian-MD metal-O RDF subsection."""
     d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
     d.para(_content.STAGE_INTROS["md"])
     for n in names:
@@ -474,8 +474,8 @@ def build_docx_report(
     _acid_cation_section(d, acid_cation_rows, medium)
     _speciation_section(d, speciation_summary, medium, computed_pkah,
                         pka_freq_corrected)
-    # Fukui and ESP are facets of Stage 1 (isolated-molecule QM analysis), so
-    # they render as subsections here, not as separate pipeline stages.
+    # Fukui and ESP are facets of the isolated-molecule QM analysis, so they
+    # render as subsections here, not as separate pipeline stages.
     _fukui_section(d, prep, figdir, names)
     _esp_section(d, figdir, names)
     _mc_section(d, figdir, names)

@@ -1,4 +1,4 @@
-"""corrosim.adsorption — Stage-2/3 classical adsorption (ADR 0011).
+"""corrosim.adsorption — classical adsorption (ADR 0011).
 
 Shared slab/vdW primitives (`surface`), the UFF physisorption estimate
 (`adsorption`), the Monte Carlo pose search (`mc`), and Brownian MD (`md`).

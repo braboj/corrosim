@@ -148,7 +148,7 @@ def _computed_pkah(
         return None, False
     order_ix = {n: i for i, n in enumerate(present)}
     pka_rows = [r for r in _load_json(pka_path) if r["name"] in order_ix]
-    # prefer the frequency-corrected pKaH ("pkah") when run_pka --freq produced
+    # Prefer the frequency-corrected pKaH ("pkah") when run_pka --freq produced
     # it, else the electronic-only value.
     freq_corrected = bool(pka_rows) and all("pkah" in r for r in pka_rows)
     computed = sorted(

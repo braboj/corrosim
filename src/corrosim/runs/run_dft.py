@@ -181,7 +181,7 @@ def _optimize_species(
                 list(mol.symbols), opt_coords, basis=opt_basis, xc=opt_xc,
                 charge=mol.charge, solvent=opt_solvent)
 
-    # the optimiser returns coordinate triples (looser Coords type)
+    # The optimiser returns coordinate triples (looser Coords type)
     mol = dataclasses.replace(mol, coords=cast(list, opt_coords))
     if opt_geom_dir is not None:
         path = write_xyz(

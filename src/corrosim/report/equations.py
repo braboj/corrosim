@@ -10,7 +10,7 @@ Each :class:`Equation` carries the mathtext source, the quantity it defines and
 a one-line meaning; :data:`EQUATION_GROUPS` orders them by pipeline stage for
 the report's "Scientific basis" section. Definitions mirror ``descriptors.py``
 (Koopmans), ``fukui.py``, ``speciation.py`` (Henderson-Hasselbalch), ``pka.py``
-(DFT deprotonation cycle) and the Stage-2/3 adsorption observables.
+(DFT deprotonation cycle) and the adsorption observables.
 """
 from __future__ import annotations
 
@@ -28,14 +28,14 @@ class Equation:
 
     key: str
     latex: str
-    # short label, e.g. "Chemical hardness η"
+    # Short label, e.g. "Chemical hardness η"
     quantity: str
-    # one-line interpretation
+    # One-line interpretation
     meaning: str
 
 
-# --- Stage 1: global reactivity descriptors (Koopmans; descriptors.py) --------
-_STAGE1 = [
+# --- Global reactivity descriptors (Koopmans; descriptors.py) ---------------
+_DESCRIPTORS = [
     Equation("gap", r"E_{gap} = E_{LUMO} - E_{HOMO}",
              "Energy gap ΔE",
              "Frontier HOMO-LUMO separation; a smaller gap means a more "
@@ -76,7 +76,7 @@ _STAGE1 = [
              "donor-acceptor adsorption."),
 ]
 
-# --- Stage 1b: local reactivity (condensed Fukui; fukui.py) -------------------
+# --- Local reactivity (condensed Fukui; fukui.py) ---------------------------
 _FUKUI = [
     Equation("f_minus", r"f^{-}_{k} = q_{k}(N-1) - q_{k}(N)",
              "Nucleophilic Fukui f⁻",
@@ -108,7 +108,7 @@ _SPECIATION = [
              "aqueous proton free energy."),
 ]
 
-# --- Stage 2/3: adsorption observables (mc.py, md.py) -------------------------
+# --- Adsorption observables (mc.py, md.py) --------------------------------
 _ADSORPTION = [
     Equation("e_ads", r"E_{ads} = E_{slab+mol} - (E_{slab} + E_{mol})",
              "Adsorption energy E_ads",
@@ -129,7 +129,7 @@ _ADSORPTION = [
 
 # Ordered groups for the "Scientific basis" section: (heading, equations).
 EQUATION_GROUPS: list[tuple[str, list[Equation]]] = [
-    ("Global reactivity descriptors (Koopmans' theorem)", _STAGE1),
+    ("Global reactivity descriptors (Koopmans' theorem)", _DESCRIPTORS),
     ("Local reactivity (condensed Fukui)", _FUKUI),
     ("Acid-base speciation and conjugate-acid pKaH", _SPECIATION),
     ("Adsorption observables", _ADSORPTION),
