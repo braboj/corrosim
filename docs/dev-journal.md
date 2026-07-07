@@ -1200,4 +1200,39 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   production-unused (only its own test) — a candidate for removal if equations
   stay out of the report.
 
+## 2026-07-07 (session 12) — #109 pipeline prose + #153 ADR-token purge
+
+- **Tool:** Claude Code (Opus 4.8). Cleared the two remaining doc-hygiene
+  tickets from the lean-report follow-up thread; shipped as **PR #157**
+  (squash-merged), closing **#109** and **#153**.
+- **#109 — per-stage methodology prose in `docs/pipeline.md`.** Each stage
+  (3D geometry → MD) now opens with a question-style intro paragraph *before*
+  its Why/What/How table, covering (1) the actual method named and **cited by
+  source** (ETKDG / Riniker & Landrum 2015, B3LYP / Becke 1993 + Lee-Yang-Parr
+  1988, geomeTRIC / Wang & Song 2016, Koopmans, hardness-softness / Parr &
+  Pearson 1983, electrophilicity / Parr Szentpály Liu 1999, Lukovits ΔN, Fukui /
+  Parr & Yang 1984 + Yang & Mortier 1986, dual descriptor / Morell 2005,
+  Metropolis + simulated annealing / Kirkpatrick 1983, UFF / Rappé 1992,
+  Brownian dynamics / Ermak & McCammon 1978) — never an issue/ADR number; (2)
+  the free software implementing it; (3) an **inline free-vs-commercial
+  head-to-head per stage** (vs Gaussian/DMol³, Adsorption Locator, Forcite,
+  Multiwfn), decomposed from the single bottom table, which stays as a roll-up.
+  Ranking kept its existing z-score intro. Prose only — no code change.
+- **#153 — last ADR token out of user-facing strings.** The lean-report
+  refactor (#110) had already removed 9 of the 10 tokens the ticket surveyed
+  (the report narrative is gone); the only survivor was the `--basis` `--help`
+  text (`ADR 0002`), rewritten to state the substance ("the production DFT
+  level"). No report-bundle/golden change — the token was not in a rendered
+  string. `grep -rniE "ADR[ -]?[0-9]" src/corrosim --include=*.py` now returns
+  **0**.
+- **Audit:** pytest 162 passed / 1 skipped; ruff + mypy (39 files) + complexipy
+  (`[]`) green; tree clean on `main`, nothing unpushed.
+- **Pending:** feature backlog only — **#72** Generalization/Validation
+  (#54→#53), **#71** Deployment (#66–#68), **#40** chemisorption E_ads. Two
+  standing housekeeping notes: `equations.py` is retained but production-unused
+  (removal candidate), and the `docs/solid-ai-templates` submodule is ~80
+  commits behind (local v2.17.0-80 → upstream v2.30) — a dedicated template-sync
+  session should reconcile it (and file the #151 "no ticket refs in
+  docstrings" convention upstream) rather than bump it blind at a wrap.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
