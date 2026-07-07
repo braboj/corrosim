@@ -1,4 +1,4 @@
-"""corrosim.report — reporting and visualisation (ADR 0011).
+"""corrosim.report — reporting and visualisation.
 
 HTML/DOCX pipeline reports, the report-bundle layout helpers, narrative
 content, equation rendering, and figures. `figures` and `report_docx` are NOT

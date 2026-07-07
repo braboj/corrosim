@@ -1,6 +1,6 @@
 """corrosim.speciation.
 
-Quantitative acid–base speciation (ADR 0004): turn the medium pH into the
+Quantitative acid–base speciation: turn the medium pH into the
 *population* of the neutral vs protonated inhibitor and blend their descriptors
 by that population, so a ranking can reflect the actual species mix rather than
 an arbitrary form choice.
@@ -12,7 +12,7 @@ Henderson–Hasselbalch:
     f_prot = 1 / (1 + 10**(pH − pKaH))
 
 For the Arghel flavonoids the most basic site is the 4-oxo carbonyl, a *very
-weak* base (pKaH ≈ −1.5; an ESTIMATE, see ADR 0004), so even in 1 M HCl
+weak* base (pKaH ≈ −1.5; an ESTIMATE), so even in 1 M HCl
 (pH ≈ 0) the neutral form dominates. But f_prot is exponentially sensitive to
 pKaH and the gap/softness composite lead crosses over at only a few-percent
 protonation — so this module reports the sensitivity band, not a single
@@ -143,7 +143,7 @@ def analyse_speciation(neutral_rows: list[dict], protonated_rows: list[dict],
                        rank_fn: Callable[[list[dict]], list[dict]],
                        pkah: float = FLAVONOID_CARBONYL_PKAH,
                        band: float = 1.0) -> dict:
-    """Full pH-speciation summary for the report (ADR 0004).
+    """Full pH-speciation summary for the report.
 
     Args:
         neutral_rows: The neutral-form descriptor rows.

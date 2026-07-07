@@ -13,7 +13,7 @@ unhandled.
 Scope is deliberately narrow: only the *data-driven* Scientific-basis section
 flows through this seam. The hand-authored, format-specific sections stay two
 separate renderers — the narrative is fixed as static prose, so promoting the
-whole report to a generic block model would buy nothing (ADR 0016).
+whole report to a generic block model would buy nothing.
 
 ::
 

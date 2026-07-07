@@ -4,13 +4,13 @@ Parse a free-text electrochemical medium label (e.g. "1 M HCl", "pH 7 buffer")
 into structured chemistry: the acid/electrolyte species, its concentration, and
 an approximate pH. The pH then says which protonation state of the inhibitor is
 chemically relevant — in a strong acid the basic O/N sites take up a proton, so
-the +1 cation is present (see ADR 0003).
+the +1 cation is present.
 
 This is a *selection / consistency* layer over the already-computed DFT forms,
 not a quantitative speciation model: it decides whether the protonated cation
 is relevant (and lets callers warn on a medium/forms mismatch). It deliberately
 does NOT weight by site pKa — the ranking the report leads with stays the
-neutral form (ADR 0003).
+neutral form.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from dataclasses import dataclass
 
 # Strong acids we recognise -> count of dissociable protons (for the pH guess).
 _STRONG_ACIDS = {"HCL": 1, "HBR": 1, "HI": 1, "HNO3": 1, "HCLO4": 1, "H2SO4": 2}
+
 # Bases / neutral electrolytes whose presence means "not acidic".
 _BASE_OR_NEUTRAL = ("naoh", "koh", "nh4oh", "alkaline", "base", "nacl",
                     "na2so4")

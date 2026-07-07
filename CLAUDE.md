@@ -140,11 +140,15 @@ duplicate.
   nouns keep their real case — `UFF`, `Mulliken`, `ddCOSMO`); a terse fragment
   needs no terminal period. Applies to inline/block comments; docstrings are
   already full sentences.
-- Comments are self-sufficient — never cite a ticket/PR/ADR *number* in a
-  comment (those rot). Scientific-comment exception to "a name that needs a
-  comment is wrong": non-obvious physics or derivations MUST carry a short
-  comment naming the descriptor or source (Koopmans, Lukovits ΔN, Rappé 1992) —
-  the source name, not an issue/ADR number.
+- Comments and docstrings are self-sufficient — never cite a ticket/PR/ADR
+  *number* in a comment or docstring (those rot); state the substance in the
+  prose instead. Scientific-comment exception to "a name that needs a comment
+  is wrong": non-obvious physics or derivations MUST carry a short comment
+  naming the descriptor or source (Koopmans, Lukovits ΔN, Rappé 1992) — the
+  source name, not an issue/ADR number. Enforced package-wide by
+  `tests/test_docstrings.py` (comments and docstrings). The rule targets code;
+  the Markdown docs (README, ONBOARDING, ADRs, journal) cross-reference ADRs by
+  number on purpose.
 - Never write "Stage 1/2/3" (or "Stage-N") in a docstring or comment — name the
   actual work (DFT descriptors, MC adsorption, MD RDF), not a pipeline-stage
   number; stage labels rot and were already dropped from the reports (ADR 0010).

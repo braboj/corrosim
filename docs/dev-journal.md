@@ -1108,4 +1108,37 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   single-source), **#72** Generalization/Validation (#54→#53), **#71**
   Deployment (#66–#68), **#40** chemisorption E_ads.
 
+## 2026-07-07 (session 9) — purge ADR/ticket numbers from docstrings (#151)
+
+- **Tool:** Claude Code (Opus 4.8). Ticket **#151** filed + executed this session.
+- **Scope:** extend §2.2's "no ticket/PR/ADR *number*" rule from comments to
+  **docstrings**, sweep the existing refs, and enforce it so it can't regress.
+  Behaviour-preserving (docstrings don't render; the golden is the gate).
+- **Sweep.** Removed **25** rotting number-pointers — `ADR 00NN` plus a few stray
+  `issue #NN` / `#NN` — from module/class/function docstrings across 11 files
+  (`adsorption`/`qm`/`report` `__init__`s, `medium`, `report/render`,
+  `report/report.py` block docstrings + `PreparedReport.derive` +
+  `build_pipeline_report`, `qm/pka`, `qm/speciation`, `runs/_cli`,
+  `runs/run_dft`, `runs/run_pka`), keeping each docstring self-sufficient (the
+  substance stays in the prose). **Comments were already clean** — the comment
+  rule + `test_comments_are_clean` had banned them.
+- **Convention.** CLAUDE.md §2.2 amended: the rule now covers comments **and**
+  docstrings; noted the Markdown docs (README/ONBOARDING/ADRs/journal) still
+  cross-reference ADRs by number on purpose.
+- **Enforcement.** New `tests/test_docstrings.py::test_docstrings_have_no_ticket_refs`
+  applies the existing `TICKET_RE` to every module/class/function docstring;
+  mutation-tested (an injected `ADR 0099` fails it, clean after revert).
+- **Out of scope (as ticketed).** The rendered report narrative
+  (`report_content.py` + the rendered strings in `report.py` / `report_docx.py`)
+  — removing those changes the shipped bundle; the CLI `--basis` help text; and
+  the Markdown docs.
+- **Verification:** report golden byte/section-identical; pytest **170 passed /
+  1 skipped** (+1 new); ruff + mypy (40 files) + complexipy (`[]`) green. Diff is
+  docstring/doc/test-only — no logic.
+- **Pending:** unchanged threads — **#133 P3** (`add_metal_arg`/`add_medium_arg`
+  help-text single-source), **#127 P2** (`_Html` builder, optional), **#72**
+  Generalization/Validation (#54→#53), **#71** Deployment (#66–#68), **#40**
+  chemisorption E_ads. Possible follow-up: purge ADR numbers from the *rendered*
+  report narrative (would change the golden).
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
