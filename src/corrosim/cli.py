@@ -138,8 +138,8 @@ def build_parser() -> argparse.ArgumentParser:
                    choices=["xtb", "pyscf", "orca", "gaussian"],
                    help="Quantum engine. Default xtb (fast).")
     p.add_argument("--basis", default="6-311++G(d,p)",
-                   help="PySCF basis set. Default = adopted template level "
-                        "(ADR 0002); use 6-31g for a quick check.")
+                   help="PySCF basis set. Default = the production DFT level; "
+                        "use 6-31g for a quick check.")
     p.add_argument("--xc", default="b3lyp",
                    help="PySCF exchange-correlation functional.")
     p.add_argument("--solvent", default="water",
