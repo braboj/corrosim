@@ -53,10 +53,10 @@ tables in report/tables/ (per-stage subfolders)
 ```
 
 Open `report/report.html` in any browser, or `report/report.docx` in Word (both
-carry the same figures, standalone explanations, governing equations and the
-validation record; in Word the equations are native, editable equation objects).
-The `report` extra (python-docx + latex2mathml + mathml2omml) is only needed for
-the Word file; without it the HTML is still built. To run the DFT/xTB stages
+are lean and stage-keyed — the same tables and figures under each stage with
+minimal captions; the methodology lives in `docs/pipeline.md`). The `report`
+extra (python-docx) is only needed for the Word file; without it the HTML is
+still built. To run the DFT/xTB stages
 yourself, see
 [Development setup](#development-setup).
 
