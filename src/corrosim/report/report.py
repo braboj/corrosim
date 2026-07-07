@@ -18,9 +18,7 @@ import pandas as pd
 
 from ..presets import metal_element
 from ..qm.descriptors import DESCRIPTOR_META
-from . import equations as _eq
 from . import report_content as _content
-from .render import render_blocks
 from .report_layout import figure_path
 
 
@@ -206,83 +204,9 @@ def _img_block(figdir: str, fname: str, caption: str = "") -> str:
     return (f'<figure><img src="data:image/png;base64,{b64}">{cap}</figure>')
 
 
-def _explain(role: str) -> str:
-    """Standalone explanation paragraph for a figure role (report_content)."""
-    txt = _content.FIGURE_EXPLANATIONS.get(role, "")
-    return f'<p class="figexpl">{txt}</p>' if txt else ""
-
-
 def _inline(text: str) -> str:
     """Render the shared content's ``**bold**`` markup to inline HTML."""
     return "".join(f"<b>{t}</b>" if b else t for t, b in _content.inline_runs(text))
-
-
-def _p(text: str) -> str:
-    """A paragraph rendering the shared content's ``**bold**`` markup."""
-    return f"<p>{_inline(text)}</p>"
-
-
-def _equation_img(key: str) -> str:
-    """A <figure> with the mathtext-rendered equation inline (base64) + its meaning."""
-    eq = _eq.EQUATIONS[key]
-    b64 = base64.b64encode(_eq.render_equation_png(eq.latex)).decode()
-    return (f'<figure class="eq"><img src="data:image/png;base64,{b64}" '
-            f'alt="{eq.quantity}">'
-            f"<figcaption><b>{eq.quantity}</b> — {eq.meaning}</figcaption></figure>")
-
-
-def _content_table_html(payload: dict) -> str:
-    """Render a report_content table item ({columns, rows, caption}) to HTML."""
-    head = "".join(f"<th>{c}</th>" for c in payload["columns"])
-    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
-                   for row in payload["rows"])
-    cap = payload.get("caption", "")
-    caption = f'<p class="meta">{cap}</p>' if cap else ""
-    return (f"<table><thead><tr>{head}</tr></thead>"
-            f"<tbody>{body}</tbody></table>{caption}")
-
-
-class _HtmlBasis:
-    """Accumulates the Scientific-basis section as HTML fragments, implementing
-    the shared BasisRenderer Protocol (render.py) so the block list renders to
-    HTML through the one walker.
-    """
-
-    def __init__(self) -> None:
-        self.parts: list[str] = []
-
-    def subheading(self, text: str) -> None:
-        """Render a Scientific-basis subsection heading."""
-        self.parts.append(f"<h3>{text}</h3>")
-
-    def paragraph(self, text: str) -> None:
-        """Render a Scientific-basis prose paragraph."""
-        self.parts.append(_p(text))
-
-    def table(self, payload: dict) -> None:
-        """Render a Scientific-basis content table."""
-        self.parts.append(_content_table_html(payload))
-
-    def equation_groups(self) -> None:
-        """Render the governing-equation set: each group an h4 heading over an
-        eqgrid of the equations rendered inline.
-        """
-        for heading, group in _eq.EQUATION_GROUPS:
-            self.parts.append(f"<h4>{heading}</h4>")
-            self.parts.append('<div class="eqgrid">'
-                              + "".join(_equation_img(e.key) for e in group)
-                              + "</div>")
-
-
-def _scientific_basis_section() -> list[str]:
-    """The shared 'Scientific basis & validation' section (report_content):
-    woven pipeline.md + validation.md prose, the governing equations rendered in
-    scientific form, and the descriptor / experimental tables. Walked to HTML by
-    the one render_blocks dispatcher (render.py).
-    """
-    basis = _HtmlBasis()
-    render_blocks(_content.SCIENTIFIC_BASIS, basis)
-    return ["<h2>Scientific basis &amp; validation</h2>", *basis.parts]
 
 
 def _number_headings(html: str) -> str:
@@ -319,10 +243,6 @@ def _geometry_block(figdir: str) -> str:
     if not os.path.exists(figure_path(figdir, "fig8_geometry_comparison.png")):
         return ""
     return ("<h3>Geometry refinement (FF vs DFT-optimised)</h3>"
-            "<p>Relaxing each structure at B3LYP/6-31G(d) before the production "
-            "single point lowers the gap (~0.4–0.5 eV) and hardness and raises ΔN, "
-            "but leaves both the gap and ΔN rankings unchanged — the lead "
-            "assignments are geometry-robust.</p>"
             + _img_block(figdir, "fig8_geometry_comparison.png",
                          "Force-field vs DFT-optimised geometry"))
 
@@ -336,17 +256,9 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
         return []
     return [
         "<h3>Species in the acidic medium (protonated cation)</h3>",
-        f"<p>In <b>{medium}</b> the basic carbonyl / hydroxyl oxygens take up a "
-        "proton, so the inhibitor is present largely as its +1 cation. The ranking "
-        "above uses the <i>neutral</i> form (the conventional descriptor basis); the "
-        "protonated-cation descriptors are tabulated here for comparison.</p>",
         _html_table(results_dataframe(acid_cation_rows)),
-        '<p class="meta">Protonation lowers the gap and raises softness, and ΔN turns '
-        "<b>negative</b> — the electron-poor cation no longer donates to the metal, so "
-        "the ΔN &gt; 0 donation heuristic does not apply to this form (cation adsorption "
-        "is electrostatic / back-donation driven). The most reactive species by the "
-        "gap/softness composite is therefore <i>form-dependent</i>, which is why the "
-        "neutral form is kept as the headline ranking (ADR 0003).</p>",
+        f'<p class="meta">Protonated +1 cation descriptors in {medium}; the '
+        "headline ranking stays on the neutral form (see docs/pipeline.md).</p>",
     ]
 
 
@@ -367,15 +279,8 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
     ranked = rank_inhibitors(ndf)
     summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
                       "delta_n", "tnc", "score"]].round(3)
-    gap_rank = list(ndf.sort_values("gap_ev")["name"])
-    dn_rank = list(ndf.sort_values("delta_n", ascending=False)["name"])
     out = [
         "<h3>Optimised-geometry descriptors (DFT-relaxed)</h3>",
-        "<p>The same reactivity descriptors on <b>DFT-optimised</b> geometries "
-        "(B3LYP/6-31G(d) relaxation, then the production single point) instead of the "
-        "force-field geometries used for the headline table. The gap/softness composite "
-        f"ranking is unchanged (gap {' &lt; '.join(gap_rank)}; "
-        f"ΔN {' &gt; '.join(dn_rank)}) — the lead is geometry-robust.</p>",
         _html_table(summary, best_first_row=True),
     ]
     if opt_acid_rows:
@@ -386,8 +291,6 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
             adf = adf.sort_values("_o").drop(columns=["_b", "_o"])
         out += [
             "<h4>Optimised protonated cations (in-acid)</h4>",
-            "<p>The DFT-optimised +1 cations — the more accurate geometric basis for "
-            "the speciation / pKaH work (ADR 0004/0005) than the force-field cations.</p>",
             _html_table(results_dataframe(adf.to_dict("records"))),
         ]
     return out
@@ -395,11 +298,10 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
 
 def _computed_pka_block(computed_pkah: list[dict] | None,
                         freq_corrected: bool = False) -> list[str]:
-    """Computed-pKaH resolution: per-molecule DFT-cycle pKaH and the
-    resulting populations, which place the system on one side of the crossover.
-    ``computed_pkah`` rows carry name / pkah / f_protonated. ``freq_corrected``
-    switches the caption between the electronic-only and the frequency-corrected
-    estimate. Empty if absent.
+    """Computed-pKaH table: per-molecule DFT-cycle pKaH and the resulting
+    protonated populations. ``computed_pkah`` rows carry name / pkah /
+    f_protonated; ``freq_corrected`` flips the one-line basis caption between
+    electronic-only and frequency-corrected. Empty if absent.
     """
     if not computed_pkah:
         return []
@@ -409,61 +311,33 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
         f"<td>{r['f_protonated'] * 100:.2f}%</td></tr>"
         for r in computed_pkah
     )
-    worst = max(r["f_protonated"] for r in computed_pkah)
-    basis = ("cycle (frequency-corrected: gas-phase opt+freq ZPE/thermal/entropy on "
-             "the production single point; `results/pka.json`, ADR 0005)."
-             if freq_corrected else
-             "cycle (electronic-only; `results/pka.json`, ADR 0005).")
-    tail = ("The frequency correction shifts pKaH by only a fraction of the large "
-            "margin to the crossover, leaving the conclusion intact."
-            if freq_corrected else
-            "The omitted O–H zero-point energy would push pKaH lower still (more "
-            "neutral), reinforcing this.")
+    basis = "frequency-corrected" if freq_corrected else "electronic-only"
     return [
         "<h4>Computed pKaH (DFT deprotonation cycle)</h4>",
         f"<table><thead>{head}</thead><tbody>{body}</tbody></table>",
-        '<p class="meta">From a B3LYP/6-311++G(d,p) + ddCOSMO aqueous deprotonation '
-        f"{basis} All values sit far below the crossover — the most basic flavonoid "
-        f"is only {worst * 100:.2f}% protonated — so every species is essentially "
-        "fully neutral here. This <b>resolves the sensitivity above</b>: the neutral "
-        "form is the physically dominant species, not just the conventional choice, so "
-        f"the headline lead is robust. {tail}</p>",
+        f'<p class="meta">B3LYP/6-311++G(d,p) + ddCOSMO deprotonation cycle '
+        f"({basis}); results/pka.json.</p>",
     ]
 
 
 def _speciation_block(summary: dict | None, medium: str,
                       computed_pkah: list[dict] | None = None,
                       pka_freq_corrected: bool = False) -> list[str]:
-    """Quantitative pH-speciation section: the neutral/protonated
-    population at the medium pH, the population-weighted descriptor table, and the
-    lead-crossover sensitivity to the protonation pKa — followed by the computed
-    pKaH that resolves it. Empty when no summary is supplied (non-acidic
-    medium or unknown pH).
+    """Quantitative pH-speciation section: the neutral/protonated population at
+    the medium pH, the population-weighted descriptor table, and the computed
+    pKaH table. Empty when no summary is supplied (non-acidic medium or unknown
+    pH).
     """
     if not summary:
         return []
     spec = summary["speciation"]
-    lo_f, hi_f = summary["band_fraction"]
-    cross_f, cross_pk = summary["crossover_fraction"], summary["crossover_pkah"]
-    sens = " The lead is insensitive to the protonation pKa over the plausible range."
-    if cross_f and cross_pk is not None:
-        sens = (f" The gap/softness composite lead changes from "
-                f"<b>{summary['neutral_lead']}</b> to <b>{summary['crossover_lead']}</b> "
-                f"at only ~{cross_f:.0%} protonation (pKaH ≈ {cross_pk:.1f}); the "
-                f"pKaH±1 band ({min(lo_f, hi_f):.0%}–{max(lo_f, hi_f):.0%} protonated) "
-                f"straddles that crossover — so the lead is sensitive to the "
-                f"protonation pKa, the key uncertainty here.")
     return [
         f"<h3>Speciation in {medium} (pH ≈ {spec.ph:.1f})</h3>",
-        "<p>The most basic site of these flavonoids is the 4-oxo carbonyl, a very "
-        f"weak base (estimated conjugate-acid pKaH ≈ {spec.pkah:.1f}; ADR 0004). By "
-        f"Henderson–Hasselbalch the inhibitor is <b>{spec.f_neutral:.0%} neutral / "
-        f"{spec.f_protonated:.0%} protonated</b> at this pH — the <b>{spec.dominant}</b> "
-        "form dominates, which is why the headline ranking uses the neutral form.</p>",
-        f"<p>Population-weighted (pH-weighted) descriptors — blended lead: "
-        f"<b>{summary['blended_lead']}</b>:</p>",
+        f'<p class="meta"><b>{spec.f_neutral:.0%} neutral / '
+        f"{spec.f_protonated:.0%} protonated</b> at this pH — the "
+        f"{spec.dominant} form dominates. Population-weighted descriptors "
+        f"(blended lead <b>{summary['blended_lead']}</b>):</p>",
         _html_table(results_dataframe(summary["blended_rows"])),
-        f'<p class="meta"><b>Sensitivity.</b>{sens}</p>',
         *_computed_pka_block(computed_pkah, pka_freq_corrected),
     ]
 
@@ -677,35 +551,37 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
 
 def _header_section(metal: str, medium: str, prep: PreparedReport,
                     generated_at: str | None) -> list[str]:
-    """Title, run-metadata line, headline caveat and the bottom-line note."""
+    """Title, run-metadata line and the headline caveat.
+
+    The data-derived headline sentence is placed in the Summary & ranking
+    section (:func:`_summary_section`), not here.
+    """
     ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    bl = prep.bottom_line()
     return [
         "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
         f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
         f' &nbsp;|&nbsp; DFT level <b>{prep.level}</b>'
         f" &nbsp;|&nbsp; Generated {ts}</p>",
         f'<div class="note">{_content.HEADLINE_CAVEAT}</div>',
-        f'<div class="note">{_inline(bl)}</div>' if bl else "",
     ]
 
 
 def _overview_section(figdir: str) -> list[str]:
-    """Overview intro + the pipeline diagram."""
+    """Overview heading + the pipeline diagram (methodology lives in pipeline.md)."""
     return [
         "<h2>Overview</h2>",
-        _p(_content.STAGE_INTROS["overview"]),
-        _explain("pipeline"),
         _img_block(figdir, "fig0_pipeline.png", "corrosim pipeline"),
     ]
 
 
 def _summary_section(prep: PreparedReport) -> list[str]:
-    """Summary & ranking table + the score explanation."""
+    """Headline sentence + the ranking table + the one-line scoring note."""
+    bl = prep.bottom_line()
     return [
         "<h2>Summary &amp; ranking</h2>",
+        f"<p>{_inline(bl)}</p>" if bl else "",
         _html_table(prep.summary, best_first_row=True),
-        f'<p class="meta">{_inline(_content.score_explanation(prep.m_elem))}</p>',
+        f'<p class="meta">{_inline(_content.score_note(prep.m_elem))}</p>',
     ]
 
 
@@ -715,36 +591,26 @@ def _dft_section(prep: PreparedReport, figdir: str) -> list[str]:
     geometry-refinement figure.
     """
     names = list(prep.df["name"])
-    has_geometry = os.path.exists(
-        figure_path(figdir, "fig8_geometry_comparison.png"))
     return [
         "<h2>DFT electronic descriptors</h2>",
-        _p(_content.STAGE_INTROS["dft"]),
         _grid([
-            _img_block(figdir, "fig1_structures.png", "Modelled flavonoids"),
+            _img_block(figdir, "fig1_structures.png", "Modelled molecules"),
             _img_block(figdir, "fig2_mo_diagram.png",
-                       "Frontier-orbital energies vs Fe(110) work function"),
+                       "Frontier-orbital energies vs the metal work function"),
         ]),
-        _explain("structures"),
-        _explain("mo_diagram"),
         "<h3>Frontier-orbital isosurfaces (HOMO / LUMO)</h3>",
         _grid([_img_block(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO")
                for n in names]),
-        _explain("orbital_homo"),
         _grid([_img_block(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO")
                for n in names]),
-        _explain("orbital_lumo"),
         _grid([
             _img_block(figdir, "fig3_descriptors.png", "Reactivity descriptors"),
             _img_block(figdir, "fig3b_protonation.png",
-                       "Protonation effect (DFT-optimised cations, 1 M HCl)"),
+                       "Protonation effect (DFT-optimised cations)"),
         ]),
-        _explain("descriptors"),
-        _explain("protonation"),
         "<h3>Full descriptor table (neutral, aqueous)</h3>",
         _html_table(prep.full),
         _geometry_block(figdir),
-        _explain("geometry") if has_geometry else "",
     ]
 
 
@@ -759,12 +625,11 @@ def _fukui_section(prep: PreparedReport, figdir: str) -> list[str]:
         + "</ul>" if prep.fukui_items else '<p class="meta">No Fukui data found.</p>')
     return [
         "<h3>Local reactivity (Fukui)</h3>",
-        _p(_content.STAGE_INTROS["fukui"]),
-        "<p>The strongest electron-donating oxygens (highest f⁻) per molecule:</p>",
+        '<p class="meta">Strongest electron-donating oxygens (highest f⁻) per '
+        "molecule:</p>",
         fukui_summary,
         _grid([_img_block(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
                for n in prep.df["name"]]),
-        _explain("fukui"),
     ]
 
 
@@ -772,10 +637,8 @@ def _esp_section(prep: PreparedReport, figdir: str) -> list[str]:
     """Electrostatic-potential (ESP) map subsection."""
     return [
         "<h3>Electrostatic-potential (ESP) map</h3>",
-        _p(_content.STAGE_INTROS["esp"]),
         _grid([_img_block(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map")
                for n in prep.df["name"]]),
-        _explain("esp"),
     ]
 
 
@@ -783,13 +646,10 @@ def _mc_section(prep: PreparedReport, figdir: str) -> list[str]:
     """Monte Carlo adsorption: per-molecule pose + annealing figures."""
     return [
         "<h2>Monte Carlo adsorption</h2>",
-        _p(_content.STAGE_INTROS["mc"]),
         _grid([_img_block(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
                for n in prep.df["name"]]),
-        _explain("mc_pose"),
         _grid([_img_block(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
                for n in prep.df["name"]]),
-        _explain("mc_energy"),
     ]
 
 
@@ -797,10 +657,8 @@ def _md_section(prep: PreparedReport, figdir: str) -> list[str]:
     """Brownian-MD metal-O RDF subsection."""
     return [
         f"<h2>Brownian MD — {prep.m_elem}–O RDF</h2>",
-        _p(_content.STAGE_INTROS["md"]),
         _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}–O RDF")
                for n in prep.df["name"]]),
-        _explain("rdf"),
     ]
 
 
@@ -875,7 +733,6 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         *_esp_section(prep, figdir),
         *_mc_section(prep, figdir),
         *_md_section(prep, figdir),
-        *_scientific_basis_section(),
         *_method_section(prep.level),
         "</body></html>",
     ]

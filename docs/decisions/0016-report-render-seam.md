@@ -1,9 +1,18 @@
 # ADR 0016 — Report render seam (one walker for the data-driven section only)
 
-- Status: Accepted
+- Status: Superseded by the lean-report refactor (#110, 2026-07-07)
 - Date: 2026-07-06
 - Relates to: ADR 0010 (AI-authored report narrative is static prose), ADR 0012
   (API contract), ADR 0014 (factory classmethods; restraint)
+
+> **Superseded.** The lean-report refactor removed the "Scientific basis &
+> validation" section entirely (the report is now tables + figures under each
+> stage; the methodology lives in `docs/pipeline.md`). That section was the
+> render seam's only consumer, so `report/render.py` (`render_blocks` +
+> `BasisRenderer`) and the equation-rendering paths were deleted as dead code.
+> The `PreparedReport.bottom_line` / `.derive` factory methods this ADR shipped
+> alongside the seam remain. Kept here as the decision record for why the seam
+> existed and why it is gone.
 
 ## Context
 
