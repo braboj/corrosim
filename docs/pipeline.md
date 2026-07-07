@@ -67,6 +67,23 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 
 ## 3D geometry
 
+**Why build a 3D shape first?** Every quantum and adsorption calculation below
+acts on atomic *coordinates*, but a name or a SMILES string carries none — it
+only encodes which atoms are bonded. So the opening job is to invent a
+chemically sensible 3D structure. corrosim makes SMILES's implicit hydrogens
+explicit (valence tells RDKit how many each atom needs), then generates
+coordinates with **ETKDG** — Experimental-Torsion Knowledge Distance Geometry
+(Riniker & Landrum 2015), which biases the distance-geometry embedding toward
+torsion angles actually seen in crystal structures. A quick classical
+**force-field** relaxation then tidies the result: **MMFF** (Halgren 1996) for
+organics, falling back to **UFF** (Rappé et al. 1992) when MMFF lacks
+parameters. All of this runs in **RDKit** (`molecules.py`), the open-source
+cheminformatics toolkit — no quantum cost yet.
+
+*Free vs commercial:* the reference workflows usually sketch and pre-optimise
+the starting geometry inside the same paid suite (a GaussView / Materials Studio
+builder, or ChemDraw 3D); corrosim does it end to end in RDKit for $0.
+
 | | |
 | --- | --- |
 | **Why** | Everything downstream needs a concrete 3D shape to act on; a name or a SMILES string carries no coordinates. |
@@ -77,6 +94,21 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 
 ## DFT geometry optimisation
 
+**Why refine the geometry before measuring anything?** The force-field draft is
+fast but approximate, and every descriptor below is read straight off the
+geometry — a distorted structure would quietly bias all of them. So corrosim
+relaxes the draft to a genuine **DFT stationary point** with the hybrid
+**B3LYP** functional (Becke 1993; Lee, Yang & Parr 1988), the *de facto*
+standard across the green-inhibitor literature. The optimiser is **geomeTRIC**
+(Wang & Song 2016), which steps in redundant internal coordinates for fast,
+robust convergence while driving **PySCF**'s analytic gradients (Sun et al.
+2018). An optional vibrational-frequency (Hessian) check confirms a true
+minimum — all-real frequencies; a single imaginary mode flags a saddle point,
+which is relaxed away rather than fed downstream (`qm/engines.py`).
+
+*Free vs commercial:* the papers run this step in Gaussian or DMol³ (Materials
+Studio); corrosim reaches the same B3LYP minimum with PySCF + geomeTRIC.
+
 | | |
 | --- | --- |
 | **Why** | The force-field shape is only a rough draft; every descriptor below is read off this geometry, so it must be a genuine quantum-mechanical minimum before any number is trusted. |
@@ -86,6 +118,30 @@ are reported alongside the score, not folded into it (see [Ranking](#ranking--or
 | **Output** | The DFT-optimised geometry, persisted as `results/<molecule>_opt.xyz` (each neutral and its `+H+` cation; `run_dft --optimize`), plus the FF-vs-DFT robustness table `results/geometry_comparison.csv`. With `--check-minimum`/`--to-minimum`, each descriptor row also carries `n_imag` + `lowest_freq_cm`. (The descriptors *on* this geometry are written by the next step.) |
 
 ## DFT — global and local reactivity descriptors
+
+**What makes a molecule want to give electrons to metal?** Adsorption on iron is
+largely electron donation into the metal's empty states, so corrosim
+characterises the isolated molecule's *willingness to share electrons* — first
+for the molecule as a whole, then atom by atom. Both come from one DFT
+electronic-structure calculation.
+
+The **global** descriptors start from the frontier-orbital energies (E_HOMO,
+E_LUMO) via **Koopmans' theorem** (Koopmans 1934) and follow **conceptual DFT**:
+chemical hardness and softness (Parr & Pearson 1983; Pearson's HSAB principle),
+the electrophilicity index ω (Parr, Szentpály & Liu 1999), and the fraction of
+electrons transferred to the metal ΔN, read against the **Lukovits** donation
+window 0 < ΔN < 3.6 (Lukovits et al. 2001). The **local** descriptors —
+condensed **Fukui** functions (Parr & Yang 1984; Yang & Mortier 1986) and the
+**dual descriptor** (Morell, Grand & Toro-Labbé 2005), plus the ESP/MEP map —
+pinpoint *which* atoms donate or accept, i.e. the binding centres.
+
+Engines: **xTB/tblite** (GFN2-xTB, Bannwarth et al. 2019) for a sub-second first
+pass, **PySCF** (Sun et al. 2018) for the publication-grade DFT, ORCA / Gaussian
+optional (`qm/descriptors.py`, `qm/fukui.py`; PySCF cubegen for the ESP).
+
+*Free vs commercial:* the reference papers compute the SCF in Gaussian or DMol³
+and post-process Fukui / ESP in **Multiwfn**; corrosim reproduces both with
+PySCF and its own condensed-Fukui code.
 
 | | |
 | --- | --- |
@@ -156,6 +212,22 @@ onto the molecule's surface).
 
 ## Monte Carlo — adsorption pose search
 
+**How does the molecule decide where to sit on the metal?** With reactivity
+characterised, the question turns geometric: of all the ways the molecule could
+land on the surface, which is most stable? corrosim builds a periodic metal
+**slab** with **ASE** (Larsen et al. 2017), then searches poses with
+**Metropolis Monte Carlo** (Metropolis et al. 1953) under a **simulated-
+annealing** cooling schedule (Kirkpatrick, Gelatt & Vecchi 1983): thousands of
+random rigid-body translations and rotations, mostly accepting energy-lowering
+moves but occasionally a worse one to escape a mediocre spot, with the
+acceptance temperature cooled geometrically so the walk settles into the deepest
+pose. The interaction is a rigid **van-der-Waals (UFF)** model (Rappé et al.
+1992) — good for the physisorption pose and distance, but not a bond-forming
+energy (`adsorption/adsorption.py`, `adsorption/mc.py`).
+
+*Free vs commercial:* this is exactly the job of **Adsorption Locator**
+(Materials Studio); corrosim does it with an ASE slab + a UFF Monte Carlo search.
+
 | | |
 | --- | --- |
 | **Why** | Reactivity alone doesn't say how the molecule actually sits on the metal; we need its best adsorption geometry and binding strength. |
@@ -165,6 +237,22 @@ onto the molecule's surface).
 | **Output** | `results/mc_adsorption.json`. |
 
 ## Molecular dynamics — adsorption distance (metal–O RDF)
+
+**How firmly does it hold on once it is jiggling at room temperature?** A single
+best pose is a still photograph; a real molecule vibrates and drifts. corrosim
+runs a light **Brownian (overdamped Langevin) dynamics** (Ermak & McCammon 1978)
+at 298 K over the same UFF van-der-Waals field, then reads the **metal–oxygen
+radial distribution function (RDF)** — the histogram of metal-to-O distances
+whose first peak marks the typical binding distance (inside ~3.5 Å points to
+chemisorption, farther to physisorption). This tests the Monte Carlo pose *at
+temperature* rather than as a single frozen frame (`adsorption/md.py`). For a
+*quantitative, bond-capable* E_ads, corrosim hands the system off to **LAMMPS**
+(Plimpton 1995; Thompson et al. 2022), free and GPL, with reactive /
+explicit-solvent force fields — compute-heavy, so kept outside the package.
+
+*Free vs commercial:* the literature uses **Forcite** (Materials Studio) here;
+corrosim uses Brownian MD → metal–O RDF, with the optional LAMMPS hand-off for
+the heavy quantitative run.
 
 | | |
 | --- | --- |
@@ -204,9 +292,10 @@ onto the molecule's surface).
 
 ## Open-source tooling
 
-The reference papers lean on Gaussian and BIOVIA Materials Studio — both
-expensive commercial packages. corrosim reproduces the whole pipeline with free,
-open-source tools, so it costs **$0 in licences**:
+Each stage above gives its own free-vs-commercial head-to-head; this is the
+at-a-glance roll-up. The reference papers lean on Gaussian and BIOVIA Materials
+Studio — both expensive commercial packages. corrosim reproduces the whole
+pipeline with free, open-source tools, so it costs **$0 in licences**:
 
 | Reference (commercial) | Free equivalent used here |
 |---|---|
