@@ -1,7 +1,7 @@
 """corrosim.pka.
 
 Conjugate-acid pKa (pKaH) of the inhibitor's basic site from a DFT thermodynamic
-cycle, to pin the protonation state the speciation layer (ADR 0004) leaves as a
+cycle, to pin the protonation state the speciation layer leaves as a
 free parameter.
 
 For the deprotonation  BH⁺ ⇌ B + H⁺  the aqueous free energy is
@@ -18,8 +18,7 @@ thermal / entropy of B and BH⁺ (no frequency calculation), and the geometries
 are the force-field ones used for the descriptor matrix. Each of these — plus
 the implicit solvation error for the charged BH⁺ and the ~±2 kcal/mol
 uncertainty in G*_aq(H⁺) — shifts the absolute pKaH by a few units. Treat the
-result as locating the *regime* (how weak a base), not a calibrated pKa. See
-ADR 0005.
+result as locating the *regime* (how weak a base), not a calibrated pKa.
 """
 from __future__ import annotations
 

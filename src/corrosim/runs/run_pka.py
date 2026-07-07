@@ -2,10 +2,10 @@
 
 Estimate each inhibitor's conjugate-acid pKa (pKaH) from a DFT thermodynamic
 cycle on the aqueous neutral and protonated total energies — the quantity the
-speciation layer (ADR 0004) leaves as a free parameter. Runs in the QM
+speciation layer leaves as a free parameter. Runs in the QM
 container (PySCF).
 
-ELECTRONIC-ENERGY APPROXIMATION (see corrosim.pka / ADR 0005): by default this
+ELECTRONIC-ENERGY APPROXIMATION (see corrosim.pka): by default this
 uses ddCOSMO single points on the force-field geometries with no frequency
 calculation — the absolute pKaH carries a few-units uncertainty, so the result
 locates the *regime*, not a calibrated value.
@@ -13,7 +13,7 @@ locates the *regime*, not a calibrated value.
     docker compose run --rm qm python -m corrosim.runs.run_pka \
         --out-json results/pka.json
 
-Pass --freq (issue #18) to add the ZPE/thermal/entropy correction: each species
+Pass --freq to add the ZPE/thermal/entropy correction: each species
 is gas-phase optimised + a Hessian gives G_corr, and the production single
 point runs on the relaxed geometry. Slow (frequency calcs on ~40-atom
 molecules) — run detached:
@@ -21,7 +21,7 @@ molecules) — run detached:
     docker compose run -d --name corrosim_pka qm \
         python -m corrosim.runs.run_pka --freq --out-json results/pka.json
 
-Add --tight (issue #34) to drive a floppy rotor to a true minimum — finer DFT
+Add --tight to drive a floppy rotor to a true minimum — finer DFT
 grid (level 4) + imaginary-mode restarts — e.g. to clear the lone imaginary
 frequency on the isorhamnetin cation:
 

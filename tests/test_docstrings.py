@@ -11,9 +11,9 @@ these tests own what ruff has no rule for:
   annotations;
 * public functions with params carry an ``Args:`` section and non-None returns
   carry a ``Returns:`` section (#51);
-* no comment trails code on the same line, and no comment cites a ticket / PR /
-  ADR number (#52 rules 2 and 5). Tool directives (``# noqa`` / ``# nosec``)
-  are exempt.
+* no comment trails code on the same line, and neither comments nor docstrings
+  cite a ticket / PR / ADR number (#52 rules 2 and 5). Tool directives
+  (``# noqa`` / ``# nosec``) are exempt.
 """
 from __future__ import annotations
 
@@ -132,3 +132,25 @@ def test_comments_are_clean():
                                   tokenize.DEDENT, tokenize.ENCODING):
                 code_rows.add(tok.start[0])
     assert not bad, "Comment-rule violations:\n  " + "\n  ".join(bad)
+
+
+def test_docstrings_have_no_ticket_refs():
+    """No docstring cites a ticket / PR / ADR number (rule 5, docstrings too).
+
+    The same rot rule as comments, extended to module/class/function
+    docstrings: the rationale belongs in the prose, not behind a number that
+    ages out. The Markdown docs still cross-reference ADRs by number on purpose.
+    """
+    bad: list[str] = []
+    for f in _modules():
+        tree = ast.parse(f.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Module, ast.FunctionDef,
+                                     ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            doc = ast.get_docstring(node)
+            match = TICKET_RE.search(doc) if doc else None
+            if match:
+                line = getattr(node, "lineno", 0)
+                bad.append(f"{f.name}:{line} {match.group(0)!r} in docstring")
+    assert not bad, "Ticket/ADR refs in docstrings:\n  " + "\n  ".join(bad)

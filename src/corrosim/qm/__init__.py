@@ -1,4 +1,4 @@
-"""corrosim.qm — electronic structure (ADR 0011).
+"""corrosim.qm — electronic structure.
 
 Quantum-engine wrappers (xTB, PySCF), global reactivity descriptors, condensed
 Fukui indices, pKa estimation, and pH speciation.

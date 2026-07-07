@@ -3,7 +3,7 @@
 The driver scripts (run_dft / run_fukui / run_mc / run_md / run_pka /
 make_report / make_figures / make_cubes / compare_geometry) repeated the same
 argument parsing, molecule-list splitting, stderr logging, JSON I/O and table
-printing. This module single-sources that boilerplate (issue #64) so each
+printing. This module single-sources that boilerplate so each
 driver stays focused on its pipeline stage. The JSON helpers also close their
 file handles via ``with`` (the inline ``open(...)`` calls did not).
 """

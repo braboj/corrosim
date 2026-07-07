@@ -328,7 +328,7 @@ def _geometry_block(figdir: str) -> str:
 
 
 def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list[str]:
-    """In-acid comparison section (ADR 0003): the protonated-cation descriptors,
+    """In-acid comparison section: the protonated-cation descriptors,
     shown alongside the neutral headline ranking rather than replacing it. Returns
     an empty list when there are no cation rows (non-acidic medium).
     """
@@ -353,7 +353,7 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
 def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
                           opt_acid_rows: list[dict] | None,
                           order: list[str] | None = None) -> list[str]:
-    """Optimised-geometry descriptor section (#19): the DFT-relaxed
+    """Optimised-geometry descriptor section: the DFT-relaxed
     (B3LYP/6-31G(d)) descriptor matrix — the neutral ranking plus the optimised
     protonated cations — surfaced alongside the FF-geometry headline table.
     Returns [] when no optimised matrix was supplied.
@@ -395,11 +395,11 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
 
 def _computed_pka_block(computed_pkah: list[dict] | None,
                         freq_corrected: bool = False) -> list[str]:
-    """Computed-pKaH resolution (ADR 0005): per-molecule DFT-cycle pKaH and the
+    """Computed-pKaH resolution: per-molecule DFT-cycle pKaH and the
     resulting populations, which place the system on one side of the crossover.
     ``computed_pkah`` rows carry name / pkah / f_protonated. ``freq_corrected``
     switches the caption between the electronic-only and the frequency-corrected
-    (issue #18) estimate. Empty if absent.
+    estimate. Empty if absent.
     """
     if not computed_pkah:
         return []
@@ -434,10 +434,10 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
 def _speciation_block(summary: dict | None, medium: str,
                       computed_pkah: list[dict] | None = None,
                       pka_freq_corrected: bool = False) -> list[str]:
-    """Quantitative pH-speciation section (ADR 0004): the neutral/protonated
+    """Quantitative pH-speciation section: the neutral/protonated
     population at the medium pH, the population-weighted descriptor table, and the
     lead-crossover sensitivity to the protonation pKa — followed by the computed
-    pKaH that resolves it (ADR 0005). Empty when no summary is supplied (non-acidic
+    pKaH that resolves it. Empty when no summary is supplied (non-acidic
     medium or unknown pH).
     """
     if not summary:
@@ -582,8 +582,8 @@ class PreparedReport(NamedTuple):
 
         Orders the neutral frame, merges the adsorption columns (Monte-Carlo
         E_ads + Brownian-MD metal-O first peak), ranks, and summarises the Fukui
-        top donors. Construction lives on the type as a factory classmethod
-        (ADR 0014); ``prepare_report_data`` is the stable public wrapper.
+        top donors. Construction lives on the type as a factory classmethod;
+        ``prepare_report_data`` is the stable public wrapper.
 
         Args:
             neutral_aq_rows: Neutral aqueous descriptor rows.
@@ -829,7 +829,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     Tables are built from the committed result data; figures are embedded
     inline (base64) from ``figdir`` so the file stands alone. The headline
     ranking uses the neutral form; ``acid_cation_rows`` are surfaced as a
-    labelled in-acid comparison when the medium is acidic (see ADR 0003).
+    labelled in-acid comparison when the medium is acidic.
 
     Args:
         neutral_aq_rows: Neutral aqueous descriptor rows.
