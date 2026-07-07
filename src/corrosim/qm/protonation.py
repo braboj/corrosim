@@ -55,7 +55,7 @@ def best_protonation_site(
             res = run_engine(mol.symbols, mol.coords, engine=select_engine,
                              charge=mol.charge)
         except Exception as exc:
-            # skip sites RDKit / the engine reject
+            # Skip sites RDKit / the engine reject
             emit(f"    site {idx}: skipped ({exc})")
             continue
         emit(f"    site {idx}: E = {res.e_total_ev:.3f} eV")

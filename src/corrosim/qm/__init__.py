@@ -1,4 +1,4 @@
-"""corrosim.qm — Stage-1 electronic structure (ADR 0011).
+"""corrosim.qm — electronic structure (ADR 0011).
 
 Quantum-engine wrappers (xTB, PySCF), global reactivity descriptors, condensed
 Fukui indices, pKa estimation, and pH speciation.

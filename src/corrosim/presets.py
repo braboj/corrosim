@@ -37,11 +37,11 @@ class CaseStudy:
     """A named screening case study: molecule set + substrate metal + medium."""
 
     name: str
-    # library names or SMILES, in display order
+    # Library names or SMILES, in display order
     molecules: tuple[str, ...]
-    # work-function / slab substrate label
+    # Work-function / slab substrate label
     metal: str = "Fe(110)"
-    # report label; implies the acidic (protonated) species
+    # Report label; implies the acidic (protonated) species
     medium: str = "1 M HCl"
     description: str = ""
 

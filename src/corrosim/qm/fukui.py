@@ -1,8 +1,8 @@
 """corrosim.fukui.
 
-Stage-1 local reactivity: condensed Fukui functions, the dual descriptor and
+Local reactivity: condensed Fukui functions, the dual descriptor and
 local softness — they pinpoint *which atoms* donate/accept electrons, i.e. the
-adsorption centres, completing the Stage-1 picture the methodology template
+adsorption centres, completing the reactivity picture the methodology template
 reports. Needs PySCF.
 
 Two methods (same FukuiResult, same interpretation):
@@ -183,7 +183,7 @@ def _scf(symbols, coords, charge, spin, basis, xc):
     mf.xc = xc
     mf.kernel()
     if not mf.converged:
-        # second-order fallback
+        # Second-order fallback
         mf = mf.newton()
         mf.kernel()
     return mol, mf

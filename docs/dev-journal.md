@@ -1077,4 +1077,35 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **#72** Generalization/Validation (#54→#53), **#71** Deployment (#66–#68),
   **#40** chemisorption E_ads.
 
+## 2026-07-07 (session 8) — comment/docstring hygiene sweep (#119 + #124)
+
+- **Tool:** Claude Code (Opus 4.8).
+- **Scope:** the paired mechanical comment-hygiene passes over `src/corrosim/`,
+  behaviour-preserving throughout (the report golden is the gate). Both close.
+- **#124 — sentence-case comments.** Capitalised 56 opening inline/block
+  comments across 22 files (scripted by re-deriving the opening lines, then
+  reviewed). Left lowercase exactly where the rule requires: unit / identifier /
+  proper-noun first tokens (`eV`, `pH`, `dE/dr`, `eta_metal`, `ddCOSMO`,
+  `tblite`, `mulliken_pop`, `set_box_aspect`, `bbox_inches`, `fig8`/`fig3b`) and
+  every wrapped-comment continuation.
+- **#119 — purge "Stage 1/2/3" / "Stage-N".** Rephrased every in-scope
+  docstring/comment to name the actual work (DFT descriptors, MC adsorption, MD
+  RDF): module docstrings (`adsorption/*`, `qm/*`, `runs/*`, both `__init__`s),
+  the docx `_dft/_mc/_md_section` docstrings + a comment, `equations.py` section
+  headers, `cli.py --adsorption` help, and the `qm/engines.py` min-check
+  docstring (reflowed stage-free). Renamed the lone `_STAGE1` → `_DESCRIPTORS`
+  (private, 2 refs). **Left the rendered narrative out of scope** — the
+  `report_content.py` mentions and the rendered `method` string in
+  `report.py::build_html_report` (line 179) would change the shipped bundle.
+- **Verification:** report golden byte-identical (HTML) + section-for-section
+  (docx) — none of this renders; pytest **169 passed / 1 skipped**; ruff + mypy
+  (40 files) + complexipy (snapshot `[]`) + docstring-contract test green. Diff
+  is 90/90 balanced across 26 files; the only non-comment/docstring lines are the
+  `_STAGE1` rename and the CLI help string.
+- **Pending:** epic **#126** complete; **#119/#124 now closed**. Deferred inside
+  #127: retire `_number_headings` for an `_Html` builder (P2, optional). Open
+  threads: **#133 P3** (`add_metal_arg` / `add_medium_arg` help-text
+  single-source), **#72** Generalization/Validation (#54→#53), **#71**
+  Deployment (#66–#68), **#40** chemisorption E_ads.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

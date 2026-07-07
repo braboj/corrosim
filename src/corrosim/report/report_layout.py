@@ -22,19 +22,19 @@ FIGURE_STAGES = ("pipeline", "dft", "fukui", "esp", "mc", "md")
 # Figure-filename prefix -> stage subfolder. The per-molecule families
 # (fig2b/fig4/fig5/fig6/fig7_<name>_*) map by their numeric prefix.
 _FIG_PREFIX_STAGE = (
-    # pipeline diagram
+    # Pipeline diagram
     ("fig0", "pipeline"),
     # 2D structures
     ("fig1", "dft"),
     # MO diagram + fig2b HOMO/LUMO isosurfaces
     ("fig2", "dft"),
-    # descriptor bars + fig3b protonation effect
+    # Descriptor bars + fig3b protonation effect
     ("fig3", "dft"),
-    # condensed Fukui maps
+    # Condensed Fukui maps
     ("fig4", "fukui"),
     # MC pose + annealing trace
     ("fig5", "mc"),
-    # metal-O RDF
+    # Metal-O RDF
     ("fig6", "md"),
     # ESP / MEP maps
     ("fig7", "esp"),
@@ -60,7 +60,7 @@ def figure_stage(filename: str) -> str:
 
     Returns:
         The stage subfolder (e.g. ``'fukui'``); unknown names fall back to
-        ``'dft'`` (the Stage-1 catch-all).
+        ``'dft'`` (the DFT catch-all).
     """
     base = os.path.basename(filename)
     for prefix, stage in _FIG_PREFIX_STAGE:

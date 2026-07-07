@@ -1,7 +1,7 @@
 """corrosim — automated corrosion-inhibitor screening.
 
 Pipeline: SMILES/name -> 3D geometry -> QM (xTB or DFT) -> reactivity
-descriptors -> report, plus Stage-2 adsorption-structure prep.
+descriptors -> report, plus classical adsorption-structure prep.
 
 Quick use:
     from corrosim import screen
@@ -54,7 +54,7 @@ __all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
 def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
                      engine: str = "xtb", adsorption: bool = False,
                      **engine_kwargs: Any) -> dict[str, Any]:
-    """Full Stage-1 analysis of a pre-built Molecule.
+    """Full reactivity-descriptor analysis of a pre-built Molecule.
 
     Respects mol.charge (e.g. +1 for a protonated inhibitor in acid) and
     records TNC when the engine returns atomic charges.
@@ -75,7 +75,7 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
     row = {"name": mol.name, "formula": mol.formula, "n_atoms": mol.n_atoms,
            "smiles": mol.smiles, "charge": mol.charge, "level": res.level}
     row.update(desc.as_dict())
-    # total SCF energy (for pKa cycles)
+    # Total SCF energy (for pKa cycles)
     row["e_total_ev"] = res.e_total_ev
     row["tnc"] = total_negative_charge(res.charges)
     if adsorption:
@@ -94,7 +94,7 @@ def analyse_one(name_or_smiles: str, metal: str = "Fe(110)",
                 engine: str = "xtb", ff: str = "MMFF",
                 adsorption: bool = False,
                 **engine_kwargs: Any) -> dict[str, Any]:
-    """Build a single inhibitor from a name/SMILES, then analyse it (Stage 1).
+    """Build a single inhibitor from a name/SMILES, then analyse it.
 
     Args:
         name_or_smiles: Library name or SMILES.
@@ -117,7 +117,7 @@ def screen(inhibitors: Sequence[str], metal: str = "Fe(110)",
            adsorption: bool = False, out_html: str | None = None,
            progress: Callable[[str], object] | None = print,
            **engine_kwargs: Any) -> tuple[pd.DataFrame, str | None]:
-    """Screen a list of inhibitors (Stage 1, optionally the Stage-2 estimate).
+    """Screen a list of inhibitors (descriptors, optional adsorption estimate).
 
     Args:
         inhibitors: Library names or SMILES to screen.
@@ -125,7 +125,7 @@ def screen(inhibitors: Sequence[str], metal: str = "Fe(110)",
         medium: Corrosive medium label (report header only).
         engine: Engine name ('xtb'/'pyscf'/...).
         ff: Force field for the initial 3D embedding.
-        adsorption: If True, add the Stage-2 UFF vdW physisorption estimate.
+        adsorption: If True, add the UFF vdW physisorption estimate.
         out_html: Optional path; writes a self-contained HTML report there.
         progress: Callback for progress messages, or None to stay quiet.
         **engine_kwargs: Extra keyword arguments forwarded to the engine.

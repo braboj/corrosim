@@ -154,7 +154,7 @@ def compute_pka_rows(molecules: Sequence[str], basis: str = "6-311++G(d,p)",
             row.update({
                 "g_corr_neutral_ev": round(g_corr_b, 4),
                 "g_corr_cation_ev": round(g_corr_bh, 4),
-                # frequency-corrected
+                # Frequency-corrected
                 "pkah": round(pkah_corr, 2),
                 "n_imag_neutral": tb["n_imag"],
                 "n_imag_cation": tbh["n_imag"],

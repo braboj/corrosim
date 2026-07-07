@@ -514,23 +514,23 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     from skimage import measure
 
     rho, atoms, origin, spacing = _read_cube_grid(density_cube)
-    # the ESP cube shares the density grid by construction; only its data used
+    # The ESP cube shares the density grid by construction; only its data used
     pot, _, _, _ = _read_cube_grid(esp_cube)
 
     if not (rho.min() < iso < rho.max()):
-        # fall back to a present level
+        # Fall back to a present level
         iso = float(np.quantile(rho[rho > 0], 0.85))
-    # marching cubes in *index* space so we can sample the ESP grid directly
+    # Marching cubes in *index* space so we can sample the ESP grid directly
     verts_idx, faces, _, _ = measure.marching_cubes(rho, level=iso)
     pot_at_vert = map_coordinates(pot, verts_idx.T, order=1, mode="nearest")
-    # physical coords (Å)
+    # Physical coords (Å)
     verts = verts_idx * spacing + origin
 
     face_pot = pot_at_vert[faces].mean(axis=1)
     vmax = (np.percentile(np.abs(pot_at_vert), 100 - clip_pct)
             or np.abs(pot_at_vert).max())
     norm = mpl.colors.Normalize(vmin=-vmax, vmax=vmax)
-    # low/negative -> red
+    # Low/negative -> red
     cmap = plt.get_cmap("RdBu")
     facecolors = cmap(norm(face_pot))
 

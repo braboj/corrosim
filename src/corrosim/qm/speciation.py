@@ -175,7 +175,7 @@ def analyse_speciation(neutral_rows: list[dict], protonated_rows: list[dict],
     crossover_f: float | None = None
     crossover_lead: str | None = None
     f = 0.0
-    # scan in 1% steps for the first lead flip
+    # Scan in 1% steps for the first lead flip
     while f <= 1.0 + 1e-9:
         if lead_at(f) != base_lead:
             crossover_f = round(f, 3)

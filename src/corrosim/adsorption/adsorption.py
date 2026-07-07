@@ -1,6 +1,6 @@
 """corrosim.adsorption.
 
-Stage-2 structure preparation: build the metal slab the inhibitor adsorbs onto
+Adsorption-structure prep: build the metal slab the inhibitor adsorbs onto
 and place the molecule above it. This produces ready-to-run input geometries
 for a molecular-dynamics / Monte-Carlo adsorption study (e.g. LAMMPS), which is
 the heavy step you run as a separate stage.
@@ -13,7 +13,7 @@ automatically, is:
   * exported files (.xyz / .cif / LAMMPS data) to hand to the MD engine.
 
 The shared substrate/vdW primitives (build_slab, UFF, orient_flat, the facet
-map) live in corrosim.surface; this module is the Stage-2 estimate on top.
+map) live in corrosim.surface; this module is the physisorption estimate on top.
 """
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ class AdsorptionSystem:
     metal: str
     surface: str
     slab: Atoms
-    # slab + molecule
+    # Slab + molecule
     combined: Atoms
     box: tuple[float, float, float]
 

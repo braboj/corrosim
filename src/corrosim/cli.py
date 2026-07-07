@@ -4,16 +4,16 @@ Run the screening pipeline from the command line.
 
 Examples:
 --------
-  # built-in molecules, fast engine, HTML + CSV out
+  # Built-in molecules, fast engine, HTML + CSV out
   python -m corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
                      --metal "Fe(110)" --engine xtb \
                      --out report.html --csv results.csv
 
-  # batch from a CSV of molecules (columns: name[,smiles]); add adsorption est.
+  # Batch from a CSV of molecules (columns: name[,smiles]); add adsorption est.
   python -m corrosim --input molecules.csv --metal "Fe(110)" \
                      --adsorption --out report.html --csv results.csv
 
-  # production DFT via PySCF
+  # Production DFT via PySCF
   python -m corrosim --input molecules.csv --engine pyscf \
                      --basis "6-311++G(d,p)" --solvent water --out report.html
 """
@@ -145,7 +145,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--solvent", default="water",
                    help="Implicit solvent ('none' for gas phase).")
     p.add_argument("--adsorption", action="store_true",
-                   help="Add the Stage-2 UFF vdW physisorption estimate.")
+                   help="Add the UFF vdW physisorption estimate.")
     p.add_argument("--out", metavar="HTML", default="corrosion_report.html",
                    help="HTML report path. Default corrosion_report.html.")
     p.add_argument("--csv", metavar="CSV", default=None,

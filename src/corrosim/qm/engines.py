@@ -104,7 +104,7 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
     mf = _pyscf.dft.RKS(mol)
     mf.xc = xc
     if grid_level is not None:
-        # set on the base RKS, before any solvent wrap
+        # Set on the base RKS, before any solvent wrap
         mf.grids.level = grid_level
     if solvent:
         # _backend_pyscf imported pyscf.solvent at load, registering ddCOSMO
@@ -148,7 +148,7 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
     calc = _tblite.Calculator("GFN2-xTB", Z, xyz_bohr, charge=float(charge))
     calc.set("verbosity", 0)
     res = calc.singlepoint()
-    # orbital energies (Hartree) + occupations
+    # Orbital energies (Hartree) + occupations
     orb = np.asarray(res.get("orbital-energies"))
     occ = np.asarray(res.get("orbital-occupations"))
     e_total = float(res.get("energy"))
@@ -299,7 +299,7 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
     fw = np.asarray(ha["freq_wavenumber"])
     n_imag = int(np.sum(_imaginary_mask(fw)))
     info = _pyscf.thermo.thermo(mf, ha["freq_au"], temperature, pressure)
-    # total Gibbs (Hartree), incl. E_elec
+    # Total Gibbs (Hartree), incl. E_elec
     g_tot = float(info["G_tot"][0])
     zpe = float(info["ZPE"][0])
     level = _level_label(xc, basis, solvent)
@@ -309,7 +309,7 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
         "temperature": temperature,
         "n_imag": n_imag,
         "level": level,
-        # harmonic frequencies (cm⁻¹); imaginary < 0
+        # Harmonic frequencies (cm⁻¹); imaginary < 0
         "freq_cm": fw,
         # (nmode, natom, 3) Cartesian modes
         "norm_mode": np.asarray(ha["norm_mode"]),
@@ -337,7 +337,7 @@ def imaginary_mode(freq_cm: np.ndarray,
     imag = np.where(_imaginary_mask(fw))[0]
     if imag.size == 0:
         return None
-    # softest = most-negative frequency
+    # Softest = most-negative frequency
     idx = int(imag[np.argmin(fw.real[imag])])
     return nm[idx]
 
@@ -428,10 +428,10 @@ def min_check_fields(thermo: dict | None) -> dict:
     """Provenance for the true-minimum (frequency) check.
 
     Condense a :func:`thermo_correction` / :func:`relax_to_minimum` result into
-    the two fields a descriptor row carries so a saddle never silently feeds
-    Stage-1: ``n_imag`` (imaginary-mode count; 0 ⇒ a verified minimum) and
-    ``lowest_freq_cm`` (the softest harmonic frequency in cm⁻¹; negative ⇒
-    imaginary).
+    the two fields a descriptor row carries, so a saddle point never silently
+    passes as a minimum: ``n_imag`` (imaginary-mode count; 0 ⇒ a verified
+    minimum) and ``lowest_freq_cm`` (the softest harmonic frequency in cm⁻¹;
+    negative ⇒ imaginary).
 
     Args:
         thermo: A :func:`thermo_correction` result, or None if no check ran.
@@ -444,7 +444,7 @@ def min_check_fields(thermo: dict | None) -> dict:
         return {}
     fw = np.asarray(thermo["freq_cm"])
     imag = _imaginary_mask(fw)
-    # report a signed wavenumber (negative = imaginary) so the softest mode
+    # Report a signed wavenumber (negative = imaginary) so the softest mode
     # ranks correctly and agrees with n_imag and imaginary_mode()
     signed = np.where(imag, -np.abs(fw), fw.real)
     return {
@@ -508,7 +508,7 @@ def _run_external_engine(cmd: str, prefix: str, in_ext: str, out_ext: str,
     with open(inp, "w") as f:
         f.write(deck)
     with open(out, "w") as f:
-        # fixed argv (QM binary + generated input); no shell, no untrusted input
+        # Fixed argv (QM binary + generated input); no shell, no untrusted input
         subprocess.run([cmd, inp], stdout=f,  # nosec B603
                        stderr=subprocess.STDOUT, check=True)
     with open(out) as f:
@@ -566,7 +566,7 @@ def parse_orca_output(text: str) -> tuple[float, float]:
         cols = line.split()
         if len(cols) >= 4 and cols[0].isdigit():
             try:
-                # occupation in col 2, E(eV) in col 4
+                # Occupation in col 2, E(eV) in col 4
                 occ.append(float(cols[1]))
                 energies_ev.append(float(cols[3]))
             except ValueError:

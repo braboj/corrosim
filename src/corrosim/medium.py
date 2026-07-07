@@ -71,7 +71,7 @@ def parse_medium(medium: str) -> MediumSpec:
     label = medium.strip()
     low = label.lower()
 
-    # explicit pH, e.g. "pH 7 buffer", "ph=1.5"
+    # Explicit pH, e.g. "pH 7 buffer", "ph=1.5"
     m = re.search(r"ph\s*=?\s*([0-9]+(?:\.[0-9]+)?)", low)
     if m:
         ph = float(m.group(1))
@@ -84,7 +84,7 @@ def parse_medium(medium: str) -> MediumSpec:
         species = m.group(2).upper()
         n_h = _STRONG_ACIDS.get(species)
         if n_h and conc > 0:
-            # strong-acid approximation
+            # Strong-acid approximation
             ph = round(-math.log10(n_h * conc), 2)
             return MediumSpec(label=label, ph=ph,
                               acidic=ph <= ACIDIC_PH_THRESHOLD,

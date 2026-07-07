@@ -12,7 +12,7 @@ import os
 import re
 from typing import NamedTuple
 
-# backend auto-selected: inline in Jupyter, Agg when headless
+# Backend auto-selected: inline in Jupyter, Agg when headless
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -64,7 +64,7 @@ def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
         z = (series - series.mean()) / std
         return -z if invert else z
 
-    # smaller gap + lower hardness + higher softness => stronger inhibition;
+    # Smaller gap + lower hardness + higher softness => stronger inhibition;
     # the mean of the equally-weighted components keeps score O(1) as they grow
     components = [
         zscore(ranked["gap_ev"], invert=True),
@@ -145,7 +145,7 @@ and higher softness (each z-scored). Higher score = stronger predicted adsorptio
 
 def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
                       out_path: str, generated_at: str | None = None) -> str:
-    """Write a self-contained Stage-1 HTML report (ranking, table, plots).
+    """Write a self-contained screening HTML report (ranking, table, plots).
 
     Args:
         df: The neutral descriptor frame.
@@ -535,13 +535,13 @@ class PreparedReport(NamedTuple):
     outputs draw on the same ranking / merged adsorption columns / Fukui summary.
     """
 
-    # ordered neutral rows + e_ads/ads_dist
+    # Ordered neutral rows + e_ads/ads_dist
     df: pd.DataFrame
-    # best-first with score
+    # Best-first with score
     ranked: pd.DataFrame
-    # headline summary columns
+    # Headline summary columns
     summary: pd.DataFrame
-    # full descriptor table
+    # Full descriptor table
     full: pd.DataFrame
     level: str
     # "Fe(110)" -> "Fe"
@@ -605,13 +605,13 @@ class PreparedReport(NamedTuple):
         md_by = {r["name"]: r for r in md_rows}
 
         def _md_peak(n):
-            # generic key, legacy fallback
+            # Generic key, legacy fallback
             row = md_by.get(n) or {}
             return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
 
         df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
         df["ads_dist_A"] = df["name"].map(_md_peak)
-        # coerce first: an all-missing column (no MD data) is object dtype and would
+        # Coerce first: an all-missing column (no MD data) is object dtype and would
         # break Series.round on the None values — to_numeric makes it NaN-safe.
         df["ads_dist_A"] = pd.to_numeric(df["ads_dist_A"], errors="coerce").round(2)
 

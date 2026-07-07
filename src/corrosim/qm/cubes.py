@@ -149,7 +149,7 @@ def write_density_esp_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge, solvent=solvent)
     dm = mf.make_rdm1()
     paths = {"density": f"{prefix}_density.cube", "esp": f"{prefix}_esp.cube"}
-    # identical (mol, nx, margin) -> identical grid for both cubes
+    # Identical (mol, nx, margin) -> identical grid for both cubes
     _pyscf.cubegen.density(mol, paths["density"], dm, nx=nx, ny=nx, nz=nx,
                            margin=margin)
     _pyscf.cubegen.mep(mol, paths["esp"], dm, nx=nx, ny=nx, nz=nx,

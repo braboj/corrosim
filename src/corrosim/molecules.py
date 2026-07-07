@@ -43,7 +43,7 @@ class Molecule:
     symbols: list[str]
     # Angstrom
     coords: list[tuple[float, float, float]]
-    # net charge (+1 = protonated cation)
+    # Net charge (+1 = protonated cation)
     charge: int = 0
     rdkit_mol: Chem.Mol | None = field(repr=False, default=None)
 
@@ -232,7 +232,7 @@ def resolve_smiles(name_or_smiles: str) -> tuple[str, str]:
         key = ALIASES[key]
     if key in LIBRARY:
         return key, LIBRARY[key]
-    # treat the input as a SMILES string
+    # Treat the input as a SMILES string
     if Chem.MolFromSmiles(name_or_smiles) is not None:
         return name_or_smiles, name_or_smiles
     raise ValueError(
