@@ -1,5 +1,5 @@
 """The Word (.docx) report renderer: builds a valid, re-openable document that
-mirrors the HTML report's data, equations and validation content."""
+mirrors the HTML report's data (tables + figures under each stage)."""
 from __future__ import annotations
 
 import matplotlib
@@ -11,16 +11,10 @@ import pytest
 
 pytest.importorskip("docx")            # python-docx is the `report`/`dev` extra
 from docx import Document
-from docx.oxml.ns import qn
 
 from corrosim import report
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
-from corrosim.report import equations, report_docx
-
-
-def _native_equation_count(doc) -> int:
-    """Number of native (editable) OMML equations in the document body."""
-    return sum(len(p._p.findall(qn("m:oMath"))) for p in doc.paragraphs)
+from corrosim.report import report_docx
 
 
 def _row(name, gap, hardness):
@@ -67,14 +61,11 @@ def test_build_docx_report_is_valid_and_mirrors_content(tmp_path):
 
     doc = Document(str(out))             # re-opens => structurally valid
     text = _all_text(doc)
-    # the molecules, the sections, and the woven validation numbers are present
+    # the molecules, the lean stage sections, and the merged adsorption data
     assert "quercetin" in text and "kaempferol" in text
-    assert "Scientific basis & validation" in text
     assert "Speciation in 1 M HCl" in text
-    assert "99.62" in text               # experimental anchor (Mohammed 2014)
-    assert "-16.0" in text               # Stage-2 adsorption merged in
-    # equations are native, editable Word equations (OMML), not images
-    assert _native_equation_count(doc) > 10
+    assert "-16.0" in text               # adsorption merged into the summary
+    assert "Method & caveats" in text
 
 
 def test_build_docx_report_without_optional_sections(tmp_path):
@@ -85,22 +76,3 @@ def test_build_docx_report_without_optional_sections(tmp_path):
                                   out_path=str(out), order=["quercetin"])
     doc = Document(str(out))
     assert "quercetin" in _all_text(doc)
-
-
-def test_latex_to_omml_converts_every_equation():
-    pytest.importorskip("latex2mathml")
-    pytest.importorskip("mathml2omml")
-    for key, eq in equations.EQUATIONS.items():
-        el = report_docx._latex_to_omml(eq.latex)
-        assert el is not None, f"{key} failed to convert to OMML"
-        assert el.tag.endswith("}oMath")
-
-
-def test_equation_falls_back_to_image_without_toolchain(tmp_path, monkeypatch):
-    # if the LaTeX->OMML toolchain is unavailable, the equation degrades to the
-    # rendered image rather than vanishing.
-    monkeypatch.setattr(report_docx, "_latex_to_omml", lambda _latex: None)
-    d = report_docx._Doc()
-    d.equation("delta_n")
-    assert len(d.doc.inline_shapes) == 1                 # image fallback present
-    assert _native_equation_count(d.doc) == 0

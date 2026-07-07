@@ -2,16 +2,13 @@
 
 Word (.docx) rendering of the multiscale report, built with python-docx (pure
 Python, no system binary). It draws on exactly the same derived data
-(:func:`report.prepare_report_data`), the same governing equations
-(:mod:`equations`) and the same narrative (:mod:`report_content`) as the HTML
-report, so the two outputs stay in lock-step; only the formatting differs.
+(:func:`report.prepare_report_data`) and the same shared caveats / bottom-line
+(:mod:`report_content`) as the HTML report, so the two outputs stay in
+lock-step; only the formatting differs.
 
-Equations are inserted as **native, editable Word equations** (OMML): the
-LaTeX source is converted LaTeX -> MathML -> OMML with the pure-Python
-``latex2mathml`` + ``mathml2omml`` packages (no LaTeX/pandoc/Office toolchain),
-so a reader can click and edit them in Word's equation editor. If that toolchain
-is unavailable or a conversion fails, the equation degrades to the rendered
-mathtext image (:mod:`equations`) so the report is never missing a formula.
+The report is lean: tables and figures under each stage with minimal captions,
+no methodology essay. The full methodology lives in ``docs/pipeline.md`` and the
+validation record in ``docs/validation.md``.
 
 Entry point: :func:`build_docx_report`, whose signature mirrors
 ``report.build_pipeline_report`` so a driver can build both from one call site.
@@ -19,19 +16,15 @@ Entry point: :func:`build_docx_report`, whose signature mirrors
 from __future__ import annotations
 
 import datetime
-import io
 import os
 from typing import TYPE_CHECKING
 
 import pandas as pd
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import parse_xml
 from docx.shared import Inches, Pt, RGBColor
 
-from . import equations as _eq
 from . import report_content as _content
-from .render import render_blocks
 from .report import prepare_report_data, rank_inhibitors, results_dataframe
 from .report_layout import figure_path
 
@@ -42,28 +35,6 @@ _MUTED = RGBColor(0x71, 0x80, 0x96)
 _FIG_WIDTH = Inches(5.7)
 # Per-molecule figures shown a little smaller
 _GRID_WIDTH = Inches(2.9)
-_OMML_MATH_NS = ('xmlns:m="http://schemas.openxmlformats.org/'
-                 'officeDocument/2006/math"')
-
-
-def _latex_to_omml(latex: str):
-    """Convert a LaTeX expression to an OMML ``<m:oMath>`` element (a native,
-    editable Word equation), or return ``None`` if the pure-Python toolchain is
-    absent or the conversion fails — the caller then falls back to an image.
-    """
-    try:
-        from latex2mathml.converter import convert as latex_to_mathml
-        from mathml2omml import convert as mathml_to_omml
-    except ImportError:
-        return None
-    try:
-        omml = mathml_to_omml(latex_to_mathml(latex))
-        if "xmlns:m=" not in omml:
-            # Declare m: so parse_xml resolves it
-            omml = omml.replace("<m:oMath>", f"<m:oMath {_OMML_MATH_NS}>", 1)
-        return parse_xml(omml)
-    except Exception:
-        return None
 
 
 class _Doc:
@@ -127,31 +98,6 @@ class _Doc:
         run.font.size = Pt(8)
         run.font.color.rgb = _MUTED
 
-    def explain(self, role: str) -> None:
-        txt = _content.FIGURE_EXPLANATIONS.get(role)
-        if txt:
-            self.para(txt, size=10)
-
-    # --- equations ----------------------------------------------------------
-    def equation(self, key: str) -> None:
-        eq = _eq.EQUATIONS[key]
-        omath = _latex_to_omml(eq.latex)
-        if omath is not None:
-            # Native, editable Word equation
-            p = self.doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p._p.append(omath)
-        else:
-            # Fallback: rendered image
-            png = io.BytesIO(_eq.render_equation_png(eq.latex))
-            self.doc.add_picture(png)
-            self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        cap = self.doc.add_paragraph()
-        cap.add_run(f"{eq.quantity} — ").bold = True
-        run = cap.add_run(eq.meaning)
-        run.font.size = Pt(9)
-        run.font.color.rgb = _MUTED
-
     # --- tables -------------------------------------------------------------
     def df_table(self, df: pd.DataFrame, *,
                  highlight_first: bool = False) -> None:
@@ -193,113 +139,62 @@ def _set_cell(cell, text, *, bold: bool = False) -> None:
             run.font.size = Pt(8.5)
 
 
-class _DocxBasis:
-    """Adapts :class:`_Doc` to the shared BasisRenderer Protocol (render.py) so
-    the Scientific-basis block list renders to Word through the one walker.
-    """
-
-    def __init__(self, doc: _Doc) -> None:
-        self._d = doc
-
-    def subheading(self, text: str) -> None:
-        """Render a Scientific-basis subsection heading (level 2)."""
-        self._d.heading(text, level=2)
-
-    def paragraph(self, text: str) -> None:
-        """Render a Scientific-basis prose paragraph."""
-        self._d.para(text)
-
-    def table(self, payload: dict) -> None:
-        """Render a Scientific-basis content table."""
-        self._d.content_table(payload)
-
-    def equation_groups(self) -> None:
-        """Render the governing-equation set: each group a level-3 subsection
-        with its equations in order.
-        """
-        for group_heading, group in _eq.EQUATION_GROUPS:
-            self._d.heading(group_heading, level=3)
-            for eq in group:
-                self._d.equation(eq.key)
-
-
-def _scientific_basis(d: _Doc) -> None:
-    """The shared 'Scientific basis & validation' section (report_content),
-    walked to Word by the one render_blocks dispatcher (render.py).
-    """
-    d.heading("Scientific basis & validation", level=1)
-    render_blocks(_content.SCIENTIFIC_BASIS, _DocxBasis(d))
-
-
 def _speciation_section(d: _Doc, summary: dict | None, medium: str,
                         computed_pkah: list[dict] | None,
                         pka_freq_corrected: bool) -> None:
-    """Compact Word version of the speciation / computed-pKaH section, driven
-    by the same summary dict as the HTML report.
+    """Compact Word speciation + computed-pKaH tables, from the same summary
+    dict as the HTML report.
     """
     if not summary:
         return
     spec = summary["speciation"]
     d.heading(f"Speciation in {medium} (pH ≈ {spec.ph:.1f})", level=2)
     d.para(
-        f"The most basic site (4-oxo carbonyl, pKaH ≈ {spec.pkah:.1f}) is a "
-        f"very weak base, so by Henderson-Hasselbalch the inhibitor is "
         f"**{spec.f_neutral:.0%} neutral / {spec.f_protonated:.0%} "
-        f"protonated** — the {spec.dominant} form dominates, which is why the "
-        f"headline ranking uses the neutral form. Population-weighted lead: "
-        f"**{summary['blended_lead']}**.")
+        f"protonated** at this pH — the {spec.dominant} form dominates. "
+        f"Population-weighted descriptors (blended lead "
+        f"**{summary['blended_lead']}**):", muted=True, size=9)
     d.df_table(results_dataframe(summary["blended_rows"]))
-    cross_f, cross_pk = summary["crossover_fraction"], summary["crossover_pkah"]
-    if cross_f and cross_pk is not None:
-        d.para(
-            f"Sensitivity: the composite lead changes from "
-            f"{summary['neutral_lead']} to {summary['crossover_lead']} at only "
-            f"~{cross_f:.0%} protonation (pKaH ≈ {cross_pk:.1f}) — the "
-            f"protonation pKa is the key uncertainty.", muted=True)
     if computed_pkah:
         basis = ("frequency-corrected" if pka_freq_corrected
                  else "electronic-only")
-        worst = max(r["f_protonated"] for r in computed_pkah)
-        d.para(
-            f"Computed pKaH (DFT deprotonation cycle, {basis}) resolves it: "
-            f"the most basic flavonoid is only {worst * 100:.2f}% protonated, "
-            f"so every species is essentially fully neutral and the headline "
-            f"lead is robust.")
         d.content_table({
             "columns": ["molecule", "computed pKaH", "% protonated"],
             "rows": [[r["name"], f"{r['pkah']:.1f}",
                       f"{r['f_protonated'] * 100:.2f}%"]
                      for r in computed_pkah],
-            "caption": "results/pka.json (ADR 0005).",
+            "caption": f"Computed pKaH (DFT cycle, {basis}); results/pka.json.",
         })
 
 
 def _docx_header(d: _Doc, prep: PreparedReport, metal: str, medium: str,
                  generated_at: str | None) -> None:
-    """Title, run-metadata line, headline caveat and the bottom-line note."""
+    """Title, run-metadata line and the headline caveat.
+
+    The data-derived headline sentence is placed in the Summary & ranking
+    section (:func:`_summary_section`), not here.
+    """
     d.heading("corrosim — multiscale corrosion-inhibitor report", level=0)
     ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     d.para(f"Substrate: {metal}  |  Medium: {medium}  |  DFT level: "
            f"{prep.level}  |  Generated {ts}", muted=True)
     d.note(_content.HEADLINE_CAVEAT)
-    bl = prep.bottom_line()
-    if bl:
-        d.note(bl)
 
 
 def _overview_section(d: _Doc, figdir: str) -> None:
-    """Overview intro + the pipeline diagram."""
+    """Overview heading + the pipeline diagram (methodology in pipeline.md)."""
     d.heading("Overview", level=1)
-    d.para(_content.STAGE_INTROS["overview"])
-    d.explain("pipeline")
     d.figure(figdir, "fig0_pipeline.png", "corrosim pipeline")
 
 
 def _summary_section(d: _Doc, prep: PreparedReport) -> None:
-    """Summary & ranking table + the score explanation."""
+    """Headline sentence + the ranking table + the one-line scoring note."""
     d.heading("Summary & ranking", level=1)
+    bl = prep.bottom_line()
+    if bl:
+        d.para(bl)
     d.df_table(prep.summary, highlight_first=True)
-    d.para(_content.score_explanation(prep.m_elem), muted=True)
+    d.para(_content.score_note(prep.m_elem), muted=True, size=9)
 
 
 def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
@@ -309,30 +204,22 @@ def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
     refinement figure.
     """
     d.heading("DFT electronic descriptors", level=1)
-    d.para(_content.STAGE_INTROS["dft"])
-    d.figure(figdir, "fig1_structures.png", "Modelled flavonoids")
-    d.explain("structures")
+    d.figure(figdir, "fig1_structures.png", "Modelled molecules")
     d.figure(figdir, "fig2_mo_diagram.png",
-             "Frontier-orbital energies vs Fe(110) work function")
-    d.explain("mo_diagram")
+             "Frontier-orbital energies vs the metal work function")
     d.heading("Frontier-orbital isosurfaces (HOMO / LUMO)", level=2)
     for n in names:
         d.figure(figdir, f"fig2b_{n}_homo.png", f"{n} HOMO", width=_GRID_WIDTH)
-    d.explain("orbital_homo")
     for n in names:
         d.figure(figdir, f"fig2b_{n}_lumo.png", f"{n} LUMO", width=_GRID_WIDTH)
-    d.explain("orbital_lumo")
     d.figure(figdir, "fig3_descriptors.png", "Reactivity descriptors")
-    d.explain("descriptors")
-    d.figure(figdir, "fig3b_protonation.png", "Protonation effect (1 M HCl)")
-    d.explain("protonation")
+    d.figure(figdir, "fig3b_protonation.png", "Protonation effect")
     d.heading("Full descriptor table (neutral, aqueous)", level=2)
     d.df_table(prep.full)
     if os.path.exists(figure_path(figdir, "fig8_geometry_comparison.png")):
         d.heading("Geometry refinement (FF vs DFT-optimised)", level=2)
         d.figure(figdir, "fig8_geometry_comparison.png",
                  "Force-field vs DFT-optimised geometry")
-        d.explain("geometry")
 
 
 def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
@@ -347,8 +234,6 @@ def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
         keep = [n for n in order if n in set(ndf["name"])]
         ndf = ndf.set_index("name").loc[keep].reset_index()
     ranked = rank_inhibitors(ndf)
-    d.para("Descriptors on DFT-optimised geometries; the ranking is "
-           "unchanged — the lead is geometry-robust.")
     d.df_table(ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
                        "delta_n", "tnc", "score"]].round(3),
                highlight_first=True)
@@ -363,56 +248,46 @@ def _acid_cation_section(d: _Doc, acid_cation_rows: list[dict] | None,
     if not acid_cation_rows:
         return
     d.heading("Species in the acidic medium (protonated cation)", level=2)
-    d.para(
-        f"In {medium} the inhibitor is present largely as its +1 cation. "
-        "The headline ranking uses the neutral form (ADR 0003); the "
-        "protonated-cation descriptors are tabulated here for comparison.")
     d.df_table(results_dataframe(acid_cation_rows))
+    d.para(f"Protonated +1 cation descriptors in {medium}; the headline "
+           "ranking stays on the neutral form (see docs/pipeline.md).",
+           muted=True, size=9)
 
 
 def _fukui_section(d: _Doc, prep: PreparedReport, figdir: str,
                    names: list[str]) -> None:
     """Local-reactivity (Fukui) subsection: donor sites + per-molecule maps."""
     d.heading("Local reactivity (Fukui)", level=2)
-    d.para(_content.STAGE_INTROS["fukui"])
     if prep.fukui_items:
         for name, sites in prep.fukui_items:
             d.para(f"**{name}**: {sites}", size=10)
     for n in names:
         d.figure(figdir, f"fig4_{n}_fukui.png", f"{n} — condensed Fukui")
-    d.explain("fukui")
 
 
 def _esp_section(d: _Doc, figdir: str, names: list[str]) -> None:
     """Electrostatic-potential (ESP) map subsection."""
     d.heading("Electrostatic-potential (ESP) map", level=2)
-    d.para(_content.STAGE_INTROS["esp"])
     for n in names:
         d.figure(figdir, f"fig7_{n}_esp.png", f"{n} — ESP map",
                  width=_GRID_WIDTH)
-    d.explain("esp")
 
 
 def _mc_section(d: _Doc, figdir: str, names: list[str]) -> None:
     """Monte Carlo adsorption: per-molecule pose + annealing figures."""
     d.heading("Monte Carlo adsorption", level=1)
-    d.para(_content.STAGE_INTROS["mc"])
     for n in names:
         d.figure(figdir, f"fig5_{n}_mc_pose.png", f"{n} — best pose")
-    d.explain("mc_pose")
     for n in names:
         d.figure(figdir, f"fig5_{n}_mc_energy.png", f"{n} — MC annealing")
-    d.explain("mc_energy")
 
 
 def _md_section(d: _Doc, prep: PreparedReport, figdir: str,
                 names: list[str]) -> None:
     """Brownian-MD metal-O RDF subsection."""
     d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
-    d.para(_content.STAGE_INTROS["md"])
     for n in names:
         d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-O RDF")
-    d.explain("rdf")
 
 
 def _method_section(d: _Doc, prep: PreparedReport) -> None:
@@ -438,8 +313,8 @@ def build_docx_report(
         opt_acid_rows: list[dict] | None = None) -> str:
     """Build the multiscale report as a Word ``.docx``.
 
-    Mirrors ``report.build_pipeline_report``: same inputs, same sections, same
-    narrative and equations — rendered for Word.
+    Mirrors ``report.build_pipeline_report``: same inputs, same lean sections
+    (tables + figures under each stage) — rendered for Word.
 
     Args:
         neutral_aq_rows: Neutral aqueous descriptor rows.
@@ -480,6 +355,5 @@ def build_docx_report(
     _esp_section(d, figdir, names)
     _mc_section(d, figdir, names)
     _md_section(d, prep, figdir, names)
-    _scientific_basis(d)
     _method_section(d, prep)
     return d.save(out_path)

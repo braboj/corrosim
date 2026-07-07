@@ -1141,4 +1141,43 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   chemisorption E_ads. Possible follow-up: purge ADR numbers from the *rendered*
   report narrative (would change the golden).
 
+## 2026-07-07 (session 10) — lean stage-keyed report (#110)
+
+- **Tool:** Claude Code (Opus 4.8). Interactive editorial pass — reviewed the
+  rendered report and iterated on wording/placement with the user.
+- **Scope:** make the generated report a lean, stage-keyed artifact — tables +
+  figures under each stage with minimal captions, no methodology essay. The
+  narrative already lived in `docs/pipeline.md` (verified), so this is a
+  de-duplication, not a relocation; #109 (per-stage prose) stays a separate
+  enhancement.
+- **Stripped `report_content.py`** to the shared essentials: `HEADLINE_CAVEAT`,
+  `METHOD_CAVEAT` (now pointing to pipeline.md / validation.md), `bottom_line`,
+  `inline_runs`, and a one-line `score_note`. Removed `STAGE_INTROS`,
+  `FIGURE_EXPLANATIONS`, `SCIENTIFIC_BASIS`, and `score_explanation`.
+- **Both renderers** (`report.py` + `report_docx.py`) rebuilt lean: dropped the
+  per-stage intros, the `_explain()` figure essays, and the interpretive prose
+  inside the opt-geometry / acid-cation / speciation / computed-pKaH blocks
+  (tables kept, one-line captions). The **"Scientific basis & validation"
+  section was removed entirely** (user's call — leanest).
+- **Dead code removed:** the section was the only consumer of the #127 render
+  seam, so `report/render.py` (`render_blocks` + `BasisRenderer`) +
+  `tests/test_render_blocks.py` and the equation-rendering paths in both
+  renderers were deleted. `equations.py` stays (standalone, tested). **ADR 0016
+  marked Superseded.**
+- **Editorial (per user review):** the data-derived headline sentence moved out
+  of the top note box into the *Summary & ranking* section as plain content, and
+  its wording was formalised (dropped "Bottom line" / "electron-generous"). The
+  report's **static text was de-Arghel'd** — generic `HEADLINE_CAVEAT`, and the
+  "flavonoids" / "Fe(110)" / "1 M HCl" figure captions genericised. The fuller
+  CaseStudy-driven report stays epic **#72**.
+- **Verification:** report goldens refreshed (docx content ~155 → 53 lines) and
+  re-pinned; `report/` bundle regenerated (html + docx; reverted an unrelated
+  stale-CSV `n_imag` drift the regen surfaced). pytest **162 passed / 1 skipped**
+  (−8: the deleted render-seam + docx-equation tests); ruff + mypy (39 files) +
+  complexipy (`[]`) green. `src/corrosim/molecules.py` carries an unrelated
+  user WIP edit — deliberately excluded from this change.
+- **Pending:** **#153** (purge ADR refs from rendered narrative — now smaller,
+  most narrative is gone), **#109** (pipeline.md per-stage prose), **#72**
+  Generalization/Validation, **#71** Deployment, **#40** chemisorption E_ads.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

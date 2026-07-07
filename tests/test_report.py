@@ -123,7 +123,7 @@ def test_pipeline_report_renders_speciation_section(tmp_path):
                                  speciation_summary=summary)
     html = out.read_text(encoding="utf-8")
     assert "Speciation in 1 M HCl" in html
-    assert "Henderson" in html and "pH-weighted" in html
+    assert "neutral /" in html and "Population-weighted" in html
 
 
 def test_pipeline_report_renders_computed_pka_block(tmp_path):
@@ -143,8 +143,8 @@ def test_pipeline_report_renders_computed_pka_block(tmp_path):
                                  speciation_summary=summary, computed_pkah=computed)
     html = out.read_text(encoding="utf-8")
     assert "Computed pKaH" in html
-    assert "-12.1" in html and "resolves the sensitivity" in html
-    assert "electronic-only" in html          # default caption
+    assert "-12.1" in html
+    assert "electronic-only" in html          # default basis caption
 
 
 def test_computed_pka_block_frequency_corrected_caption(tmp_path):
@@ -181,4 +181,3 @@ def test_pipeline_report_renders_optimised_descriptor_section(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Optimised-geometry descriptors" in html
     assert "Optimised protonated cations" in html
-    assert "geometry-robust" in html
