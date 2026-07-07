@@ -38,13 +38,19 @@ ALIASES: dict[str, str] = {}
 class Molecule:
     """A prepared inhibitor: identity + 3D geometry."""
 
+    # Canonical SMILES without explicit Hs (for display / DFT input).
     name: str
     smiles: str
     symbols: list[str]
-    # Angstrom
+
+    # Angstrom coordinates (Å) in the RDKit conformer.
     coords: list[tuple[float, float, float]]
+
     # Net charge (+1 = protonated cation)
     charge: int = 0
+
+    # RDKit molecule object (with Hs added, 3D-embedded, and force-field
+    # relaxed).
     rdkit_mol: Chem.Mol | None = field(repr=False, default=None)
 
     @classmethod
