@@ -1327,9 +1327,11 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **pyrazolo-pyrimidine preset** (values in
   `docs/local/pyrazolo-pyrimidine-reported.local.md`, land with the first DFT run
   so QM validates the structures). Also **#71** Deployment (#66–#68), **#40**
-  chemisorption E_ads. Standing housekeeping: `equations.py` production-unused;
-  `docs/solid-ai-templates` submodule ~80 commits behind (still needs a dedicated
-  sync session — reconcile against local overrides, not a wrap-time bump). The
+  chemisorption E_ads. Post-wrap housekeeping (done): **`equations.py` removed**
+  (production-unused after the lean report, PR #175); **submodule synced to
+  v2.30.0** (PR #174 — the "~80 behind" note was stale, it was v2.28.0-16/12
+  behind; all referenced template files intact); `.gitattributes` added to end
+  the Windows CRLF churn (PR #173); repo **auto-merge enabled**. The
   no-ticket-refs-in-docstrings convention was **filed upstream**
   (solid-ai-templates#745) during the wrap audit. Optional deferred:
   `CORROSIM_FETCH` resolver fallback.
