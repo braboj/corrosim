@@ -89,8 +89,8 @@ HTML report: report.html
 ```
 
 Use `--engine xtb` for a sub-second ranking pass, `--input molecules.csv` to
-screen a batch (columns `name[,smiles]`), and `--adsorption` to add the Stage-2
-physisorption estimate as an `e_ads_kjmol` column.
+screen a batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
+van-der-Waals physisorption estimate as an `e_ads_kjmol` column.
 
 **Python** — the same screen from a script:
 
@@ -190,7 +190,7 @@ The screening run is configured through CLI options (`corrosim --help`):
 | `--basis` | str | `6-311++G(d,p)` | PySCF basis set (ADR 0002 production level). |
 | `--xc` | str | `b3lyp` | PySCF exchange–correlation functional. |
 | `--solvent` | str | `water` | Implicit solvent (`none` for gas phase). |
-| `--adsorption` | flag | off | Add the Stage-2 UFF physisorption estimate. |
+| `--adsorption` | flag | off | Add a fast UFF van-der-Waals physisorption estimate (`e_ads_kjmol`), scanned over heights at a flat orientation. |
 | `--out` | path | `corrosion_report.html` | HTML report output path. |
 | `--csv` | path | *(none)* | Also write the ranked results table to this CSV. |
 

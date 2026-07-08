@@ -174,7 +174,8 @@ def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
         method=("Descriptors from frontier-orbital energies (Koopmans' theorem). "
                 "Engine/level as noted above. ΔN uses the metal work function with "
                 "η(metal)=0. Ranking is a screening heuristic, not a substitute for "
-                "the Stage-2/3 adsorption MD or for electrochemical validation."),
+                "the Monte Carlo / MD adsorption modelling or for electrochemical "
+                "validation."),
     )
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
