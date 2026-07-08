@@ -75,7 +75,6 @@ def test_single_source_no_duplicate_definitions():
     import corrosim.adsorption.adsorption as ads
     import corrosim.adsorption.mc as mc
     import corrosim.adsorption.md as md
-    from corrosim.report import equations
 
     # the facet map / vdW machinery are shared, not re-defined
     for mod in (ads, mc, md):
@@ -93,8 +92,6 @@ def test_single_source_no_duplicate_definitions():
     assert ads.uff_vdw_energy is surface.uff_vdw_energy
     assert md.uff_vdw_forces is surface.uff_vdw_forces
     assert mc.rot is surface.rot and md.rot is surface.rot
-    # the report's conversion constant is surface's, no longer a private copy
-    assert equations.EV_TO_KJMOL is surface.EV_TO_KJMOL
 
 
 def test_run_mc_md_seeded_reproducible():

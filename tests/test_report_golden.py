@@ -110,7 +110,7 @@ _B64 = re.compile(r"data:image/[a-z]+;base64,[A-Za-z0-9+/=]+")
 def _mask_images(html: str) -> str:
     """Replace embedded base64 image payloads with a placeholder.
 
-    The report embeds its equations as matplotlib-rendered PNGs whose exact
+    The report embeds its figures as matplotlib-rendered PNGs whose exact
     bytes depend on the platform font stack (freetype), so mask them — the
     golden then pins structure / text / ordering (what a renderer refactor
     changes) without wedging on machine-specific image bytes.
