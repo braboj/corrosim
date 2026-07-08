@@ -22,9 +22,9 @@ env/
 # Tool / run outputs
 *.html
 # the curated multiscale report bundle is tracked, per case study
-# (report/<case>/report.html + report.docx + figures/ + tables/; see
+# (cases/<case>/report/report.html + report.docx + figures/ + tables/; see
 # runs/make_report.py)
-!report/*/report.html
+!cases/*/report/report.html
 # report render goldens are tracked test fixtures (tests/test_report_golden.py)
 !tests/goldens/*.html
 *.cif
@@ -50,7 +50,7 @@ g16_*/
 *.local.md
 docs/local/
 
-# loose run-output figures in repo root (report/<case>/figures/ holds the
+# loose run-output figures in repo root (cases/<case>/report/figures/ holds the
 # curated set)
 /*.png
 

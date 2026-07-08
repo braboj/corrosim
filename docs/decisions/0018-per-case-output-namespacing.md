@@ -1,4 +1,4 @@
-# ADR 0018 — Per-case output namespacing (`results/<case>/`, `report/<case>/`)
+# ADR 0018 — Per-case output namespacing (`cases/<case>/results/`, `cases/<case>/report/`)
 
 - Status: Accepted
 - Date: 2026-07-08
@@ -19,13 +19,16 @@ nothing in `results/` said the data belonged to arghel.
 
 ## Decision
 
-**Each case study owns its own output subtree; no study is special-cased at the
-root.**
+**Each case study owns one co-located output subtree; no study is special-cased
+at the root.**
 
-- `CaseStudy` gains two properties — `results_dir` (`results/<name>`) and
-  `report_dir` (`report/<name>`) — so a study self-describes where it writes.
-  The shipped arghel artifacts were relocated to `results/arghel/` and
-  `report/arghel/`.
+- Everything a study produces lives under a single `cases/<name>/` root, split
+  into `results/` (data) and `report/` (bundle) — so a whole study can be
+  browsed, shared, or removed as a unit, while the data-vs-deliverable
+  distinction is preserved as subfolders rather than merged. `CaseStudy` gains
+  `case_dir` (`cases/<name>`), `results_dir` (`cases/<name>/results`) and
+  `report_dir` (`cases/<name>/report`), so a study self-describes where it
+  writes. The shipped arghel artifacts were relocated to `cases/arghel/`.
 - Every driver's output flags (`--outdir` / `--datadir` / `--out` / `--figdir`
   / `--tablesdir` / …) default to `None` and backfill from the resolved
   `--case` via the shared `_cli.default_output` helper. An explicit flag always
@@ -34,9 +37,9 @@ root.**
 - `cubes/` stays a single shared, gitignored, regenerable tree — it is not part
   of the numbers-only validation surface, so it is not case-scoped.
 - The report bundle is a study's *purpose*, not its *location*: the layout is
-  symmetric (`report/<case>/` exists for any study), but only studies we render
+  symmetric (`cases/<case>/report/` exists for any study), but only studies we render
   a report for populate it. Validation cross-checks are numbers-only and leave
-  `report/<case>/` empty, recording their computed-vs-reported comparison in
+  `cases/<case>/report/` empty, recording their computed-vs-reported comparison in
   `docs/validation.md` instead.
 
 ## Alternatives considered
@@ -44,6 +47,14 @@ root.**
 - **Keep arghel at the flat root; nest only validation studies** under a
   `validation/` subtree — rejected: it special-cases arghel and leaves the root
   data unlabelled, the two problems this ADR set out to fix.
+- **Two parallel roots — `results/<case>/` and `report/<case>/`** — the first
+  cut; refined to the co-located `cases/<case>/{results,report}` so a study's
+  data and report sit together (one place to zip / delete / browse) instead of
+  the case name appearing in two sibling trees.
+- **One undifferentiated `cases/<case>/` folder** (data + report intermingled)
+  — rejected: it blurs tracked *source data* against the regenerable
+  *deliverable* and muddies the `.gitignore` split; the `results/` vs `report/`
+  subfolders keep that distinction.
 - **Central name-based backfill inside `resolve_case`** — rejected: driver flag
   names collide (`--outdir` is the results dir for run_mc but the figures root
   for make_figures; `--out-csv` means "skip" for run_dft but the geometry CSV
@@ -55,13 +66,13 @@ root.**
 
 ## Consequences
 
-- Running any `--case` lands its whole run under `results/<case>/` and
-  `report/<case>/`; studies coexist without collision, and the owner is visible
+- Running any `--case` lands its whole run under `cases/<case>/results/` and
+  `cases/<case>/report/`; studies coexist without collision, and the owner is visible
   from the path.
 - Supersedes the flat-root assumption in ADR 0006/0011: the bundle root is now
-  `report/<case>/` (the stage-subfolder scheme under it is unchanged); the
-  `.gitignore` report allowlist becomes `!report/*/report.html`.
+  `cases/<case>/report/` (the stage-subfolder scheme under it is unchanged); the
+  `.gitignore` report allowlist becomes `!cases/*/report/report.html`.
 - The report is self-contained again: the pKaH caption no longer cites an
   internal `results/pka.json` path (which the move would have made stale).
 - Directly unblocks the validation presets — a new study is a `CaseStudy` plus
-  its own `results/<case>/` outputs, with nothing to rewire.
+  its own `cases/<case>/results/` outputs, with nothing to rewire.

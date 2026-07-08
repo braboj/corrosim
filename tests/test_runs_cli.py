@@ -65,24 +65,24 @@ def test_resolve_case_selects_by_name_and_rejects_unknown():
 
 
 def test_default_output_only_fills_unset_paths():
-    args = argparse.Namespace(outdir=None, datadir="results/custom")
-    _cli.default_output(args, "outdir", "results/arghel")
-    _cli.default_output(args, "datadir", "results/arghel")
+    args = argparse.Namespace(outdir=None, datadir="cases/custom/results")
+    _cli.default_output(args, "outdir", "cases/arghel/results")
+    _cli.default_output(args, "datadir", "cases/arghel/results")
     # an unset (None) flag takes the per-case default ...
-    assert args.outdir == "results/arghel"
+    assert args.outdir == "cases/arghel/results"
     # ... but an explicit value always wins
-    assert args.datadir == "results/custom"
+    assert args.datadir == "cases/custom/results"
 
 
 def test_default_output_routes_to_the_case_subtree():
-    # a bare run of a single-dir driver lands under results/<case>
+    # a bare run of a single-dir driver lands under cases/<case>/results
     p = argparse.ArgumentParser()
     _cli.add_case_arg(p)
     p.add_argument("--outdir", default=None)
     args = p.parse_args([])
     case = _cli.resolve_case(args)
     _cli.default_output(args, "outdir", case.results_dir)
-    assert args.outdir == "results/arghel"
+    assert args.outdir == "cases/arghel/results"
 
 
 def test_write_json_then_read_json_roundtrip(tmp_path):

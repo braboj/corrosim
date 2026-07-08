@@ -64,31 +64,44 @@ class CaseStudy:
         return metal_element(self.metal)
 
     @property
+    def case_dir(self) -> str:
+        """Co-location root for everything this study produces.
+
+        Both the computed data and the rendered report nest under this one
+        directory, so a whole study can be browsed, shared, or removed as a
+        unit and the owning study is visible from every output path (no
+        unlabelled study at a shared ``results/``/``report/`` root).
+
+        Returns:
+            ``cases/<name>``, e.g. ``cases/arghel``.
+        """
+        return f"cases/{self.name}"
+
+    @property
     def results_dir(self) -> str:
         """Per-case directory for computed data (descriptors, MC, MD, pKa).
 
-        Every study writes under its own subtree, so screening a second case
-        never overwrites another's results and the owning study is visible from
-        the path itself (no unlabelled study at the ``results/`` root).
+        The tracked *source data* half of :attr:`case_dir`; the report is
+        rendered from it.
 
         Returns:
-            ``results/<name>``, e.g. ``results/arghel``.
+            ``cases/<name>/results``, e.g. ``cases/arghel/results``.
         """
-        return f"results/{self.name}"
+        return f"{self.case_dir}/results"
 
     @property
     def report_dir(self) -> str:
         """Per-case directory for the report bundle.
 
-        The bundle (``report.html`` / ``report.docx`` / ``figures/`` /
-        ``tables/``) nests under the study's own subtree, matching
-        :attr:`results_dir`. A validation cross-check leaves it unpopulated;
-        the shipped study renders into it.
+        The regenerable *deliverable* half of :attr:`case_dir`: the bundle
+        (``report.html`` / ``report.docx`` / ``figures/`` / ``tables/``). A
+        validation cross-check leaves it unpopulated; the shipped study renders
+        into it.
 
         Returns:
-            ``report/<name>``, e.g. ``report/arghel``.
+            ``cases/<name>/report``, e.g. ``cases/arghel/report``.
         """
-        return f"report/{self.name}"
+        return f"{self.case_dir}/report"
 
     def molecule_list(self) -> list[str]:
         """Return a fresh mutable copy of the molecule set.
@@ -117,7 +130,7 @@ ARGHEL = CaseStudy(
 # Each reproduces a published simulation study's system so the computed
 # descriptors / adsorption can be checked against the paper's reported values
 # (recorded in docs/validation.md). Each study writes under its own
-# results/<case> / report/<case> subtree, so the presets never collide.
+# cases/<case> subtree, so the presets never collide.
 PHYTIC_ACID = CaseStudy(
     name="phytic-acid",
     molecules=("phytic acid",),

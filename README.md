@@ -40,19 +40,23 @@ it rebuilds the report from the committed result data.
 ```bash
 git clone https://github.com/braboj/corrosim
 cd corrosim
-pip install -e ".[viz,report]"         # core + figure rendering + Word output
-python -m corrosim.runs.make_report    # rebuild report/arghel/ from results/arghel/
+
+# core + figure rendering + Word output
+pip install -e ".[viz,report]"
+
+# rebuild cases/arghel/report/ from cases/arghel/results/
+python -m corrosim.runs.make_report    
 ```
 
 Expected output:
 
 ```text
-report written to report/arghel/report.html (4248 kB, self-contained)
-word report written to report/arghel/report.docx (3101 kB)
-tables in report/arghel/tables/ (per-stage subfolders)
+report written to cases/arghel/report/report.html (4248 kB, self-contained)
+word report written to cases/arghel/report/report.docx (3101 kB)
+tables in cases/arghel/report/tables/ (per-stage subfolders)
 ```
 
-Open `report/arghel/report.html` in any browser, or `report/arghel/report.docx`
+Open `cases/arghel/report/report.html` in any browser, or `cases/arghel/report/report.docx`
 in Word (both
 are lean and stage-keyed — the same tables and figures under each stage with
 minimal captions; the methodology lives in `docs/pipeline.md`). The `report`
@@ -129,11 +133,12 @@ src/corrosim/    core package — facade (__init__), cli, molecules, medium,
 src/corrosim/runs/  stage drivers — run_dft, run_fukui, run_mc, run_md,
                     run_pka, make_cubes, make_figures, make_report,
                     compare_geometry (+ _cli: shared CLI plumbing, #64)
-results/<case>/  tracked pipeline data per case study (descriptors, Fukui,
-                 MC/MD, pKa); the shipped study is results/arghel/
-report/<case>/   report bundle (make_report): report.html + report.docx +
-                 figures/<stage>/ + tables/<stage>/ (per-stage subfolders);
-                 the shipped study is report/arghel/
+cases/<case>/    one co-located subtree per case study (the shipped one is
+                 cases/arghel/):
+                   results/   tracked pipeline data (descriptors, Fukui, MC/MD,
+                              pKa)
+                   report/    bundle (make_report): report.html + report.docx +
+                              figures/<stage>/ + tables/<stage>/
 examples/        sample batch CSV
 tests/           pytest suite (QM-light, no DFT — fast)
 docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,
@@ -169,11 +174,11 @@ the bundled `corrosim-qm` image; everything else runs in the venv.
 docker compose build qm                           # build once
 docker compose run --rm qm pytest -q              # smoke test in the container
 docker compose run --rm qm \
-    python -m corrosim.runs.run_dft --out-csv results/arghel/dft_descriptors_ff.csv
+    python -m corrosim.runs.run_dft --out-csv cases/arghel/results/dft_descriptors_ff.csv
 ```
 
-The repo is bind-mounted at `/work`, so outputs land back in `results/<case>/` /
-`report/<case>/` and code edits need no rebuild. Long jobs (geometry-opt, MEP cubes)
+The repo is bind-mounted at `/work`, so outputs land back in `cases/<case>/results/` /
+`cases/<case>/report/` and code edits need no rebuild. Long jobs (geometry-opt, MEP cubes)
 should run detached (`docker compose run -d --name <job> qm …`) so they survive
 a shell exit. On Linux/macOS you may instead install the engines natively with
 the `qm` extra (`pip install -e ".[qm]"`).

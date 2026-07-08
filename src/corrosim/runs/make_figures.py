@@ -1,9 +1,9 @@
 """corrosim.runs.make_figures  (M5).
 
 Regenerate the full manuscript figure set into the case's
-report/<case>/figures/ subtree. Reads the committed data
-(dft_descriptors_ff.csv, *_fukui.json) from results/<case>, re-runs the fast
-classical MC/MD, and renders orbital isosurfaces from any *_homo.cube /
+cases/<case>/report/figures/ subtree. Reads the committed data
+(dft_descriptors_ff.csv, *_fukui.json) from cases/<case>/results, re-runs the
+fast classical MC/MD, and renders orbital isosurfaces from any *_homo.cube /
 *_lumo.cube present.
 
 Runs in the venv (no QM container needed unless you want fresh orbital cubes):
@@ -138,7 +138,7 @@ def _fig_esp(args: argparse.Namespace, order: list[str], out: _Out) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: regenerate the manuscript figure set.
 
-    Writes into the case's ``report/<case>/figures/`` subtree.
+    Writes into the case's ``cases/<case>/report/figures/`` subtree.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).
@@ -150,10 +150,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     add_case_arg(p)
     p.add_argument("--outdir", default=None,
                    help="Figures root; unset uses the case's "
-                        "report/<case>/figures subtree.")
+                        "cases/<case>/report/figures subtree.")
     p.add_argument("--datadir", default=None,
                    help="Where the descriptor/Fukui data live; unset uses the "
-                        "case's results/<case> subtree.")
+                        "case's cases/<case>/results subtree.")
     p.add_argument("--cubedir", default="cubes",
                    help="Where the volumetric cubes live.")
     p.add_argument("--steps-mc", type=int, default=5000)

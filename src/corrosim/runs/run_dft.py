@@ -12,12 +12,12 @@ acid (fast screening engine), then the reported descriptors come from DFT.
 Results are cached to JSON and printed as a table.
 
 Local use (needs rdkit + pyscf — long jobs are expected); the persisted
-geometries follow --out-csv/--out-json, else the case's results/<case> subtree:
+geometries follow --out-csv/--out-json, else the case's results dir:
 
     python -m corrosim.runs.run_dft \
         --molecules kaempferol,quercetin,isorhamnetin --engine pyscf \
-        --out-json results/arghel/dft_descriptors_ff.json \
-        --out-csv results/arghel/dft_descriptors_ff.csv
+        --out-json cases/arghel/results/dft_descriptors_ff.json \
+        --out-csv cases/arghel/results/dft_descriptors_ff.csv
 
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 
@@ -32,8 +32,8 @@ and are QM-heavy (a Hessian per species) — run detached in the QM container:
 
     docker compose run -d --name corrosim_dft qm \
         python -m corrosim.runs.run_dft --to-minimum \
-        --out-json results/arghel/dft_descriptors_opt.json \
-        --out-csv results/arghel/dft_descriptors_opt.csv
+        --out-json cases/arghel/results/dft_descriptors_opt.json \
+        --out-csv cases/arghel/results/dft_descriptors_opt.csv
 """
 from __future__ import annotations
 

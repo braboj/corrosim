@@ -24,12 +24,14 @@ def test_case_study_lookup():
 
 
 def test_case_study_output_dirs_are_per_case():
-    # each study self-describes its own output subtree, so runs never collide
-    assert ARGHEL.results_dir == "results/arghel"
-    assert ARGHEL.report_dir == "report/arghel"
+    # each study self-describes one co-located subtree, so runs never collide
+    assert ARGHEL.case_dir == "cases/arghel"
+    assert ARGHEL.results_dir == "cases/arghel/results"
+    assert ARGHEL.report_dir == "cases/arghel/report"
     other = CaseStudy(name="phytic-acid", molecules=("phytic acid",))
-    assert other.results_dir == "results/phytic-acid"
-    assert other.report_dir == "report/phytic-acid"
+    assert other.case_dir == "cases/phytic-acid"
+    assert other.results_dir == "cases/phytic-acid/results"
+    assert other.report_dir == "cases/phytic-acid/report"
 
 
 def test_source_defaults_empty_for_an_original_screen():
@@ -43,7 +45,7 @@ def test_phytic_acid_validation_preset():
     assert case.metal == "Fe(110)" and case.metal_element == "Fe"
     assert case.medium == "0.5 M H2SO4"           # exercises the sulfuric path
     assert "Chidiebere" in case.source and "10.1021/ie404382v" in case.source
-    assert case.results_dir == "results/phytic-acid"
+    assert case.results_dir == "cases/phytic-acid/results"
     # aliases resolve to the same preset (case-insensitive)
     assert case_study("phytic") is case is case_study("Phytic_Acid")
     # the inhibitor is in the shipped library and builds offline

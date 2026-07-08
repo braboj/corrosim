@@ -1,7 +1,7 @@
 """corrosim.runs.run_mc  (M3 driver).
 
 Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on
-the metal slab. Writes a summary JSON to the case's results/<case> subtree;
+the metal slab. Writes a summary JSON to the case's cases/<case>/results dir;
 figures are rendered separately by make_figures. Pure classical (numpy + ASE);
 runs anywhere, no QM.
 
@@ -45,7 +45,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--outdir", default=None,
                    help="Output directory; unset uses the case's "
-                        "results/<case> subtree.")
+                        "cases/<case>/results subtree.")
     args = p.parse_args(argv)
     case = resolve_case(args, metal="element")
     default_output(args, "outdir", case.results_dir)
