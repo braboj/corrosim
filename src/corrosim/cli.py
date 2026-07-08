@@ -16,6 +16,9 @@ Examples:
   # Production DFT via PySCF
   python -m corrosim --input molecules.csv --engine pyscf \
                      --basis "6-311++G(d,p)" --solvent water --out report.html
+
+  # Dry run: print the steps this screen would take, then exit
+  python -m corrosim --inhibitors quercetin,kaempferol --engine pyscf --plan
 """
 from __future__ import annotations
 
@@ -150,7 +153,65 @@ def build_parser() -> argparse.ArgumentParser:
                    help="HTML report path. Default corrosion_report.html.")
     p.add_argument("--csv", metavar="CSV", default=None,
                    help="Also write the results table to this CSV.")
+    p.add_argument("--plan", action="store_true",
+                   help="Print the steps this screen would run (for the given "
+                        "options) and exit, without computing anything.")
     return p
+
+
+def format_plan(args: argparse.Namespace, molecules: Sequence[str]) -> str:
+    """Describe the steps the quick screen will run, for ``--plan`` (a dry run).
+
+    Names the ordered steps this ``corrosim`` invocation performs for the given
+    options and, explicitly, what it does *not* run (the multiscale pipeline),
+    so the two entry points never get conflated.
+
+    Args:
+        args: The parsed CLI arguments.
+        molecules: The resolved molecule list.
+
+    Returns:
+        A newline-separated, human-readable plan.
+    """
+    # Engine-specific descriptor step (single point in every case).
+    if args.engine == "xtb":
+        descr = "single-point GFN2-xTB (tblite)"
+    elif args.engine == "pyscf":
+        phase = ("gas phase" if args.solvent.lower() == "none"
+                 else f"ddCOSMO:{args.solvent}")
+        descr = f"single-point DFT (pyscf): {args.xc}/{args.basis} ({phase})"
+    else:
+        binvar = "ORCA_CMD" if args.engine == "orca" else "GAUSSIAN_CMD"
+        descr = f"single-point via {args.engine} (external ${binvar})"
+
+    # Ordered steps, adapting to the flags actually given.
+    steps = [
+        ("geometry", "MMFF force-field 3D embed (RDKit), per molecule"),
+        ("descriptors", descr),
+    ]
+    if args.adsorption:
+        steps.append(("adsorption",
+                      "UFF van-der-Waals height-scan -> e_ads_kjmol"))
+    steps.append(("rank",
+                  "composite z-score of gap / hardness / softness / delta_n"))
+    report = f"self-contained HTML -> {args.out}"
+    if args.csv:
+        report += f"; results table -> {args.csv}"
+    steps.append(("report", report))
+
+    lines = [f"Plan - quick screen of {len(molecules)} molecule(s) on "
+             f"{args.metal}, medium {args.medium!r}:"]
+    lines += [f"  {i}. {name:<11} {desc}"
+              for i, (name, desc) in enumerate(steps, 1)]
+    if args.engine in ("xtb", "pyscf"):
+        lines.append("  (xtb/pyscf have no Windows wheels -> run inside the "
+                     "corrosim-qm container on Windows)")
+    lines.append("Not run here: Fukui, ESP, Monte Carlo pose search, MD RDF, "
+                 "pKa.")
+    lines.append("  -> the full multiscale report is the pipeline: "
+                 "runs.run_dft / run_fukui / run_mc / run_md -> make_report "
+                 "(see docs/PLAYBOOK.md)")
+    return "\n".join(lines)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -163,11 +224,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success).
     """
     args = build_parser().parse_args(argv)
-    import corrosim
 
     inhibitors = (
         read_input_csv(args.input) if args.input
         else [x.strip() for x in args.inhibitors.split(",") if x.strip()])
+
+    # A dry run: describe the steps and stop before importing/running anything
+    # heavy — so it works even where the QM engine is not installed.
+    if args.plan:
+        print(format_plan(args, inhibitors))
+        return 0
+
+    import corrosim
 
     engine_kwargs = {}
     if args.engine == "pyscf":

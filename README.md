@@ -115,6 +115,35 @@ Quercetin is the robust lead across engines and geometries — see
 run natively on Linux/macOS via the `qm` extra, or in the Docker image on
 Windows (see [Development setup](#development-setup)).
 
+## How it fits together
+
+corrosim is **two tools** that share the same science but serve different needs:
+
+- **`corrosim` — the quick screener** (what `--engine` / `--adsorption` /
+  `--plan` belong to). One fast pass per molecule: build an **MMFF force-field**
+  geometry (RDKit), run a **single-point** calculation with the chosen engine
+  (`xtb` by default, `pyscf` for DFT) for the electronic descriptors, optionally
+  add a UFF van-der-Waals adsorption estimate (`--adsorption`), rank, and write a
+  one-page HTML report. It does **not** run Fukui, ESP, Monte Carlo, MD, or pKa,
+  and it does **not** relax the geometry at the QM level. Run any screen with
+  `--plan` to print the exact steps it will take, then exit:
+
+  ```bash
+  corrosim --inhibitors quercetin,kaempferol --engine pyscf --adsorption --plan
+  ```
+
+- **The `runs/*` pipeline — the full multiscale study.** Separate drivers that
+  run every stage over the case study and assemble the rich
+  `cases/<case>/report/` bundle: DFT descriptors (+ optional `--optimize`
+  geometry), Fukui, ESP cubes, Monte Carlo pose search, Brownian MD, pKa →
+  `make_figures` → `make_report`. This is the report *with all the figures* —
+  see [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) for the full command sequence.
+
+**On Windows** the quantum engines (`xtb` via tblite, `pyscf`) have no wheels, so
+any real calculation — screener or pipeline — runs in the `corrosim-qm` Docker
+image; the venv handles everything that needs no engine (rebuilding the report
+from data, Monte Carlo, MD, figures).
+
 ## Project structure
 
 | Path | Contents |
