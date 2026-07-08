@@ -33,5 +33,12 @@
     "source": "manual",
     "cas": "58-08-2",
     "notes": "Reference / benchmark inhibitor for comparison."
+  },
+  "phytic acid": {
+    "smiles": "O=P(O)(O)OC1C(OP(=O)(O)O)C(OP(=O)(O)O)C(OP(=O)(O)O)C(OP(=O)(O)O)C1OP(=O)(O)O",
+    "aliases": ["phytic-acid", "PA", "IP6", "inositol hexakisphosphate"],
+    "source": "manual",
+    "cas": "83-86-3",
+    "notes": "myo-Inositol hexakisphosphate (C6H18O24P6). Validation target for the phytic-acid case study (Chidiebere 2014, Fe(110) / 0.5 M H2SO4)."
   }
 }
