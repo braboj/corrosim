@@ -58,6 +58,11 @@ Issues = "https://github.com/braboj/corrosim/issues"
 where = ["src"]
 include = ["corrosim*"]
 
+[tool.setuptools.package-data]
+# Ship the inhibitor library as package data (loaded via importlib.resources),
+# so adding a molecule is a data edit and the JSON travels in the wheel/sdist.
+corrosim = ["data/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

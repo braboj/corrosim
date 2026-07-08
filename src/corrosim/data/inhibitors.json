@@ -1,0 +1,37 @@
+{
+  "kaempferol": {
+    "smiles": "O=c1c(O)c(-c2ccc(O)cc2)oc2cc(O)cc(O)c12",
+    "aliases": [],
+    "source": "manual",
+    "cas": "520-18-3",
+    "notes": "Arghel (S. argel) major flavonoid aglycone; a practical simulation target."
+  },
+  "quercetin": {
+    "smiles": "O=c1c(O)c(-c2ccc(O)c(O)c2)oc2cc(O)cc(O)c12",
+    "aliases": [],
+    "source": "manual",
+    "cas": "117-39-5",
+    "notes": "Arghel major flavonoid aglycone; a practical simulation target."
+  },
+  "isorhamnetin": {
+    "smiles": "O=c1c(O)c(-c2ccc(O)c(OC)c2)oc2cc(O)cc(O)c12",
+    "aliases": [],
+    "source": "manual",
+    "cas": "480-19-3",
+    "notes": "Arghel major flavonoid aglycone (3'-O-methyl quercetin); a practical simulation target."
+  },
+  "benzotriazole": {
+    "smiles": "c1ccc2[nH]nnc2c1",
+    "aliases": [],
+    "source": "manual",
+    "cas": "95-14-7",
+    "notes": "Reference / benchmark corrosion inhibitor for comparison."
+  },
+  "caffeine": {
+    "smiles": "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+    "aliases": [],
+    "source": "manual",
+    "cas": "58-08-2",
+    "notes": "Reference / benchmark inhibitor for comparison."
+  }
+}
