@@ -1,6 +1,7 @@
 import pytest
 
-from corrosim import ARGHEL, case_study
+from corrosim import ARGHEL, build_molecule, case_study
+from corrosim.presets import CaseStudy
 
 
 def test_arghel_is_the_single_source_of_truth():
@@ -8,6 +9,7 @@ def test_arghel_is_the_single_source_of_truth():
     assert ARGHEL.metal == "Fe(110)"
     assert ARGHEL.metal_element == "Fe"          # slab/RDF code uses the bare symbol
     assert ARGHEL.medium == "1 M HCl"
+    assert ARGHEL.source                          # provenance is recorded
     # a fresh mutable copy each call, so a driver can't clobber the preset
     lst = ARGHEL.molecule_list()
     lst.append("caffeine")
@@ -25,9 +27,27 @@ def test_case_study_output_dirs_are_per_case():
     # each study self-describes its own output subtree, so runs never collide
     assert ARGHEL.results_dir == "results/arghel"
     assert ARGHEL.report_dir == "report/arghel"
-    other = ARGHEL.__class__(name="phytic-acid", molecules=("phytic acid",))
+    other = CaseStudy(name="phytic-acid", molecules=("phytic acid",))
     assert other.results_dir == "results/phytic-acid"
     assert other.report_dir == "report/phytic-acid"
+
+
+def test_source_defaults_empty_for_an_original_screen():
+    # an original screen carries no citation; a validation preset does
+    assert CaseStudy(name="x", molecules=("caffeine",)).source == ""
+
+
+def test_phytic_acid_validation_preset():
+    case = case_study("phytic-acid")
+    assert case.molecules == ("phytic acid",)
+    assert case.metal == "Fe(110)" and case.metal_element == "Fe"
+    assert case.medium == "0.5 M H2SO4"           # exercises the sulfuric path
+    assert "Chidiebere" in case.source and "10.1021/ie404382v" in case.source
+    assert case.results_dir == "results/phytic-acid"
+    # aliases resolve to the same preset (case-insensitive)
+    assert case_study("phytic") is case is case_study("Phytic_Acid")
+    # the inhibitor is in the shipped library and builds offline
+    assert build_molecule("phytic acid") is not None
 
 
 def test_drivers_share_the_preset_list():
