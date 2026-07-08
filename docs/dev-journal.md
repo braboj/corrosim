@@ -1277,4 +1277,59 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   no-ticket-refs-in-docstrings convention upstream — still not landed). Optional
   deferred: the gated `CORROSIM_FETCH` resolver fallback.
 
+## 2026-07-08 (session 14) — #53 validation presets + `cases/<case>` layout + CLI transparency
+
+- **Tool:** Claude Code (Opus 4.8). Eight squash-merged PRs advancing epic
+  **#72**/**#53**: a per-case output layout, the first validation preset, and
+  making the two-tools split discoverable. **#53 stays open** (compute deferred;
+  more presets to come).
+- **#162 — per-case output namespacing.** Driver outputs move from a flat
+  `results/`/`report/` root to per-case subtrees; `CaseStudy` gains
+  `results_dir`/`report_dir`, drivers default `--out*` to `None` and backfill
+  from `--case` via new `_cli.default_output`. Relocated arghel (51 renames);
+  `.gitignore` → `!report/*/report.html`; regenerated the arghel report (dropped
+  a stale `results/pka.json` caption; re-synced a bundled table). **ADR 0018.**
+- **#164 — `source` field + phytic-acid preset.** Optional `CaseStudy.source`
+  (citation/DOI); `phytic-acid` preset (Fe(110)/0.5 M H₂SO₄, Chidiebere 2014);
+  phytic acid added to `inhibitors.json` (RDKit-verified C₆H₁₈O₂₄P₆, CAS
+  83-86-3); a "Multi-study validation suite" section in `docs/validation.md`
+  with the paper's reported values (AM1 HOMO/LUMO/gap 4.776 eV, COMPASS E_bind
+  −199 kcal/mol, exp IE 88.7 % / ΔG_ads −29.6 kJ/mol) and level-of-theory
+  caveats; computed column marked pending a QM run. Chose phytic-acid over the
+  issue's pyrazolo-pyrimidine because the latter's three compounds are novel (no
+  CAS/PubChem) — hand-drawn SMILES with no cross-check while compute is deferred;
+  its reported values are saved to a gitignored note for a later preset landed
+  *with* the first DFT run.
+- **#165 — co-locate under `cases/<case>/`.** Folded the two parallel roots into
+  one subtree per study: `cases/<case>/{results,report}`. `CaseStudy.case_dir`
+  added; pure `git mv` (report is path-agnostic → no regen). ADR 0018 amended.
+- **#166 — ADR 0018 cubes trigger.** Recorded when to make the shared `cubes/`
+  case-scoped (a second study rendering full cube figures collides on the
+  level-unqualified filename).
+- **#167 — README structure table; drop arghel limitation.** Structure section →
+  `Path | Contents` table; removed the *S. argel* flavonoid-constituents bullet
+  (the tool is molecule-agnostic).
+- **#168 — drop "Stage-2/3" labels.** Three stragglers (2 README + a rendered
+  facade-report string) violating the no-stage-labels convention; the
+  `--adsorption` label was also inaccurate (it runs the crude height-scan, not
+  the MC pose search).
+- **#169 — `corrosim --plan` + README "How it fits together".** A dry-run flag
+  that prints a screen's ordered steps (adapting to engine/flags) and what it
+  does *not* run, short-circuiting before the engine import (works with no QM
+  installed). New README section on the two tools.
+- **#170 — tighten that section** to a comparison table (prose was too AI).
+- **Audit:** pytest **199 passed / 1 skipped**; ruff + mypy (40 files) +
+  complexipy (`[]`, snapshot unchanged) green; tree clean on `main`, nothing
+  unpushed. Two `sed -i` gotchas noted for next time: over-matching source paths,
+  and CRLF churn on Windows `autocrlf` — scope such rewrites to matching files.
+- **Pending:** **#53** still open — the **phytic-acid QM run** (fill
+  `cases/phytic-acid/results/` + the computed-vs-reported column) and the
+  **pyrazolo-pyrimidine preset** (values in
+  `docs/local/pyrazolo-pyrimidine-reported.local.md`, land with the first DFT run
+  so QM validates the structures). Also **#71** Deployment (#66–#68), **#40**
+  chemisorption E_ads. Standing housekeeping: `equations.py` production-unused;
+  `docs/solid-ai-templates` submodule ~80 commits behind (dedicated sync + file
+  the no-ticket-refs-in-docstrings convention upstream). Optional deferred:
+  `CORROSIM_FETCH` resolver fallback.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
