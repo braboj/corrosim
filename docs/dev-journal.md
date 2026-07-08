@@ -1336,4 +1336,44 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (solid-ai-templates#745) during the wrap audit. Optional deferred:
   `CORROSIM_FETCH` resolver fallback.
 
+## 2026-07-08 (session 15) — pKaH folded into the `CaseStudy` schema (#177)
+
+- **Tool:** Claude Code (Opus 4.8). One squash-merged PR closing the last
+  *structural* leftover on epic **#72**'s case-study-agnostic criterion.
+- **Status review first.** Corrected a stale claim in the **#72** issue body: it
+  demanded the report narrative "become a function of the active `CaseStudy`",
+  but the lean-report refactor (#110) already did that — `report_content.py`
+  carries only generic caveats + a data-derived `bottom_line` + a
+  metal-parameterised `score_note`, with no B-ring/Mohammed-2014 prose. Edited
+  #72 to mark that bullet **done** and relabel the pKaH field as the sole
+  remaining structural leftover.
+- **#177 — `CaseStudy.pkah`.** Folded `speciation.FLAVONOID_CARBONYL_PKAH` (the
+  flavonoid-named module default for `protonation_fraction` / `speciate` /
+  `analyse_speciation`) into a per-case `CaseStudy.pkah` field (default −1.5, a
+  generic very-weak-base fallback). Renamed the module constant to the neutral
+  `DEFAULT_PKAH`, now documented as a standalone/library fallback while
+  production threads `case.pkah` through `make_report._speciation_summary` →
+  `analyse_speciation`. `ARGHEL` sets `pkah=−1.5` explicitly (flavonoid 4-oxo
+  carbonyl). Two tests: the per-case field + default, and a regression guard
+  that a non-default `pkah=2.0` reaches the `Speciation` unchanged. Updated
+  **ADR 0004** to name the current mechanism (no new ADR — this realises the
+  "overridable per study" the ADR already anticipated). No new ADR/README/
+  PLAYBOOK/ONBOARDING changes; CLAUDE.md §2.3 already frames the case study as
+  the single source of truth. Pattern is project-specific (corrosim's schema);
+  nothing to file upstream.
+- **Regeneration check:** since arghel's pKaH is unchanged (−1.5), the report
+  is byte-identical — regenerating produced only a `Generated` timestamp diff,
+  which was reverted. No artifact needed regenerating.
+- **Audit:** pytest **198 passed / 1 skipped**; ruff + mypy (39 files) +
+  complexipy (`complexipy --color no`, snapshot passed) green; tree clean on
+  `main`, nothing unpushed. Submodule at upstream tip (`a6d7747`), no bump.
+- **Pending:** epic **#72** now needs only **#53** (validation-preset compute):
+  the **phytic-acid QM run** (fill `cases/phytic-acid/results/` + the
+  computed-vs-reported column in `docs/validation.md`) and the
+  **pyrazolo-pyrimidine preset** (land with the first DFT run so QM validates
+  the hand-drawn SMILES; reported values in
+  `docs/local/pyrazolo-pyrimidine-reported.local.md`) — both need Docker. Then
+  **#71** Deployment (#66 Colab / #67 GHCR+PyPI / #68 Pages) and **#40**
+  chemisorption E_ads. Optional deferred: `CORROSIM_FETCH` resolver fallback.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
