@@ -64,6 +64,25 @@ def test_make_report_builds_self_contained_html(tmp_path):
     assert (tmp_path / "tables" / "dft" / "ranking.csv").exists()
 
 
+def test_make_report_threads_case_pkah_into_speciation():
+    import pandas as pd
+
+    from corrosim.medium import parse_medium
+    from corrosim.presets import ARGHEL
+    from corrosim.runs import make_report
+
+    df = pd.read_csv(RESULTS / "dft_descriptors_ff.csv")
+    rows, present = make_report._neutral_rows(df, ARGHEL.molecule_list())
+    spec = parse_medium(ARGHEL.medium)
+    acid_rows = make_report._acid_cation_rows(df, present, spec)
+
+    # a deliberately non-default pKaH must reach the Speciation unchanged,
+    # proving the case study's value drives the report (not a module constant)
+    summary = make_report._speciation_summary(rows, acid_rows, spec, pkah=2.0)
+    assert summary is not None
+    assert summary["speciation"].pkah == 2.0
+
+
 def test_compare_geometry_writes_csv_and_figure(tmp_path):
     from corrosim.runs import compare_geometry
 

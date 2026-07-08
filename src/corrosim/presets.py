@@ -52,6 +52,12 @@ class CaseStudy:
     # Empty for an original screen; set for a validation preset so the reported
     # target values in docs/validation.md are traceable to their source.
     source: str = ""
+    # Conjugate-acid pKaH of the inhibitor's most basic protonation site: the
+    # value that drives Henderson-Hasselbalch speciation in an acidic medium.
+    # Defaults to a very-weak-base estimate (~-1.5), so an inhibitor whose basic
+    # site is unspecified is treated as ~all-neutral in mild acid; override per
+    # study when the basic site is stronger.
+    pkah: float = -1.5
 
     @property
     def metal_element(self) -> str:
@@ -119,6 +125,9 @@ ARGHEL = CaseStudy(
     molecules=("kaempferol", "quercetin", "isorhamnetin"),
     metal="Fe(110)",
     medium="1 M HCl",
+    # Flavonoid 4-oxo carbonyl, a very weak base; carbonyl-protonation pKaH
+    # clusters around -1 to -2 (Hammett-acidity studies). An ESTIMATE (~+/-1).
+    pkah=-1.5,
     description="Major Arghel (Solenostemma argel) flavonoid aglycones vs mild "
                 "steel (Fe(110)) in 1 M HCl.",
     source="Mohammed, Corrosion Inhibition of Steel in Acidic Medium by Herbs "
