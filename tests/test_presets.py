@@ -39,6 +39,14 @@ def test_source_defaults_empty_for_an_original_screen():
     assert CaseStudy(name="x", molecules=("caffeine",)).source == ""
 
 
+def test_pkah_is_a_per_case_field():
+    # the conjugate-acid pKaH that drives speciation lives on the case study,
+    # not as a hardcoded speciation-module default
+    assert ARGHEL.pkah == -1.5                        # flavonoid 4-oxo carbonyl
+    # an unspecified basic site falls back to the very-weak-base default
+    assert CaseStudy(name="x", molecules=("caffeine",)).pkah == -1.5
+
+
 def test_phytic_acid_validation_preset():
     case = case_study("phytic-acid")
     assert case.molecules == ("phytic acid",)

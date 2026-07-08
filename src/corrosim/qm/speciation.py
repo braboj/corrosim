@@ -24,11 +24,11 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
-# Estimated conjugate-acid pKa of the flavonoid 4-oxo carbonyl (the most basic
-# site). Flavones/chromones are very weak bases; carbonyl-protonation pKaH
-# values cluster around −1 to −2 (Hammett-acidity studies). An ESTIMATE with
-# ~±1 uncertainty.
-FLAVONOID_CARBONYL_PKAH = -1.5
+# Fallback conjugate-acid pKaH when a caller supplies none: a very-weak-base
+# estimate (~−1.5) so an inhibitor whose basic site is unspecified reads as
+# ~all-neutral in mild acid. Production threads the per-case value through from
+# CaseStudy.pkah; this default only serves standalone/library use.
+DEFAULT_PKAH = -1.5
 
 # Descriptor fields population-averaged in a blend (energies / indices).
 _BLEND_FIELDS = (
@@ -39,7 +39,7 @@ _BLEND_FIELDS = (
 
 
 def protonation_fraction(ph: float,
-                         pkah: float = FLAVONOID_CARBONYL_PKAH) -> float:
+                         pkah: float = DEFAULT_PKAH) -> float:
     """Protonated (cationic) fraction at this pH (Henderson–Hasselbalch).
 
     ``f_prot = 1 / (1 + 10**(pH − pKaH))``.
@@ -89,7 +89,7 @@ class Speciation:
         return "protonated" if self.f_protonated >= 0.5 else "neutral"
 
 
-def speciate(ph: float, pkah: float = FLAVONOID_CARBONYL_PKAH) -> Speciation:
+def speciate(ph: float, pkah: float = DEFAULT_PKAH) -> Speciation:
     """Populations at ``ph`` for a site of conjugate-acid pKa ``pkah``.
 
     Args:
@@ -141,7 +141,7 @@ def _align(neutral_rows: list[dict],
 def analyse_speciation(neutral_rows: list[dict], protonated_rows: list[dict],
                        ph: float,
                        rank_fn: Callable[[list[dict]], list[dict]],
-                       pkah: float = FLAVONOID_CARBONYL_PKAH,
+                       pkah: float = DEFAULT_PKAH,
                        band: float = 1.0) -> dict:
     """Full pH-speciation summary for the report.
 

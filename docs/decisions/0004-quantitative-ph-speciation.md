@@ -20,9 +20,10 @@ species mix rather than a binary form choice.
 
 The most basic site of these flavonoids is the **4-oxo carbonyl**, a *very weak*
 base. Reported carbonyl-protonation pKaH values for flavones/chromones (from
-Hammett-acidity studies) cluster around **−1 to −2**. We adopt
-`FLAVONOID_CARBONYL_PKAH = −1.5` as a representative **estimate** with ~±1
-uncertainty. It is a code constant, overridable per study — **not** a measured,
+Hammett-acidity studies) cluster around **−1 to −2**. We adopt **−1.5** as a
+representative **estimate** with ~±1 uncertainty, carried as the per-study
+`CaseStudy.pkah` field (the speciation module keeps a `DEFAULT_PKAH = −1.5`
+fallback for standalone use). It is overridable per study — **not** a measured,
 molecule-specific value, and it is exposed as such in the report.
 
 ## Decision & finding

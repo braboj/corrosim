@@ -115,6 +115,7 @@ def _speciation_summary(
     rows: list[dict],
     acid_rows: list[dict] | None,
     spec: MediumSpec,
+    pkah: float,
 ) -> dict | None:
     """Population-weighted speciation blend + lead-crossover sensitivity.
 
@@ -122,13 +123,14 @@ def _speciation_summary(
         rows: Neutral descriptor rows.
         acid_rows: Protonated-cation rows, or None.
         spec: The parsed medium (needs a numeric pH).
+        pkah: The case study's conjugate-acid pKaH (its most basic site).
 
     Returns:
         The speciation summary, or None without an acid comparison or pH.
     """
     if not (acid_rows and spec.ph is not None):
         return None
-    return analyse_speciation(rows, acid_rows, spec.ph, _rank_blend)
+    return analyse_speciation(rows, acid_rows, spec.ph, _rank_blend, pkah)
 
 
 def _computed_pkah(
@@ -330,7 +332,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     rows, present = _neutral_rows(df, order)
     spec = parse_medium(args.medium)
     acid_rows = _acid_cation_rows(df, present, spec)
-    speciation_summary = _speciation_summary(rows, acid_rows, spec)
+    speciation_summary = _speciation_summary(rows, acid_rows, spec, case.pkah)
     computed_pkah, pka_freq_corrected = _computed_pkah(args.pka, present, spec)
     opt_neutral_rows, opt_acid_rows = _opt_geometry_rows(
         args.opt_descriptors, order, spec)
