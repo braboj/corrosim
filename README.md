@@ -117,35 +117,21 @@ Windows (see [Development setup](#development-setup)).
 
 ## Project structure
 
-```text
-src/corrosim/    core package — facade (__init__), cli, molecules, medium,
-                 presets, fetch at the top; subsystem sub-packages (ADR 0011):
-                   qm/          engines, descriptors, fukui, pka, speciation,
-                                protonation, cubes; _backend_pyscf/_tblite hold
-                                the deferred pyscf/tblite imports (ADR 0015)
-                   adsorption/  surface, adsorption, mc, md
-                   report/      report, report_docx, report_content,
-                                report_layout, figures (renders cubes; qm.cubes
-                                writes them), equations
-                   data/        inhibitors.json — the shipped inhibitor library
-                                (name -> SMILES + provenance), loaded by
-                                molecules; grown by the fetch tool
-src/corrosim/runs/  stage drivers — run_dft, run_fukui, run_mc, run_md,
-                    run_pka, make_cubes, make_figures, make_report,
-                    compare_geometry (+ _cli: shared CLI plumbing, #64)
-cases/<case>/    one co-located subtree per case study (the shipped one is
-                 cases/arghel/):
-                   results/   tracked pipeline data (descriptors, Fukui, MC/MD,
-                              pKa)
-                   report/    bundle (make_report): report.html + report.docx +
-                              figures/<stage>/ + tables/<stage>/
-examples/        sample batch CSV
-tests/           pytest suite (QM-light, no DFT — fast)
-docs/            pipeline.md, validation.md, ONBOARDING.md, PLAYBOOK.md,
-                 dev-journal.md, decisions/ (ADRs), diagrams/ (.drawio sources)
-Dockerfile              the corrosim-qm QM environment (PySCF + tblite)
-docker-compose.yml
-```
+| Path | Contents |
+| --- | --- |
+| `src/corrosim/` | Core package facade — `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
+| `src/corrosim/qm/` | `engines`, `descriptors`, `fukui`, `pka`, `speciation`, `protonation`, `cubes`; `_backend_pyscf`/`_tblite` hold the deferred pyscf/tblite imports (ADR 0015). |
+| `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
+| `src/corrosim/report/` | `report`, `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them), `equations`. |
+| `src/corrosim/data/` | `inhibitors.json` — the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
+| `src/corrosim/runs/` | Stage drivers — `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` (+ `_cli`: shared CLI plumbing). |
+| `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |
+| `cases/<case>/results/` | Tracked pipeline data — descriptors, Fukui, MC/MD, pKa. |
+| `cases/<case>/report/` | Report bundle (`make_report`): `report.html` + `report.docx` + `figures/<stage>/` + `tables/<stage>/`. |
+| `examples/` | Sample batch CSV. |
+| `tests/` | pytest suite (QM-light, no DFT — fast). |
+| `docs/` | `pipeline.md`, `validation.md`, `ONBOARDING.md`, `PLAYBOOK.md`, `dev-journal.md`, `decisions/` (ADRs), `diagrams/` (.drawio sources). |
+| `Dockerfile`, `docker-compose.yml` | The `corrosim-qm` QM environment (PySCF + tblite). |
 
 ## Development setup
 
@@ -214,8 +200,6 @@ The screening run is configured through CLI options (`corrosim --help`):
   van-der-Waals model** (rigid bodies, no charge transfer): bounded and good for
   ranking and the physisorption distance, but **not a quantitative chemisorption
   E_ads**.
-- The flavonoids are **documented major constituents** of *S. argel*, simulated
-  as representatives — confirm a specific extract with LC-MS/GC-MS.
 - Simulations **screen and explain**; they do not prove efficiency. Validate with
   electrochemistry (EIS, polarization, weight loss).
 
