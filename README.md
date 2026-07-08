@@ -117,32 +117,17 @@ Windows (see [Development setup](#development-setup)).
 
 ## How it fits together
 
-corrosim is **two tools** that share the same science but serve different needs:
+corrosim is two tools:
 
-- **`corrosim` — the quick screener** (what `--engine` / `--adsorption` /
-  `--plan` belong to). One fast pass per molecule: build an **MMFF force-field**
-  geometry (RDKit), run a **single-point** calculation with the chosen engine
-  (`xtb` by default, `pyscf` for DFT) for the electronic descriptors, optionally
-  add a UFF van-der-Waals adsorption estimate (`--adsorption`), rank, and write a
-  one-page HTML report. It does **not** run Fukui, ESP, Monte Carlo, MD, or pKa,
-  and it does **not** relax the geometry at the QM level. Run any screen with
-  `--plan` to print the exact steps it will take, then exit:
+| | `corrosim` (screen) | `runs/*` → `make_report` (report) |
+| --- | --- | --- |
+| Per molecule | MMFF geometry, single-point descriptors | DFT (optionally relaxed), Fukui, ESP, MC, MD, pKa |
+| Produces | one-page HTML + ranking | `cases/<case>/report/` bundle with figures |
+| Speed | seconds | minutes to hours |
 
-  ```bash
-  corrosim --inhibitors quercetin,kaempferol --engine pyscf --adsorption --plan
-  ```
-
-- **The `runs/*` pipeline — the full multiscale study.** Separate drivers that
-  run every stage over the case study and assemble the rich
-  `cases/<case>/report/` bundle: DFT descriptors (+ optional `--optimize`
-  geometry), Fukui, ESP cubes, Monte Carlo pose search, Brownian MD, pKa →
-  `make_figures` → `make_report`. This is the report *with all the figures* —
-  see [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md) for the full command sequence.
-
-**On Windows** the quantum engines (`xtb` via tblite, `pyscf`) have no wheels, so
-any real calculation — screener or pipeline — runs in the `corrosim-qm` Docker
-image; the venv handles everything that needs no engine (rebuilding the report
-from data, Monte Carlo, MD, figures).
+`corrosim --plan` lists the steps a screen will run without computing them. On
+Windows the engines (`xtb`, `pyscf`) run in the `corrosim-qm` container; the venv
+does everything else. Full pipeline commands: [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md).
 
 ## Project structure
 
