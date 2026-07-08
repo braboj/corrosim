@@ -1,0 +1,33 @@
+# Normalize line endings: store LF in the repo, so a Windows checkout
+# (core.autocrlf=true) never shows EOL-only churn as "modified" files.
+* text=auto
+
+# Text/source: always LF in the working tree too.
+*.py    text eol=lf
+*.pyi   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.rst   text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.csv   text eol=lf
+*.xyz   text eol=lf
+*.sh    text eol=lf
+*.cff   text eol=lf
+Dockerfile        text eol=lf
+.gitignore        text eol=lf
+.gitattributes    text eol=lf
+
+# draw.io sources are XML — text, normalized to LF like everything else.
+*.drawio text eol=lf
+
+# Binary: never transform or diff as text.
+*.png   binary
+*.jpg   binary
+*.docx  binary
+*.pdf   binary
+*.cube  binary
