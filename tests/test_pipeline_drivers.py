@@ -1,8 +1,9 @@
 """End-to-end smoke tests for the venv-runnable pipeline drivers (issue #31).
 
 These exercise the post-processing and pure-classical drivers — make_figures,
-make_report, compare_geometry, run_mc, run_md — against the tracked ``results/``
-fixtures, writing every output under ``tmp_path``. No QM engine or Docker is
+make_report, compare_geometry, run_mc, run_md — against the tracked
+``results/arghel/`` fixtures, writing every output under ``tmp_path``. No QM
+engine or Docker is
 needed: this is the scoped surface the ``--cov-fail-under`` gate measures, and
 running the drivers also covers the figure/report library code they call.
 """
@@ -15,8 +16,8 @@ import matplotlib
 matplotlib.use("Agg")  # headless: no display in CI
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-RESULTS = REPO / "results"
-FIGURES = REPO / "report" / "figures"
+RESULTS = REPO / "results" / "arghel"
+FIGURES = REPO / "report" / "arghel" / "figures"
 
 # Small step counts keep the classical MC/MD fast; the goal is code coverage,
 # not converged physics (that is validated separately by the tracked artifacts).

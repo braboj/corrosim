@@ -42,7 +42,7 @@ molecule | computed pKaH | % protonated
 quercetin | -12.1 | 0.00%
 kaempferol | -11.2 | 0.00%
 isorhamnetin | -10.8 | 0.00%
-Computed pKaH (DFT cycle, frequency-corrected); results/pka.json.
+Computed pKaH (DFT cycle, frequency-corrected).
 3.6 Local reactivity (Fukui)
 quercetin: O0 (f⁻=0.090), O4 (f⁻=0.070)
 kaempferol: O0 (f⁻=0.090), O4 (f⁻=0.070)

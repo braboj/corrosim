@@ -3,14 +3,14 @@
 Build one self-contained HTML report consolidating the full multiscale pipeline
 (DFT descriptors + Fukui + Monte Carlo + MD) and the committed figure set into a
 single shareable file. Reads the committed result data and embeds the figures
-from report/figures/ inline (base64), so the report stands alone. Also copies
-the source CSV/JSON tables into report/tables/ so the report/ bundle is
-complete.
+from the case's ``report/<case>/figures/`` inline (base64), so the report stands
+alone. Also copies the source CSV/JSON tables into ``report/<case>/tables/`` so
+the bundle is complete. Every input/output path defaults to the case's own
+``results/<case>`` and ``report/<case>`` subtree; an explicit flag overrides it.
 
 Runs in the venv (no QM container needed):
-    python -m corrosim.runs.make_report
-    python -m corrosim.runs.make_report --out report/report.html \
-        --figdir report/figures
+    python -m corrosim.runs.make_report                 # default case: arghel
+    python -m corrosim.runs.make_report --case arghel
 """
 from __future__ import annotations
 
@@ -23,10 +23,12 @@ import pandas as pd
 
 from corrosim import report
 from corrosim.medium import MediumSpec, parse_medium
+from corrosim.presets import CaseStudy
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
 from corrosim.runs._cli import (
     add_case_arg,
+    default_output,
     form_rows_in_order,
     read_json,
     resolve_case,
@@ -239,7 +241,7 @@ def _bundle_tables(args: argparse.Namespace, rows: list[dict]) -> None:
     os.makedirs(os.path.dirname(ranking_dst), exist_ok=True)
     report.rank_inhibitors(pd.DataFrame(rows)).to_csv(ranking_dst, index=False)
     for src in (args.descriptors, args.opt_descriptors,
-                "results/geometry_comparison.csv", args.pka):
+                f"{args.datadir}/geometry_comparison.csv", args.pka):
         if os.path.exists(src):
             _bundle_one(args.tablesdir, src)
     print(f"tables in {args.tablesdir}/ (per-stage subfolders)")
@@ -253,30 +255,55 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     add_case_arg(p)
-    p.add_argument("--descriptors", default="results/dft_descriptors_ff.csv")
-    p.add_argument("--opt-descriptors",
-                   default="results/dft_descriptors_opt.csv",
+    # All output paths default to None and backfill from the case's own
+    # results/<case> and report/<case> subtrees (see _default_paths); an
+    # explicit flag always wins.
+    p.add_argument("--descriptors", default=None)
+    p.add_argument("--opt-descriptors", default=None,
                    help="DFT-optimised-geometry matrix; surfaced as a labelled "
                         "section (neutral ranking + protonated cations) when "
                         "present.")
-    p.add_argument("--mc", default="results/mc_adsorption.json")
-    p.add_argument("--md", default="results/md_rdf.json")
-    p.add_argument("--datadir", default="results",
+    p.add_argument("--mc", default=None)
+    p.add_argument("--md", default=None)
+    p.add_argument("--datadir", default=None,
                    help="Where per-molecule Fukui JSON live.")
-    p.add_argument("--pka", default="results/pka.json",
+    p.add_argument("--pka", default=None,
                    help="Computed-pKaH JSON (run_pka); shown in the speciation "
                         "section.")
-    p.add_argument("--figdir", default="report/figures")
-    p.add_argument("--out", default="report/report.html")
-    p.add_argument("--out-docx", default="report/report.docx",
+    p.add_argument("--figdir", default=None)
+    p.add_argument("--out", default=None)
+    p.add_argument("--out-docx", default=None,
                    help="Word (.docx) report path; pass '' to skip the Word "
                         "build.")
-    p.add_argument("--tablesdir", default="report/tables",
+    p.add_argument("--tablesdir", default=None,
                    help="Copy the report's source CSV/JSON tables here for the "
                         "bundle (nested into per-stage subfolders).")
     p.add_argument("--metal", default=None)
     p.add_argument("--medium", default=None)
     return p
+
+
+def _default_paths(args: argparse.Namespace, case: CaseStudy) -> None:
+    """Backfill every unset report input/output path from the case's subtree.
+
+    Keeps a screening run's whole bundle under ``results/<case>`` (data) and
+    ``report/<case>`` (the rendered report), so studies never collide.
+
+    Args:
+        args: The parsed argument namespace (mutated in place).
+        case: The resolved case study whose directories supply the defaults.
+    """
+    rd, rp = case.results_dir, case.report_dir
+    default_output(args, "descriptors", f"{rd}/dft_descriptors_ff.csv")
+    default_output(args, "opt_descriptors", f"{rd}/dft_descriptors_opt.csv")
+    default_output(args, "mc", f"{rd}/mc_adsorption.json")
+    default_output(args, "md", f"{rd}/md_rdf.json")
+    default_output(args, "datadir", rd)
+    default_output(args, "pka", f"{rd}/pka.json")
+    default_output(args, "figdir", f"{rp}/figures")
+    default_output(args, "out", f"{rp}/report.html")
+    default_output(args, "out_docx", f"{rp}/report.docx")
+    default_output(args, "tablesdir", f"{rp}/tables")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -289,7 +316,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success; 1 if descriptors are missing).
     """
     args = _build_parser().parse_args(argv)
-    order = resolve_case(args, metal="label").molecule_list()
+    case = resolve_case(args, metal="label")
+    _default_paths(args, case)
+    order = case.molecule_list()
 
     if not os.path.exists(args.descriptors):
         log(f"error: {args.descriptors} not found — run run_dft first.")

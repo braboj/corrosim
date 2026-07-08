@@ -52,8 +52,9 @@ complexipy         # cognitive complexity: no regression vs the snapshot
 ```
 
 For an end-to-end check that does not need QM, rebuild the report from the
-tracked result data — it writes the `report/` bundle (self-contained
-`report/report.html` + figures + tables):
+tracked result data — it writes the case's `report/<case>/` bundle
+(self-contained `report/arghel/report.html` + figures + tables for the default
+`arghel` study):
 
 ```bash
 python -m corrosim.runs.make_report

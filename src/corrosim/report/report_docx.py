@@ -163,7 +163,7 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
             "rows": [[r["name"], f"{r['pkah']:.1f}",
                       f"{r['f_protonated'] * 100:.2f}%"]
                      for r in computed_pkah],
-            "caption": f"Computed pKaH (DFT cycle, {basis}); results/pka.json.",
+            "caption": f"Computed pKaH (DFT cycle, {basis}).",
         })
 
 
