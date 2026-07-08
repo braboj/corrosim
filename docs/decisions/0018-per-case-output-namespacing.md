@@ -35,7 +35,13 @@ at the root.**
   wins; a bare run routes to the case's subtree, so a study can never clobber
   another's outputs by omission.
 - `cubes/` stays a single shared, gitignored, regenerable tree — it is not part
-  of the numbers-only validation surface, so it is not case-scoped.
+  of the numbers-only validation surface, so it is not case-scoped. Sharing is
+  deliberate: a cube is a slow QM-container product keyed by molecule name, so
+  identical molecules reuse one file across studies. **Revisit when** a study
+  beyond arghel renders a full report bundle (orbital/ESP figures, not just
+  numbers): cube names carry no level/medium qualifier, so two studies using
+  the same molecule at different levels would then collide — at that point make
+  cubes case-scoped (or level/medium-qualify the name).
 - The report bundle is a study's *purpose*, not its *location*: the layout is
   symmetric (`cases/<case>/report/` exists for any study), but only studies we render
   a report for populate it. Validation cross-checks are numbers-only and leave
