@@ -165,6 +165,9 @@ duplicate.
 - Single source of truth: the case study (molecule set + substrate + medium)
   lives in `src/corrosim/presets.py` (`ARGHEL`). Drivers import
   `ARGHEL.molecule_list()` / `ARGHEL.metal`; never re-declare the list.
+- The inhibitor library is data (`src/corrosim/data/inhibitors.json`, ADR
+  0017): add entries there or via `corrosim-add-inhibitor <name|CAS>` — never
+  hardcode SMILES back into `molecules.py`.
 - Generated data -> `results/`; figures -> `report/figures/`; report bundle ->
   `report/`; cubes -> `cubes/`.
 - When a change alters an input, regenerate the dependent artifact in the SAME
