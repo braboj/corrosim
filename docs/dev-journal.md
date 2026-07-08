@@ -1328,8 +1328,10 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   `docs/local/pyrazolo-pyrimidine-reported.local.md`, land with the first DFT run
   so QM validates the structures). Also **#71** Deployment (#66–#68), **#40**
   chemisorption E_ads. Standing housekeeping: `equations.py` production-unused;
-  `docs/solid-ai-templates` submodule ~80 commits behind (dedicated sync + file
-  the no-ticket-refs-in-docstrings convention upstream). Optional deferred:
+  `docs/solid-ai-templates` submodule ~80 commits behind (still needs a dedicated
+  sync session — reconcile against local overrides, not a wrap-time bump). The
+  no-ticket-refs-in-docstrings convention was **filed upstream**
+  (solid-ai-templates#745) during the wrap audit. Optional deferred:
   `CORROSIM_FETCH` resolver fallback.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
