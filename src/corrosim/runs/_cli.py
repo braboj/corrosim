@@ -92,7 +92,7 @@ def default_output(
     The run drivers default their ``--out*`` / ``--outdir`` / ``--datadir``
     flags to ``None`` so an explicit flag always wins; this fills the ones left
     unset with the per-case default, keeping each study's output under its own
-    ``results/<case>`` / ``report/<case>`` subtree instead of a shared root.
+    ``cases/<case>/`` subtree instead of a shared root.
 
     Args:
         args: The parsed argument namespace (mutated in place).

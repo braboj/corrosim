@@ -3,10 +3,11 @@
 Build one self-contained HTML report consolidating the full multiscale pipeline
 (DFT descriptors + Fukui + Monte Carlo + MD) and the committed figure set into a
 single shareable file. Reads the committed result data and embeds the figures
-from the case's ``report/<case>/figures/`` inline (base64), so the report stands
-alone. Also copies the source CSV/JSON tables into ``report/<case>/tables/`` so
-the bundle is complete. Every input/output path defaults to the case's own
-``results/<case>`` and ``report/<case>`` subtree; an explicit flag overrides it.
+from the case's ``report/figures/`` inline (base64), so the report stands alone.
+Also copies the source CSV/JSON tables into the case's ``report/tables/`` so the
+bundle is complete. Every input/output path defaults to the case's own
+``cases/<case>/`` subtree (``results/`` for data, ``report/`` for the bundle);
+an explicit flag overrides it.
 
 Runs in the venv (no QM container needed):
     python -m corrosim.runs.make_report                 # default case: arghel
@@ -256,7 +257,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="corrosim-make-report")
     add_case_arg(p)
     # All output paths default to None and backfill from the case's own
-    # results/<case> and report/<case> subtrees (see _default_paths); an
+    # cases/<case>/ subtree (see _default_paths); an
     # explicit flag always wins.
     p.add_argument("--descriptors", default=None)
     p.add_argument("--opt-descriptors", default=None,
@@ -286,8 +287,9 @@ def _build_parser() -> argparse.ArgumentParser:
 def _default_paths(args: argparse.Namespace, case: CaseStudy) -> None:
     """Backfill every unset report input/output path from the case's subtree.
 
-    Keeps a screening run's whole bundle under ``results/<case>`` (data) and
-    ``report/<case>`` (the rendered report), so studies never collide.
+    Keeps a screening run's whole bundle under one ``cases/<case>/`` subtree —
+    ``results/`` (data) and ``report/`` (the rendered report), so studies never
+    collide.
 
     Args:
         args: The parsed argument namespace (mutated in place).

@@ -16,7 +16,7 @@ Operational reference for common corrosim tasks. New contributors should read
   example `feat(pka): ... (#NN)`. Do not write "closes #N" in a PR body unless
   the PR actually resolves the issue — GitHub auto-closes it on merge.
 - Private working notes match `*.local.md` and are gitignored — never commit
-  them. The per-case `report/<case>/` bundle and `results/<case>/*.{csv,json}`
+  them. The per-case `cases/<case>/report/` bundle and `cases/<case>/results/*.{csv,json}`
   are tracked; `cubes/` and `*.log` are not.
 
 ## 2. Domain operations
@@ -43,12 +43,12 @@ the venv — they need no QM engines.
 ```bash
 python -m corrosim.runs.run_mc          # Stage 2 adsorption pose
 python -m corrosim.runs.run_md          # Stage 3 metal-O RDF
-python -m corrosim.runs.make_figures    # -> report/<case>/figures/ set
-python -m corrosim.runs.make_report     # -> report/<case>/ bundle (self-contained report.html)
+python -m corrosim.runs.make_figures    # -> cases/<case>/report/figures/ set
+python -m corrosim.runs.make_report     # -> cases/<case>/report/ bundle (self-contained report.html)
 ```
 
 Every driver's unset `--out*` flags auto-route to the `--case` study's own
-`results/<case>` / `report/<case>` subtree (default case: `arghel`); pass
+`cases/<case>/results` / `cases/<case>/report` subtree (default case: `arghel`); pass
 `--case <name>` to screen another study without overwriting arghel's outputs.
 
 Run the quantum stages (DFT descriptors, Fukui, pKa, cubes) in the
@@ -57,11 +57,11 @@ cubes — must run detached so a shell or session exit does not kill them.
 
 ```bash
 docker compose run --rm qm \
-    python -m corrosim.runs.run_dft --out-csv results/arghel/dft_descriptors_ff.csv
+    python -m corrosim.runs.run_dft --out-csv cases/arghel/results/dft_descriptors_ff.csv
 
 # detached (long jobs):
 docker compose run -d --name corrosim_job qm \
-    python -m corrosim.runs.run_pka --freq --out-json results/arghel/pka_freq.json
+    python -m corrosim.runs.run_pka --freq --out-json cases/arghel/results/pka_freq.json
 docker logs -f corrosim_job             # poll; then: docker rm corrosim_job
 ```
 
@@ -168,15 +168,15 @@ refactor epic), zero dead-code findings at ≥80% confidence.
   `NNN-slug.md` numbering; each ADR addresses one concern.
 - When a change alters an input, regenerate the dependent artifact in the same
   change: descriptors or `md_rdf.json` feed `make_figures` and `make_report`,
-  which produce the `report/<case>/` bundle.
+  which produce the `cases/<case>/report/` bundle.
 - After editing `docs/diagrams/pipeline.drawio`, re-export the pipeline diagram
   to **both** destinations (they must stay identical — the doc copy shown by
-  `docs/pipeline.md` and the `report/<case>/` bundle's `fig0`); commit the
+  `docs/pipeline.md` and the `cases/<case>/report/` bundle's `fig0`); commit the
   `.drawio` source and both PNGs together:
 
   ```bash
   drawio -x -f png -s 2 -o docs/diagrams/pipeline.png              docs/diagrams/pipeline.drawio
-  drawio -x -f png -s 2 -o report/arghel/figures/pipeline/fig0_pipeline.png docs/diagrams/pipeline.drawio
+  drawio -x -f png -s 2 -o cases/arghel/report/figures/pipeline/fig0_pipeline.png docs/diagrams/pipeline.drawio
   ```
 
   If `drawio` is not on PATH, invoke the installed draw.io desktop app's CLI
@@ -189,7 +189,7 @@ refactor epic), zero dead-code findings at ≥80% confidence.
 
 corrosim is an MIT-licensed library and CLI. There is currently no automated
 release or PyPI publish; the version lives in `pyproject.toml` and the tracked
-per-case `report/<case>/` bundle plus `results/<case>/` are the shipped
+per-case `cases/<case>/report/` bundle plus `cases/<case>/results/` are the shipped
 artifacts. When a release process
 is added, it should publish to PyPI from CI on a version tag, built with the
 standard `build` backend.

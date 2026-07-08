@@ -48,7 +48,7 @@ it only for screening, never for reported descriptors:
 
 In 1 M HCl the inhibitors protonate; the cations have smaller gaps (3.1–3.6 eV
 aqueous) and ΔN flips toward weak electron acceptance. Full neutral/protonated ×
-gas/aqueous matrix: `results/arghel/dft_descriptors_ff.{json,csv}` (run `python -m corrosim.runs.run_dft`).
+gas/aqueous matrix: `cases/arghel/results/dft_descriptors_ff.{json,csv}` (run `python -m corrosim.runs.run_dft`).
 
 **Quantitative pH-speciation (ADR 0004).** The most basic site is the 4-oxo
 carbonyl, a very weak base. A literature-range estimate (pKaH ≈ −1.5) puts the
@@ -59,7 +59,7 @@ case (more than geometry or level of theory).
 
 **Computed pKaH resolves it (ADR 0005; frequency-corrected, issue #18).** A DFT
 deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO on B3LYP/6-31G(d) gas
-opt+frequency geometries; `results/arghel/pka.json`, `run_pka --freq`) gives
+opt+frequency geometries; `cases/arghel/results/pka.json`, `run_pka --freq`) gives
 **pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −3.92** — all far below
 the crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The
 neutral form is therefore the physically dominant species, not just the
@@ -83,7 +83,7 @@ only by the correction).
 
 The matrix above uses force-field (MMFF) geometries with a DFT single point. Re-running
 the neutral set with a **DFT geometry optimisation** first (B3LYP/6-31G(d), gas phase;
-`run_dft --optimize`, data in `results/arghel/dft_descriptors_opt.{json,csv}`) shifts every descriptor
+`run_dft --optimize`, data in `cases/arghel/results/dft_descriptors_opt.{json,csv}`) shifts every descriptor
 in the same direction but **leaves both rankings unchanged** — the lead assignments are
 geometry-robust:
 
@@ -109,8 +109,8 @@ cheap proxy, and the production numbers tighten with the relaxed geometry (figur
 | **Black tea extract study** (Mater. Chem. Phys., 2025) | DFT, periodic + dispersion | strongest constituent; ΔGads ≈ −20 kJ/mol (overall physicochemical ~−35) | weaker than quercetin |
 | **Lady's mantle study** (Results in Chemistry, 2025) | DFT/MC | — | strong adsorption confirmed (reference compound) |
 
-(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `results/arghel/mc_adsorption.json`,
-`results/arghel/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
+(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `cases/arghel/results/mc_adsorption.json`,
+`cases/arghel/results/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
 ## Experimental validation (Mohammed 2014)
 
@@ -204,7 +204,7 @@ as a screening hypothesis rather than a measured result.
 The Arghel study above is validation study #1. To exercise the substrate- and
 medium-agnostic design against *independent* published systems, corrosim ships a
 **validation preset** per reproduced paper (`presets.CASE_STUDIES`, each with a
-`source` citation); its outputs live under `results/<case>/` and its reported
+`source` citation); its outputs live under `cases/<case>/results/` and its reported
 target values are recorded below. Run one with, e.g.,
 `python -m corrosim.runs.run_dft --case phytic-acid` (QM in the container).
 
@@ -233,7 +233,7 @@ medium.
 
 **Computed (corrosim): *pending a QM run*.** The DFT descriptors (B3LYP/6-311++G(d,p)),
 MC E_ads and MD Fe–O RDF for this preset are not yet generated — a `--case phytic-acid`
-run in the QM container fills `results/phytic-acid/`, and the computed-vs-reported
+run in the QM container fills `cases/phytic-acid/results/`, and the computed-vs-reported
 comparison lands here.
 
 **Caveats to apply when comparing (not oversights — level-of-theory differences):**

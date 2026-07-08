@@ -6,7 +6,7 @@ ranking is preserved. Reads the two descriptor matrices, writes a tidy
 comparison CSV and a grouped-bar figure, and prints a summary.
 
 Runs in the venv (no QM container); unset paths default to the case's own
-results/<case> and report/<case> subtrees:
+cases/<case>/results and cases/<case>/report subtrees:
     python -m corrosim.runs.compare_geometry --case arghel
 """
 from __future__ import annotations
@@ -85,10 +85,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     add_case_arg(p)
     p.add_argument("--ff", default=None,
                    help="Force-field-geometry descriptor matrix; unset uses "
-                        "the case's results/<case> subtree.")
+                        "the case's cases/<case>/results subtree.")
     p.add_argument("--opt", default=None,
                    help="DFT-optimised-geometry descriptor matrix; unset uses "
-                        "the case's results/<case> subtree.")
+                        "the case's cases/<case>/results subtree.")
     p.add_argument("--phase", default="aqueous", choices=["gas", "aqueous"])
     p.add_argument("--out-csv", default=None)
     p.add_argument("--out-fig", default=None)

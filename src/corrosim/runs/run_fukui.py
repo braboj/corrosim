@@ -2,7 +2,7 @@
 
 Condensed Fukui functions / dual descriptor for the flavonoids — local
 reactivity (which atoms bind the metal). Writes per-molecule JSON to the case's
-results/<case> subtree; figures are rendered separately by make_figures.
+cases/<case>/results subtree; figures are rendered separately by make_figures.
 
 Three single points per molecule (N, N-1, N+1) at fixed geometry; needs PySCF.
 
@@ -50,7 +50,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "difference.")
     p.add_argument("--outdir", default=None,
                    help="Output directory; unset uses the case's "
-                        "results/<case> subtree.")
+                        "cases/<case>/results subtree.")
     args = p.parse_args(argv)
     case = resolve_case(args)
     default_output(args, "outdir", case.results_dir)
