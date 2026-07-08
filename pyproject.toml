@@ -48,6 +48,9 @@ dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
 
 [project.scripts]
 corrosim = "corrosim.cli:main"
+# Dev-time library-expand tool. Uses only the stdlib (urllib) to query PubChem,
+# so it needs no extra dependency; runs and CI stay offline by default.
+corrosim-add-inhibitor = "corrosim.fetch:main"
 
 [project.urls]
 Homepage = "https://github.com/braboj/corrosim"
