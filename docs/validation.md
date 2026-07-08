@@ -198,3 +198,58 @@ need sample-specific LC-MS plus isolated-compound electrochemistry; both are
 therefore treated as documented-representative (El-Shiekh et al. 2024, and the
 Fe(110) black-tea / lady's-mantle DFT precedents above), and the ranking is offered
 as a screening hypothesis rather than a measured result.
+
+## Multi-study validation suite
+
+The Arghel study above is validation study #1. To exercise the substrate- and
+medium-agnostic design against *independent* published systems, corrosim ships a
+**validation preset** per reproduced paper (`presets.CASE_STUDIES`, each with a
+`source` citation); its outputs live under `results/<case>/` and its reported
+target values are recorded below. Run one with, e.g.,
+`python -m corrosim.runs.run_dft --case phytic-acid` (QM in the container).
+
+### Phytic acid — Q235 mild steel (Fe(110)) / 0.5 M H₂SO₄
+
+**Preset:** `phytic-acid` · **Source:** Chidiebere, Oguzie, Liu, Li & Wang,
+*Corrosion Inhibition of Q235 Mild Steel in 0.5 M H₂SO₄ Solution by Phytic Acid
+and Synergistic Iodide Additives*, **Ind. Eng. Chem. Res. 2014, 53, 7670–7679**
+(DOI 10.1021/ie404382v). Phytic acid = *myo*-inositol hexakisphosphate
+(C₆H₁₈O₂₄P₆, CAS 83-86-3). This is a Tier-1 anchor: a fully experiment-validated
+DFT+MD workflow, on a non-flavonoid inhibitor in a sulfuric — not hydrochloric —
+medium.
+
+**Reported values (the comparison target):**
+
+| Quantity | Reported | Method (in the paper) |
+| --- | --- | --- |
+| E_HOMO | −6.508 eV | AM1 semi-empirical (VAMP, MS Studio) |
+| E_LUMO | −1.732 eV | AM1 |
+| Gap ΔE | 4.776 eV | AM1 |
+| Molecular surface area | 553.89 Å² | AM1; a **flat-lying** adsorption orientation |
+| Binding energy E_bind | −199 ± 0.8 kcal/mol | COMPASS MD on Fe(110) (12×10 supercell, NVE, 350 K) |
+| IE % (max) | 88.7 % at 0.001 M | potentiodynamic polarization |
+| ΔG°_ads | −29.6 kJ/mol (PA) | Langmuir isotherm; mixed-type inhibitor |
+| Mechanism | chemisorption | IE rises with T; low/negative E_a |
+
+**Computed (corrosim): *pending a QM run*.** The DFT descriptors (B3LYP/6-311++G(d,p)),
+MC E_ads and MD Fe–O RDF for this preset are not yet generated — a `--case phytic-acid`
+run in the QM container fills `results/phytic-acid/`, and the computed-vs-reported
+comparison lands here.
+
+**Caveats to apply when comparing (not oversights — level-of-theory differences):**
+
+- **AM1 ≠ B3LYP.** The reported orbital energies are AM1 semi-empirical and sit
+  on a different scale from corrosim's B3LYP/6-311++G(d,p) — exactly the caution
+  we already document for xTB. Expect the *numeric* HOMO/LUMO/gap to differ;
+  compare the qualitative picture (heteroatom-localized frontier orbitals, a
+  small gap, flat-lying adsorption) rather than the digits.
+- **Medium.** 0.5 M H₂SO₄ (a diprotic strong acid), not the Arghel HCl —
+  `medium.py` models it as the acidic protonated regime.
+- **E_bind observable.** The −199 kcal/mol is a COMPASS *periodic* binding energy
+  (many metal–adsorbate contacts), a different observable from corrosim's UFF
+  single-molecule van-der-Waals E_ads — compare regime and sign, not the number
+  (the same distinction drawn for the Arghel MC vs experimental ΔG°_ads above).
+- **Chemisorption claim.** The paper argues chemical adsorption; corrosim's
+  classical MC/MD is a physisorption surrogate, so it can corroborate strong
+  adsorption and a flat pose but not the charge-transfer bond — the periodic-DFT
+  hand-off would be needed for that.

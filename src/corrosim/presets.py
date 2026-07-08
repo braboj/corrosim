@@ -9,8 +9,12 @@ SMILES), on what (`metal`, a `descriptors.METAL_WORK_FUNCTION` label), in what
 
 The shipped study is `ARGHEL` — the major *Solenostemma argel* flavonoid
 aglycones on mild steel in 1 M HCl. The run drivers default to it; point them
-at a different `CaseStudy` (or pass `--molecules/--metal`) to screen something
-else.
+at a different `CaseStudy` (`--case`, or pass `--molecules/--metal`) to screen
+something else.
+
+Alongside it are **validation presets** — each reproduces a published study's
+system (its `source` names the paper) so the computed descriptors / adsorption
+can be checked against that paper's reported values in `docs/validation.md`.
 """
 from __future__ import annotations
 
@@ -44,6 +48,10 @@ class CaseStudy:
     # Report label; implies the acidic (protonated) species
     medium: str = "1 M HCl"
     description: str = ""
+    # Provenance: the paper/thesis this system reproduces (citation or DOI).
+    # Empty for an original screen; set for a validation preset so the reported
+    # target values in docs/validation.md are traceable to their source.
+    source: str = ""
 
     @property
     def metal_element(self) -> str:
@@ -100,9 +108,38 @@ ARGHEL = CaseStudy(
     medium="1 M HCl",
     description="Major Arghel (Solenostemma argel) flavonoid aglycones vs mild "
                 "steel (Fe(110)) in 1 M HCl.",
+    source="Mohammed, Corrosion Inhibition of Steel in Acidic Medium by Herbs "
+           "Extract (MSc, Alexandria University, 2014); constituents from "
+           "El-Shiekh et al., Bull. Fac. Pharm. Cairo Univ. 2024.",
 )
 
-CASE_STUDIES: dict[str, CaseStudy] = {"arghel": ARGHEL, "argel": ARGHEL}
+# --- Validation presets ----------------------------------------------------
+# Each reproduces a published simulation study's system so the computed
+# descriptors / adsorption can be checked against the paper's reported values
+# (recorded in docs/validation.md). Each study writes under its own
+# results/<case> / report/<case> subtree, so the presets never collide.
+PHYTIC_ACID = CaseStudy(
+    name="phytic-acid",
+    molecules=("phytic acid",),
+    metal="Fe(110)",
+    medium="0.5 M H2SO4",
+    description="Phytic acid vs Q235 mild steel (Fe(110)) in 0.5 M H2SO4 — the "
+                "fully experiment-validated Chidiebere (2014) DFT+MD anchor; "
+                "exercises the sulfuric-acid medium and a non-flavonoid "
+                "inhibitor.",
+    source="Chidiebere, Oguzie, Liu, Li, Wang, Corrosion Inhibition of Q235 "
+           "Mild Steel in 0.5 M H2SO4 Solution by Phytic Acid and Synergistic "
+           "Iodide Additives, Ind. Eng. Chem. Res. 2014, 53, 7670-7679 "
+           "(DOI 10.1021/ie404382v).",
+)
+
+CASE_STUDIES: dict[str, CaseStudy] = {
+    "arghel": ARGHEL,
+    "argel": ARGHEL,
+    "phytic-acid": PHYTIC_ACID,
+    "phytic_acid": PHYTIC_ACID,
+    "phytic": PHYTIC_ACID,
+}
 
 
 def case_study(name: str) -> CaseStudy:
