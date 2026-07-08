@@ -1235,4 +1235,46 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   session should reconcile it (and file the #151 "no ticket refs in
   docstrings" convention upstream) rather than bump it blind at a wrap.
 
+## 2026-07-08 (session 13) — #54 data-driven inhibitor library (both parts)
+
+- **Tool:** Claude Code (Opus 4.8). Cleared **#54** end to end — the data-driven
+  library refactor and its on-demand fetch tool — across two merged PRs, closing
+  the issue and advancing epic **#72** (`#100 ✅ → #54 ✅ → #53` remaining).
+- **Part 1 (PR #159, squash-merged) — externalise the library.** Moved the
+  hardcoded five-entry `LIBRARY` dict out of `molecules.py` into shipped package
+  data `src/corrosim/data/inhibitors.json` (new dir; `[tool.setuptools.package-data]`),
+  loaded at import via `importlib.resources`. Richer per-entry schema
+  (`smiles / aliases / source / cas / notes`); the public `LIBRARY`
+  (`dict[str, str]` view) and `ALIASES` derive from the records, full records
+  exposed as `INHIBITORS`. Behaviour-preserving — same five SMILES, names, and
+  order; `resolve_smiles` / `build_molecule` unchanged. New
+  `tests/test_inhibitors_json.py` schema-validates the JSON and round-trips
+  every entry offline; verified the JSON ships in a built wheel.
+- **Part 2 (PR #160, squash-merged) — `corrosim-add-inhibitor`.** New
+  `src/corrosim/fetch.py` + console script: `<name|CAS>` → PubChem PUG REST
+  (`Title,SMILES`), CAS from the synonyms endpoint, RDKit-validate, append with
+  `source: pubchem`; refuses overwrite without `--force`. **Stdlib `urllib`
+  only** — no new dependency, no `[fetch]` extra; the committed JSON stays the
+  offline single source of truth and runs/CI never hit the network. 11 offline
+  tests (single HTTP seam monkeypatched). Locked the PubChem contract by probing
+  live first (the `SMILES` property is the current isomeric one; old names still
+  resolve). Live smoke test: `thiourea` and CAS `68-12-2` (DMF) both round-trip.
+- **Decision:** recorded as **ADR 0017** (data-driven library + offline fetch
+  tool; the new `data/` dir is its trigger). The optional gated
+  `resolve_smiles` live fallback (`CORROSIM_FETCH`) was **deliberately deferred**
+  to keep the import hot path offline-pure.
+- **Docs:** README structure block (`fetch` + `data/`), PLAYBOOK grow-the-library
+  command block, CLAUDE.md §2.3 one-line library rule.
+- **Audit:** pytest **188 passed / 1 skipped**; ruff + mypy (40 files) +
+  complexipy (`[]`, snapshot unchanged) green; tree clean on `main`, nothing
+  unpushed.
+- **Pending:** feature backlog — **#53** per-paper validation presets (now
+  unblocked: add a `source` field to `CaseStudy`, reproduce a Tier-1 paper's
+  system, compare vs reported values in `docs/validation.md`), **#71**
+  Deployment (#66–#68), **#40** chemisorption E_ads. Standing housekeeping:
+  `equations.py` production-unused (removal candidate); `docs/solid-ai-templates`
+  submodule ~80 commits behind (dedicated sync session, and file the
+  no-ticket-refs-in-docstrings convention upstream — still not landed). Optional
+  deferred: the gated `CORROSIM_FETCH` resolver fallback.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
