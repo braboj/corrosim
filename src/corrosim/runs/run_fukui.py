@@ -1,8 +1,8 @@
 """corrosim.runs.run_fukui  (M2 driver).
 
 Condensed Fukui functions / dual descriptor for the flavonoids — local
-reactivity (which atoms bind the metal). Writes per-molecule JSON to results/;
-figures are rendered separately by make_figures.
+reactivity (which atoms bind the metal). Writes per-molecule JSON to the case's
+results/<case> subtree; figures are rendered separately by make_figures.
 
 Three single points per molecule (N, N-1, N+1) at fixed geometry; needs PySCF.
 
@@ -19,6 +19,7 @@ from corrosim.qm.fukui import compute_fukui
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
+    default_output,
     iter_molecules,
     resolve_case,
     stderr_log,
@@ -47,9 +48,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--method", default="fmo", choices=["fmo", "fd"],
                    help="fmo = fast one-SCF frontier-orbital; fd = finite "
                         "difference.")
-    p.add_argument("--outdir", default="results")
+    p.add_argument("--outdir", default=None,
+                   help="Output directory; unset uses the case's "
+                        "results/<case> subtree.")
     args = p.parse_args(argv)
-    resolve_case(args)
+    case = resolve_case(args)
+    default_output(args, "outdir", case.results_dir)
 
     for name, m in iter_molecules(args):
         stderr_log(f"[{name}] computing Fukui ({args.method}) ...")

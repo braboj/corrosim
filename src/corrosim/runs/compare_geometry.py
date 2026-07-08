@@ -5,12 +5,9 @@ descriptors relative to the force-field geometry, and check that the inhibitor
 ranking is preserved. Reads the two descriptor matrices, writes a tidy
 comparison CSV and a grouped-bar figure, and prints a summary.
 
-Runs in the venv (no QM container):
-    python -m corrosim.runs.compare_geometry \
-        --ff results/dft_descriptors_ff.csv \
-        --opt results/dft_descriptors_opt.csv \
-        --out-csv results/geometry_comparison.csv \
-        --out-fig report/figures/fig8_geometry_comparison.png
+Runs in the venv (no QM container); unset paths default to the case's own
+results/<case> and report/<case> subtrees:
+    python -m corrosim.runs.compare_geometry --case arghel
 """
 from __future__ import annotations
 
@@ -23,8 +20,10 @@ matplotlib.use("Agg")
 import pandas as pd
 
 from corrosim.report import figures
+from corrosim.report.report_layout import figure_path
 from corrosim.runs._cli import (
     add_case_arg,
+    default_output,
     form_rows_in_order,
     resolve_case,
 )
@@ -84,16 +83,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="corrosim-compare-geometry")
     add_case_arg(p)
-    p.add_argument("--ff", default="results/dft_descriptors_ff.csv",
-                   help="Force-field-geometry descriptor matrix.")
-    p.add_argument("--opt", default="results/dft_descriptors_opt.csv",
-                   help="DFT-optimised-geometry descriptor matrix.")
+    p.add_argument("--ff", default=None,
+                   help="Force-field-geometry descriptor matrix; unset uses "
+                        "the case's results/<case> subtree.")
+    p.add_argument("--opt", default=None,
+                   help="DFT-optimised-geometry descriptor matrix; unset uses "
+                        "the case's results/<case> subtree.")
     p.add_argument("--phase", default="aqueous", choices=["gas", "aqueous"])
-    p.add_argument("--out-csv", default="results/geometry_comparison.csv")
-    p.add_argument("--out-fig",
-                   default="report/figures/fig8_geometry_comparison.png")
+    p.add_argument("--out-csv", default=None)
+    p.add_argument("--out-fig", default=None)
     args = p.parse_args(argv)
-    case_order = resolve_case(args).molecule_list()
+    case = resolve_case(args)
+    default_output(args, "ff", f"{case.results_dir}/dft_descriptors_ff.csv")
+    default_output(args, "opt", f"{case.results_dir}/dft_descriptors_opt.csv")
+    default_output(args, "out_csv",
+                   f"{case.results_dir}/geometry_comparison.csv")
+    # fig8 lands in its report_layout stage subfolder (dft/), where the report
+    # embeds it — not flat at the figures root.
+    default_output(args, "out_fig",
+                   figure_path(f"{case.report_dir}/figures",
+                               "fig8_geometry_comparison.png"))
+    case_order = case.molecule_list()
 
     ff_full, opt_full = pd.read_csv(args.ff), pd.read_csv(args.opt)
 

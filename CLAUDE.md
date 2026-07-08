@@ -45,9 +45,13 @@ tree does not carry:
 - `docs/diagrams/` — editable `.drawio` diagram sources.
 - `docs/solid-ai-templates/` — the quality-convention submodule (see this file's
   header).
-- The `report/` bundle nests `figures/<stage>/` + `tables/<stage>/` by pipeline
-  stage via `report_layout` (dft/fukui/esp/mc/md/pipeline; fig0 = pipeline
-  diagram) — ADR 0006/0008.
+- Outputs are per-case (ADR 0018): each case study writes under
+  `results/<case>/` (data) and `report/<case>/` (bundle) — the shipped study is
+  `arghel`. A driver derives these from its `--case` (`CaseStudy.results_dir` /
+  `report_dir`); never hardcode a bare `results/`/`report/` root.
+- The `report/<case>/` bundle nests `figures/<stage>/` + `tables/<stage>/` by
+  pipeline stage via `report_layout` (dft/fukui/esp/mc/md/pipeline; fig0 =
+  pipeline diagram) — ADR 0006/0008.
 
 ### 1.3 Commands
 
@@ -62,8 +66,8 @@ mypy                                   # type-check (non-strict) — also a CI g
 complexipy                             # cognitive-complexity ratchet vs committed snapshot
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
-python -m corrosim.runs.run_dft   --out-csv results/dft_descriptors_ff.csv
-python -m corrosim.runs.make_report    # -> report/ (report.html + report.docx + figures + tables)
+python -m corrosim.runs.run_dft   --out-csv results/arghel/dft_descriptors_ff.csv
+python -m corrosim.runs.make_report    # -> report/arghel/ (report.html + report.docx + figures + tables)
 ```
 
 Long QM jobs (geometry-opt, frequency, MEP cubes) MUST run detached so a shell
@@ -114,8 +118,9 @@ duplicate.
   auto-closes the issue on merge.
 - `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
   never committed.
-- The `report/` bundle (report.html + report.docx + figures/ + tables/) and
-  `results/*.{csv,json}` ARE tracked; `cubes/` and `*.log` are not.
+- The per-case `report/<case>/` bundle (report.html + report.docx + figures/ +
+  tables/) and `results/<case>/*.{csv,json}` ARE tracked; `cubes/` and `*.log`
+  are not.
 
 ### 2.2 Python
 
@@ -168,11 +173,13 @@ duplicate.
 - The inhibitor library is data (`src/corrosim/data/inhibitors.json`, ADR
   0017): add entries there or via `corrosim-add-inhibitor <name|CAS>` — never
   hardcode SMILES back into `molecules.py`.
-- Generated data -> `results/`; figures -> `report/figures/`; report bundle ->
-  `report/`; cubes -> `cubes/`.
+- Outputs are per-case (ADR 0018): generated data -> `results/<case>/`; figures
+  -> `report/<case>/figures/`; report bundle -> `report/<case>/`; cubes ->
+  `cubes/` (shared, not case-scoped). Unset driver `--out*` flags auto-route to
+  the `--case` dirs; the shipped study is `arghel`.
 - When a change alters an input, regenerate the dependent artifact in the SAME
   change: descriptors / `md_rdf.json` -> `make_figures` + `make_report` ->
-  `report/`. Verify the diff (spot-check values, not just file size).
+  `report/<case>/`. Verify the diff (spot-check values, not just file size).
 
 ## 3. Quality
 
@@ -210,7 +217,8 @@ and `python-lib.md` as the standard.
 - Units stated (eV / Å / kJ/mol); no bare numbers.
 - Outputs metal-agnostic — no stray hardcoded "Fe".
 - Case study read from `presets.ARGHEL`, not re-declared.
-- Dependent artifacts (the `report/` bundle) regenerated in the same change.
+- Dependent artifacts (the `report/<case>/` bundle) regenerated in the same
+  change.
 
 ### 5.2 Structure audit
 
@@ -235,7 +243,7 @@ end-of-session audit.
 - Run long QM jobs DETACHED (see 1.3); they survive a session teardown. Docker
   Desktop may be down after a host restart — start it and wait for
   `docker info` to answer before launching containers.
-- Keep `results/` and the `report/` bundle regenerated as you go.
+- Keep `results/<case>/` and the `report/<case>/` bundle regenerated as you go.
 - When a path-based shell query (`test -f`, `ls`, `git -C`) returns an
   unexpected empty/negative, verify `pwd` first — the shell cwd persists
   across commands and an earlier `cd` can make it false-negative.

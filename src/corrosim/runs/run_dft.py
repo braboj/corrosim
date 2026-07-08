@@ -11,12 +11,13 @@ For each molecule the protonation site is chosen as the lowest-energy conjugate
 acid (fast screening engine), then the reported descriptors come from DFT.
 Results are cached to JSON and printed as a table.
 
-Local use (needs rdkit + pyscf — long jobs are expected):
+Local use (needs rdkit + pyscf — long jobs are expected); the persisted
+geometries follow --out-csv/--out-json, else the case's results/<case> subtree:
 
     python -m corrosim.runs.run_dft \
         --molecules kaempferol,quercetin,isorhamnetin --engine pyscf \
-        --out-json results/dft_descriptors_ff.json \
-        --out-csv results/dft_descriptors_ff.csv
+        --out-json results/arghel/dft_descriptors_ff.json \
+        --out-csv results/arghel/dft_descriptors_ff.csv
 
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 
@@ -31,8 +32,8 @@ and are QM-heavy (a Hessian per species) — run detached in the QM container:
 
     docker compose run -d --name corrosim_dft qm \
         python -m corrosim.runs.run_dft --to-minimum \
-        --out-json results/dft_descriptors_opt.json \
-        --out-csv results/dft_descriptors_opt.csv
+        --out-json results/arghel/dft_descriptors_opt.json \
+        --out-csv results/arghel/dft_descriptors_opt.csv
 """
 from __future__ import annotations
 
@@ -392,7 +393,11 @@ def _warn_medium_mismatch(forms: str, medium: str) -> None:
               file=sys.stderr)
 
 
-def _opt_geom_dir(args: argparse.Namespace, to_minimum: bool) -> str | None:
+def _opt_geom_dir(
+    args: argparse.Namespace,
+    to_minimum: bool,
+    results_dir: str,
+) -> str | None:
     """Directory to persist DFT-optimised geometries, if this run makes them.
 
     Defaults a location only for geometry-PRODUCING runs (--optimize /
@@ -403,6 +408,8 @@ def _opt_geom_dir(args: argparse.Namespace, to_minimum: bool) -> str | None:
     Args:
         args: Parsed CLI arguments.
         to_minimum: The resolved drive-to-minimum flag.
+        results_dir: The case's results directory, used when neither
+            --out-csv/--out-json nor --opt-xyz-dir pins a location.
 
     Returns:
         The output directory, or None when the run produces no geometries.
@@ -411,7 +418,7 @@ def _opt_geom_dir(args: argparse.Namespace, to_minimum: bool) -> str | None:
         return args.opt_xyz_dir
     if args.optimize or to_minimum:
         return (os.path.dirname(args.out_csv or args.out_json or "")
-                or "results")
+                or results_dir)
     return None
 
 
@@ -448,7 +455,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success).
     """
     args = _build_parser().parse_args(argv)
-    resolve_case(args, metal="label")
+    case = resolve_case(args, metal="label")
 
     molecules = parse_molecules(args.molecules)
     forms = "neutral" if args.no_protonated else args.forms
@@ -461,7 +468,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     optimize = args.optimize or check_minimum or to_minimum
 
     _warn_medium_mismatch(forms, args.medium)
-    opt_geom_dir = _opt_geom_dir(args, to_minimum)
+    opt_geom_dir = _opt_geom_dir(args, to_minimum, case.results_dir)
 
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,

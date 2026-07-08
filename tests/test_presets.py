@@ -21,6 +21,15 @@ def test_case_study_lookup():
         case_study("nope")
 
 
+def test_case_study_output_dirs_are_per_case():
+    # each study self-describes its own output subtree, so runs never collide
+    assert ARGHEL.results_dir == "results/arghel"
+    assert ARGHEL.report_dir == "report/arghel"
+    other = ARGHEL.__class__(name="phytic-acid", molecules=("phytic acid",))
+    assert other.results_dir == "results/phytic-acid"
+    assert other.report_dir == "report/phytic-acid"
+
+
 def test_drivers_share_the_preset_list():
     # the run drivers must derive their defaults from the case study via the one
     # shared _cli helper, not re-declare the list (issues #64 single-sourcing)

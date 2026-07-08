@@ -82,6 +82,27 @@ def resolve_case(args: argparse.Namespace, metal: str = "label") -> CaseStudy:
     return case
 
 
+def default_output(
+    args: argparse.Namespace,
+    attr: str,
+    value: str,
+) -> None:
+    """Backfill an unset output-path argument from the case's own directory.
+
+    The run drivers default their ``--out*`` / ``--outdir`` / ``--datadir``
+    flags to ``None`` so an explicit flag always wins; this fills the ones left
+    unset with the per-case default, keeping each study's output under its own
+    ``results/<case>`` / ``report/<case>`` subtree instead of a shared root.
+
+    Args:
+        args: The parsed argument namespace (mutated in place).
+        attr: The argument attribute name, e.g. ``"outdir"``.
+        value: The per-case default path to use when ``attr`` is unset.
+    """
+    if getattr(args, attr, None) is None:
+        setattr(args, attr, value)
+
+
 def parse_molecules(spec: str) -> list[str]:
     """Split a comma-separated ``--molecules`` value into clean names.
 
@@ -224,6 +245,7 @@ __all__ = [
     "add_case_arg",
     "add_molecules_arg",
     "resolve_case",
+    "default_output",
     "parse_molecules",
     "stderr_log",
     "write_json",

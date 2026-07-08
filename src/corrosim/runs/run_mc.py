@@ -1,9 +1,9 @@
 """corrosim.runs.run_mc  (M3 driver).
 
 Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on
-the metal slab. Writes a summary JSON to results/; figures are
-rendered separately by make_figures. Pure classical (numpy + ASE); runs
-anywhere, no QM.
+the metal slab. Writes a summary JSON to the case's results/<case> subtree;
+figures are rendered separately by make_figures. Pure classical (numpy + ASE);
+runs anywhere, no QM.
 
     python -m corrosim.runs.run_mc \
         --molecules kaempferol,quercetin,isorhamnetin --metal Fe --steps 4000
@@ -17,6 +17,7 @@ from corrosim.adsorption.mc import run_mc
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
+    default_output,
     iter_molecules,
     print_table,
     resolve_case,
@@ -42,9 +43,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--metal", default=None, help="Fe | Cu | Al")
     p.add_argument("--steps", type=int, default=4000)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--outdir", default="results")
+    p.add_argument("--outdir", default=None,
+                   help="Output directory; unset uses the case's "
+                        "results/<case> subtree.")
     args = p.parse_args(argv)
-    resolve_case(args, metal="element")
+    case = resolve_case(args, metal="element")
+    default_output(args, "outdir", case.results_dir)
 
     summary = []
     for name, m in iter_molecules(args):

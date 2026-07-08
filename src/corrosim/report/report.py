@@ -316,7 +316,7 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
         "<h4>Computed pKaH (DFT deprotonation cycle)</h4>",
         f"<table><thead>{head}</thead><tbody>{body}</tbody></table>",
         f'<p class="meta">B3LYP/6-311++G(d,p) + ddCOSMO deprotonation cycle '
-        f"({basis}); results/pka.json.</p>",
+        f"({basis}).</p>",
     ]
 
 

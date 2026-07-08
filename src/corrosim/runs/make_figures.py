@@ -1,7 +1,8 @@
 """corrosim.runs.make_figures  (M5).
 
-Regenerate the full manuscript figure set into report/figures/. Reads the
-committed data (dft_descriptors_ff.csv, *_fukui.json), re-runs the fast
+Regenerate the full manuscript figure set into the case's
+report/<case>/figures/ subtree. Reads the committed data
+(dft_descriptors_ff.csv, *_fukui.json) from results/<case>, re-runs the fast
 classical MC/MD, and renders orbital isosurfaces from any *_homo.cube /
 *_lumo.cube present.
 
@@ -27,7 +28,12 @@ from corrosim.adsorption.md import run_md
 from corrosim.qm.fukui import FukuiResult
 from corrosim.report import figures
 from corrosim.report.report_layout import figure_path
-from corrosim.runs._cli import add_case_arg, read_json, resolve_case
+from corrosim.runs._cli import (
+    add_case_arg,
+    default_output,
+    read_json,
+    resolve_case,
+)
 from corrosim.runs._cli import stderr_log as log
 
 if TYPE_CHECKING:
@@ -132,7 +138,7 @@ def _fig_esp(args: argparse.Namespace, order: list[str], out: _Out) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point: regenerate the manuscript figure set.
 
-    Writes into ``report/figures/``.
+    Writes into the case's ``report/<case>/figures/`` subtree.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).
@@ -142,15 +148,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="corrosim-make-figures")
     add_case_arg(p)
-    p.add_argument("--outdir", default="report/figures")
-    p.add_argument("--datadir", default="results",
-                   help="Where the descriptor/Fukui data live.")
+    p.add_argument("--outdir", default=None,
+                   help="Figures root; unset uses the case's "
+                        "report/<case>/figures subtree.")
+    p.add_argument("--datadir", default=None,
+                   help="Where the descriptor/Fukui data live; unset uses the "
+                        "case's results/<case> subtree.")
     p.add_argument("--cubedir", default="cubes",
                    help="Where the volumetric cubes live.")
     p.add_argument("--steps-mc", type=int, default=5000)
     p.add_argument("--steps-md", type=int, default=6000)
     args = p.parse_args(argv)
     case = resolve_case(args)
+    default_output(args, "outdir", f"{case.report_dir}/figures")
+    default_output(args, "datadir", case.results_dir)
     order = case.molecule_list()
     os.makedirs(args.outdir, exist_ok=True)
 

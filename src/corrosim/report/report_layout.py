@@ -1,10 +1,11 @@
 """corrosim.report_layout.
 
-Single source of truth for the *per-stage* layout of the ``report/`` bundle: the
-figures and tables are grouped into pipeline-stage subfolders
-(``report/figures/dft/``, ``.../mc/`` …) so a reader can navigate the output by
-stage rather than a flat pile of ``figN_*`` files. The figure generator
-(``runs.make_figures``), the report builders (``report`` / ``report_docx``) and
+Single source of truth for the *per-stage* layout of the ``report/<case>/``
+bundle: the figures and tables are grouped into pipeline-stage subfolders
+(``report/<case>/figures/dft/``, ``.../mc/`` …) so a reader can navigate the
+output by stage rather than a flat pile of ``figN_*`` files. The figure
+generator (``runs.make_figures``), the report builders (``report`` /
+``report_docx``) and
 the table bundler (``runs.make_report``) all resolve paths through this module
 so the write side and the read side never drift.
 
@@ -16,7 +17,7 @@ from __future__ import annotations
 
 import os
 
-# Stage subfolders under report/figures/, in pipeline order.
+# Stage subfolders under report/<case>/figures/, in pipeline order.
 FIGURE_STAGES = ("pipeline", "dft", "fukui", "esp", "mc", "md")
 
 # Figure-filename prefix -> stage subfolder. The per-molecule families

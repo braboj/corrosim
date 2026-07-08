@@ -18,6 +18,7 @@ from corrosim.adsorption.md import run_md
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
+    default_output,
     iter_molecules,
     print_table,
     resolve_case,
@@ -48,9 +49,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--equil", type=int, default=1500)
     p.add_argument("--temperature", type=float, default=298.0)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--outdir", default="results")
+    p.add_argument("--outdir", default=None,
+                   help="Output directory; unset uses the case's "
+                        "results/<case> subtree.")
     args = p.parse_args(argv)
-    resolve_case(args, metal="element")
+    case = resolve_case(args, metal="element")
+    default_output(args, "outdir", case.results_dir)
 
     summary = []
     for name, m in iter_molecules(args):

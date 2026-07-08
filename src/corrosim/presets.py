@@ -55,6 +55,33 @@ class CaseStudy:
         """
         return metal_element(self.metal)
 
+    @property
+    def results_dir(self) -> str:
+        """Per-case directory for computed data (descriptors, MC, MD, pKa).
+
+        Every study writes under its own subtree, so screening a second case
+        never overwrites another's results and the owning study is visible from
+        the path itself (no unlabelled study at the ``results/`` root).
+
+        Returns:
+            ``results/<name>``, e.g. ``results/arghel``.
+        """
+        return f"results/{self.name}"
+
+    @property
+    def report_dir(self) -> str:
+        """Per-case directory for the report bundle.
+
+        The bundle (``report.html`` / ``report.docx`` / ``figures/`` /
+        ``tables/``) nests under the study's own subtree, matching
+        :attr:`results_dir`. A validation cross-check leaves it unpopulated;
+        the shipped study renders into it.
+
+        Returns:
+            ``report/<name>``, e.g. ``report/arghel``.
+        """
+        return f"report/{self.name}"
+
     def molecule_list(self) -> list[str]:
         """Return a fresh mutable copy of the molecule set.
 

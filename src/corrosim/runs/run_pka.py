@@ -11,7 +11,7 @@ calculation — the absolute pKaH carries a few-units uncertainty, so the result
 locates the *regime*, not a calibrated value.
 
     docker compose run --rm qm python -m corrosim.runs.run_pka \
-        --out-json results/pka.json
+        --out-json results/arghel/pka.json
 
 Pass --freq to add the ZPE/thermal/entropy correction: each species
 is gas-phase optimised + a Hessian gives G_corr, and the production single
@@ -19,7 +19,8 @@ point runs on the relaxed geometry. Slow (frequency calcs on ~40-atom
 molecules) — run detached:
 
     docker compose run -d --name corrosim_pka qm \
-        python -m corrosim.runs.run_pka --freq --out-json results/pka.json
+        python -m corrosim.runs.run_pka --freq \
+        --out-json results/arghel/pka.json
 
 Add --tight to drive a floppy rotor to a true minimum — finer DFT
 grid (level 4) + imaginary-mode restarts — e.g. to clear the lone imaginary
@@ -27,7 +28,7 @@ frequency on the isorhamnetin cation:
 
     docker compose run -d --name corrosim_pka qm \
         python -m corrosim.runs.run_pka --freq --tight \
-        --molecules isorhamnetin --out-json results/pka_isorhamnetin.json
+        --molecules isorhamnetin --out-json results/arghel/pka_isorhamnetin.json
 """
 from __future__ import annotations
 
