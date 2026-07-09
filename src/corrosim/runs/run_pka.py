@@ -193,8 +193,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="corrosim-run-pka")
     add_molecules_arg(p)
     add_case_arg(p)
-    p.add_argument("--basis", default="6-311++G(d,p)")
-    p.add_argument("--xc", default="b3lyp")
+    p.add_argument("--basis", default=None,
+                   help="PySCF basis set; unset uses the --case study's basis "
+                        "(default production 6-311++G(d,p)).")
+    p.add_argument("--xc", default=None,
+                   help="PySCF XC functional; unset uses the --case study's "
+                        "functional (default b3lyp).")
     p.add_argument("--select-engine", default="xtb")
     p.add_argument("--freq", action="store_true",
                    help="Add the ZPE/thermal/entropy correction from a "

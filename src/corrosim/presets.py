@@ -7,14 +7,16 @@ A `CaseStudy` ties together what to screen (`molecules`, by library name or
 SMILES), on what (`metal`, a `descriptors.METAL_WORK_FUNCTION` label), in what
 (`medium`, a report label that also motivates the protonated-cation modelling).
 
-The shipped study is `ARGHEL` — the major *Solenostemma argel* flavonoid
-aglycones on mild steel in 1 M HCl. The run drivers default to it; point them
-at a different `CaseStudy` (`--case`, or pass `--molecules/--metal`) to screen
+The study the drivers **default** to is `ARGHEL` — the major *Solenostemma
+argel* flavonoid aglycones on mild steel in 1 M HCl. Point the drivers at a
+different `CaseStudy` (`--case`, or pass `--molecules/--metal`) to screen
 something else.
 
-Alongside it are **validation presets** — each reproduces a published study's
-system (its `source` names the paper) so the computed descriptors / adsorption
-can be checked against that paper's reported values in `docs/validation.md`.
+Every case study here is a **validation** study, `ARGHEL` included: its
+`source` names the published paper it reproduces, so the computed descriptors /
+adsorption can be checked against that paper's reported values in
+`docs/validation.md`. The cases defined below `ARGHEL` are the additional
+studies the drivers can screen with `--case`.
 """
 from __future__ import annotations
 
@@ -41,23 +43,37 @@ class CaseStudy:
     """A named screening case study: molecule set + substrate metal + medium."""
 
     name: str
+
     # Library names or SMILES, in display order
     molecules: tuple[str, ...]
+
     # Work-function / slab substrate label
     metal: str = "Fe(110)"
+
     # Report label; implies the acidic (protonated) species
     medium: str = "1 M HCl"
     description: str = ""
+
     # Provenance: the paper/thesis this system reproduces (citation or DOI).
     # Empty for an original screen; set for a validation preset so the reported
     # target values in docs/validation.md are traceable to their source.
     source: str = ""
+
     # Conjugate-acid pKaH of the inhibitor's most basic protonation site: the
     # value that drives Henderson-Hasselbalch speciation in an acidic medium.
     # Defaults to a very-weak-base estimate (~-1.5), so an inhibitor whose basic
     # site is unspecified is treated as ~all-neutral in mild acid; override per
     # study when the basic site is stronger.
     pkah: float = -1.5
+
+    # DFT level of theory for the production single points (run_dft / run_pka):
+    # the AO basis and exchange-correlation functional the drivers use when
+    # --basis / --xc are left unset, keeping the level a per-case property of
+    # the single source of truth. Defaults are corrosim's adopted production
+    # level, B3LYP/6-311++G(d,p); a case overrides the basis when the diffuse
+    # (++) production set is intractable for its molecules (see PHYTIC_ACID).
+    basis: str = "6-311++G(d,p)"
+    xc: str = "b3lyp"
 
     @property
     def metal_element(self) -> str:
@@ -100,9 +116,8 @@ class CaseStudy:
         """Per-case directory for the report bundle.
 
         The regenerable *deliverable* half of :attr:`case_dir`: the bundle
-        (``report.html`` / ``report.docx`` / ``figures/`` / ``tables/``). A
-        validation cross-check leaves it unpopulated; the shipped study renders
-        into it.
+        (``report.html`` / ``report.docx`` / ``figures/`` / ``tables/``) the
+        study's report renders into.
 
         Returns:
             ``cases/<name>/report``, e.g. ``cases/arghel/report``.
@@ -119,36 +134,56 @@ class CaseStudy:
         return list(self.molecules)
 
 
-# --- The shipped case study ------------------------------------------------
+# --- The default case study (drivers default to it) ------------------------
 ARGHEL = CaseStudy(
     name="arghel",
     molecules=("kaempferol", "quercetin", "isorhamnetin"),
     metal="Fe(110)",
     medium="1 M HCl",
+
     # Flavonoid 4-oxo carbonyl, a very weak base; carbonyl-protonation pKaH
     # clusters around -1 to -2 (Hammett-acidity studies). An ESTIMATE (~+/-1).
     pkah=-1.5,
+
+    # Level of theory stated explicitly so the case self-documents it, as every
+    # case study does (here the adopted production B3LYP/6-311++G(d,p), equal to
+    # the CaseStudy default).
+    basis="6-311++G(d,p)",
+    xc="b3lyp",
+
     description="Major Arghel (Solenostemma argel) flavonoid aglycones vs mild "
                 "steel (Fe(110)) in 1 M HCl.",
+
     source="Mohammed, Corrosion Inhibition of Steel in Acidic Medium by Herbs "
            "Extract (MSc, Alexandria University, 2014); constituents from "
            "El-Shiekh et al., Bull. Fac. Pharm. Cairo Univ. 2024.",
 )
 
-# --- Validation presets ----------------------------------------------------
-# Each reproduces a published simulation study's system so the computed
+# --- Additional validation case studies ------------------------------------
+# Like ARGHEL, each reproduces a published study's system so the computed
 # descriptors / adsorption can be checked against the paper's reported values
-# (recorded in docs/validation.md). Each study writes under its own
-# cases/<case> subtree, so the presets never collide.
+# (recorded in docs/validation.md). Each writes under its own cases/<case>
+# subtree, so the studies never collide.
 PHYTIC_ACID = CaseStudy(
     name="phytic-acid",
     molecules=("phytic acid",),
     metal="Fe(110)",
     medium="0.5 M H2SO4",
+
+    # Production B3LYP is kept; only the basis is dropped from the diffuse
+    # 6-311++G(d,p), which is intractable here: phytic acid folds its six
+    # phosphates inward (Rg ~4 A), packing 24 oxygens close together, so the
+    # diffuse (++) functions drive near-linear-dependence in the overlap matrix
+    # and the SCF diverges. The non-diffuse 6-31G(d) converges; the comparison
+    # vs the paper's AM1 is qualitative anyway.
+    basis="6-31G(d)",
+    xc="b3lyp",
+
     description="Phytic acid vs Q235 mild steel (Fe(110)) in 0.5 M H2SO4 — the "
                 "fully experiment-validated Chidiebere (2014) DFT+MD anchor; "
                 "exercises the sulfuric-acid medium and a non-flavonoid "
                 "inhibitor.",
+
     source="Chidiebere, Oguzie, Liu, Li, Wang, Corrosion Inhibition of Q235 "
            "Mild Steel in 0.5 M H2SO4 Solution by Phytic Acid and Synergistic "
            "Iodide Additives, Ind. Eng. Chem. Res. 2014, 53, 7670-7679 "

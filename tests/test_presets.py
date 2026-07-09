@@ -60,6 +60,19 @@ def test_phytic_acid_validation_preset():
     assert build_molecule("phytic acid") is not None
 
 
+def test_case_study_carries_the_dft_level():
+    # the level of theory is a per-case field of the single source of truth, so
+    # a preset that converges only at a smaller basis stays self-reproducing
+    assert ARGHEL.basis == "6-311++G(d,p)" and ARGHEL.xc == "b3lyp"
+    # an unspecified case inherits the adopted production level
+    plain = CaseStudy(name="x", molecules=("caffeine",))
+    assert plain.basis == "6-311++G(d,p)" and plain.xc == "b3lyp"
+    # phytic acid overrides the basis (its diffuse-set SCF diverges) but keeps
+    # the production functional
+    assert case_study("phytic-acid").basis == "6-31G(d)"
+    assert case_study("phytic-acid").xc == "b3lyp"
+
+
 def test_drivers_share_the_preset_list():
     # the run drivers must derive their defaults from the case study via the one
     # shared _cli helper, not re-declare the list (issues #64 single-sourcing)

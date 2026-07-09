@@ -50,6 +50,35 @@ def test_resolve_case_fills_metal_label_or_element():
     assert parse("element", ["--metal", "Cu"]) == "Cu"
 
 
+def test_resolve_case_fills_unset_dft_level():
+    def parse(argv):
+        p = argparse.ArgumentParser()
+        _cli.add_case_arg(p)
+        p.add_argument("--basis", default=None)
+        p.add_argument("--xc", default=None)
+        args = p.parse_args(argv)
+        _cli.resolve_case(args)
+        return args.basis, args.xc
+
+    # an unset level resolves to the case study's production default ...
+    assert parse([]) == (ARGHEL.basis, ARGHEL.xc)
+    # ... a case that overrides the basis (diffuse-set divergence) is honoured
+    assert parse(["--case", "phytic-acid"]) == ("6-31G(d)", "b3lyp")
+    # ... and an explicit flag always wins over the case default
+    assert parse(["--basis", "def2-SVP"])[0] == "def2-SVP"
+
+
+def test_resolve_case_leaves_a_drivers_own_basis_default_untouched():
+    # a driver whose --basis carries its own (small, deliberate) default opts
+    # out of the per-case level: the None-guard leaves the concrete value alone
+    p = argparse.ArgumentParser()
+    _cli.add_case_arg(p)
+    p.add_argument("--basis", default="6-31G(d)")     # e.g. make_cubes / run_fukui
+    args = p.parse_args(["--case", "arghel"])
+    _cli.resolve_case(args)
+    assert args.basis == "6-31G(d)"                   # not the arghel production basis
+
+
 def test_resolve_case_selects_by_name_and_rejects_unknown():
     p = argparse.ArgumentParser()
     _cli.add_case_arg(p)
