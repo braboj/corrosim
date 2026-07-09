@@ -324,8 +324,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--medium", default=None,
                    help="Medium label (e.g. '1 M HCl'); checked against "
                         "--forms to flag a protonation/medium mismatch.")
-    p.add_argument("--basis", default="6-311++G(d,p)", help="PySCF basis set.")
-    p.add_argument("--xc", default="b3lyp", help="PySCF XC functional.")
+    p.add_argument("--basis", default=None,
+                   help="PySCF basis set; unset uses the --case study's basis "
+                        "(default production 6-311++G(d,p)).")
+    p.add_argument("--xc", default=None,
+                   help="PySCF XC functional; unset uses the --case study's "
+                        "functional (default b3lyp).")
     p.add_argument("--forms", default="both",
                    choices=["both", "neutral", "protonated"],
                    help="Which species to run (default both). 'protonated' "
