@@ -1376,4 +1376,49 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   **#71** Deployment (#66 Colab / #67 GHCR+PyPI / #68 Pages) and **#40**
   chemisorption E_ads. Optional deferred: `CORROSIM_FETCH` resolver fallback.
 
+## 2026-07-09 (session 16) — phytic-acid validation compute (#53, PR #179)
+
+- **Tool:** Claude Code (Opus 4.8). One squash-merged PR (#179) filling the
+  **phytic-acid** validation preset's computed-vs-reported column — the first
+  compute deliverable on the multi-study validation suite (#53).
+- **#179 — phytic-acid DFT+MC+MD.** Ran `--case phytic-acid` (Fe(110) / 0.5 M
+  H₂SO₄): DFT descriptors (B3LYP/6-31G(d), neutral, gas + aqueous ddCOSMO) + MC
+  adsorption + MD Fe–O RDF; committed `cases/phytic-acid/results/` and filled
+  `docs/validation.md`. **Finding:** corrosim reads phytic acid as a
+  **charge-dense multidentate oxygen chelator** — large gap, small ΔN (+0.09),
+  but TNC −14.6 from its 24 phosphate oxygens — binding flat (MC −11.5 kJ/mol at
+  ~2.3 Å; MD Fe–O 3.25 Å). A *mechanistic* corroboration of Chidiebere 2014's
+  flat-lying adsorption, not a quantitative match (AM1 ≠ B3LYP; UFF E_ads ≠
+  COMPASS periodic E_bind; classical MC/MD can't confirm the chemisorption claim).
+- **Level-of-theory wall (the session's main discovery).** The production
+  6-311++G(d,p) is **intractable** for phytic acid (54 atoms, compact 24-O
+  geometry, Rg ≈ 4 Å): its diffuse `++` functions drive SCF-diverging
+  near-linear-dependence, and the density-fitting workaround (~13 GB `_cderi`)
+  OOMs the ~8 GB Docker VM — which **crashed Docker Desktop/WSL** once (recovered
+  via kill + `wsl --shutdown` + relaunch). Converged instead at **B3LYP/6-31G(d)**
+  (no diffuse, ~450 BF, low-memory), documented as a qualitative-comparison
+  choice. The QM image is also **stale** (editable pointer → `/work/corrosim`,
+  not `/work/src`; every run needs `-e PYTHONPATH=/work/src` + `MSYS_NO_PATHCONV=1`).
+- **Tickets:** filed **#180** (rebuild the stale `corrosim-qm` image) and **#181**
+  (tractable + reproducible DFT level-of-theory for large inhibitors — a per-case
+  `CaseStudy.basis`/`xc` override closes a real reproducibility gap:
+  `run_dft --case phytic-acid` at defaults would re-diverge). Commented **#40**
+  (phytic acid as a motivating chemisorption case + Quantum ESPRESSO as the free
+  periodic-DFT route) and **#53** (status).
+- **Gotcha caught in the wrap audit:** PR #179's body said "does **not** close
+  #53", but GitHub matched the substring `close #53` and **auto-closed #53** on
+  merge — **reopened it**, and hardened CLAUDE.md §2.1 (never write a close/fix
+  keyword next to `#N`, even negated).
+- **Also:** rendered `docs/pipeline.md` as a mobile reading-page Artifact
+  (ephemeral, not a repo change).
+- **Audit:** pytest **exit 0** (198 passed / 1 skipped), ruff + mypy (39 files) +
+  complexipy (snapshot `[]` unchanged) green; **no production code changed** (the
+  result used the existing `--basis` flag). Tree clean on `main`.
+- **Pending:** **#53** stays open — the **pyrazolo-pyrimidine** preset (SMILES
+  authored + RDKit-verified in `docs/local/pyrazolo-pyrimidine-reported.local.md`;
+  land with its own DFT run, which should use the **production** 6-311++G(d,p) for
+  a direct numeric comparison → wants #181's per-case basis first). Also **#181**
+  (DFT tractability), **#180** (QM image rebuild), **#71** Deployment (#66–#68),
+  **#40** chemisorption E_ads.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
