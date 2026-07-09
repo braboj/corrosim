@@ -231,20 +231,57 @@ medium.
 | ΔG°_ads | −29.6 kJ/mol (PA) | Langmuir isotherm; mixed-type inhibitor |
 | Mechanism | chemisorption | IE rises with T; low/negative E_a |
 
-**Computed (corrosim): *pending a QM run*.** The DFT descriptors (B3LYP/6-311++G(d,p)),
-MC E_ads and MD Fe–O RDF for this preset are not yet generated — a `--case phytic-acid`
-run in the QM container fills `cases/phytic-acid/results/`, and the computed-vs-reported
-comparison lands here.
+**Computed (corrosim), B3LYP/6-31G(d) neutral form** (see the basis-choice caveat
+below):
+
+| Quantity | Gas | Aqueous (ddCOSMO) | Reported (AM1) |
+| --- | --- | --- | --- |
+| E_HOMO | −7.841 eV | −8.103 eV | −6.508 eV |
+| E_LUMO | −0.520 eV | −0.080 eV | −1.732 eV |
+| Gap ΔE | 7.322 eV | 8.023 eV | 4.776 eV |
+| Hardness η | 3.661 eV | 4.011 eV | — |
+| ΔN → Fe | +0.087 | +0.091 | — |
+| TNC (Σ negative Mulliken charge) | −14.59 | −14.93 | — |
+
+- **MC adsorption** (Fe(110)): E_ads = −0.12 eV (−11.5 kJ/mol), lying flat ≈ 2.3 Å
+  above the slab.
+- **MD Fe–O RDF**: first peak at 3.25 Å (no Fe–N peak — phytic acid carries no
+  nitrogen).
+
+**Reading it — a different inhibitor archetype from the flavonoids.** Phytic acid
+is *saturated* (no π system), so B3LYP gives it a large gap (7.3 eV) and a modest
+ΔN (+0.09, well below the flavonoids' 0.16–0.24): it is not a soft, small-gap
+frontier-orbital donor. What stands out instead is the enormous TNC (−14.6) — the
+summed partial charge of its 24 phosphate oxygens — so corrosim reads phytic acid
+as a **charge-dense, multidentate oxygen chelator** that grips through many O atoms
+at once. The flat MC pose (≈ 2.3 Å) and the tight 3.25 Å Fe–O RDF peak corroborate
+that flat-lying, oxygen-anchored adsorption — the same picture the paper draws (a
+flat orientation, 553.89 Å² footprint, chemisorption through the phosphate O's),
+reached by a different route. The frontier-orbital "softness" argument that orders
+the flavonoids does not apply to this class; the oxygen count (TNC) carries it.
 
 **Caveats to apply when comparing (not oversights — level-of-theory differences):**
 
 - **AM1 ≠ B3LYP.** The reported orbital energies are AM1 semi-empirical and sit
-  on a different scale from corrosim's B3LYP/6-311++G(d,p) — exactly the caution
-  we already document for xTB. Expect the *numeric* HOMO/LUMO/gap to differ;
-  compare the qualitative picture (heteroatom-localized frontier orbitals, a
-  small gap, flat-lying adsorption) rather than the digits.
+  on a different scale from corrosim's B3LYP — exactly the caution we document for
+  xTB. The numeric HOMO/LUMO/gap differ (AM1 also compresses the gap of a
+  saturated system like this one); compare the qualitative picture — oxygen-
+  localized frontier orbitals and flat-lying, multidentate adsorption — not the
+  digits.
+- **Basis: 6-31G(d), not the production 6-311++G(d,p).** Phytic acid folds its six
+  phosphates inward (radius of gyration ≈ 4 Å), packing its 24 oxygens close
+  together; the production basis's diffuse (`++`) functions then drive the overlap
+  matrix near-singular and the SCF diverges, while the density-fitting workaround
+  exceeds the container's memory. A converged result comes from dropping the
+  diffuse augmentation (6-31G(d) — no near-linear-dependence, ~450 basis functions,
+  low-memory), a common level for large inhibitors in the corrosion literature.
+  Because the comparison here is qualitative (against AM1), this is the right
+  trade; but the *absolute* LUMO/gap stay basis-sensitive (diffuse functions matter
+  most for the virtual orbitals), so lean on the picture, not the last digit.
 - **Medium.** 0.5 M H₂SO₄ (a diprotic strong acid), not the Arghel HCl —
-  `medium.py` models it as the acidic protonated regime.
+  `medium.py` models it as the acidic protonated regime. Phytic acid is itself a
+  poly-acid (not a base), so the neutral form is its species in acid — the run is
+  neutral-only, and the protonated-cation row the flavonoids carry does not apply.
 - **E_bind observable.** The −199 kcal/mol is a COMPASS *periodic* binding energy
   (many metal–adsorbate contacts), a different observable from corrosim's UFF
   single-molecule van-der-Waals E_ads — compare regime and sign, not the number
