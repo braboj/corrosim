@@ -60,6 +60,26 @@ def test_phytic_acid_validation_preset():
     assert build_molecule("phytic acid") is not None
 
 
+def test_pyrazolo_pyrimidine_validation_preset():
+    case = case_study("pyrazolo-pyrimidine")
+    # three derivatives sharing one aromatic core, differing only in the tail
+    assert case.molecules == (
+        "pyrazolopyrimidine propanoic acid",
+        "pyrazolopyrimidine propanamide",
+        "pyrazolopyrimidine ethyl ester",
+    )
+    assert case.metal == "Fe(110)" and case.medium == "1 M HCl"
+    # the paper's level equals corrosim production, so it keeps the full diffuse
+    # basis (a direct numeric check, unlike phytic acid's 6-31G(d) drop)
+    assert case.basis == "6-311++G(d,p)" and case.xc == "b3lyp"
+    assert "Awad" in case.source and "s41598-025-19022-6" in case.source
+    assert case.results_dir == "cases/pyrazolo-pyrimidine/results"
+    # aliases resolve to the same preset (case-insensitive)
+    assert case_study("ppp") is case is case_study("Pyrazolo")
+    # the three novel compounds are in the shipped library and build offline
+    assert all(build_molecule(n) is not None for n in case.molecule_list())
+
+
 def test_case_study_carries_the_dft_level():
     # the level of theory is a per-case field of the single source of truth, so
     # a preset that converges only at a smaller basis stays self-reproducing
