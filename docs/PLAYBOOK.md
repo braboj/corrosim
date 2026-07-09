@@ -50,6 +50,10 @@ python -m corrosim.runs.make_report     # -> cases/<case>/report/ bundle (self-c
 Every driver's unset `--out*` flags auto-route to the `--case` study's own
 `cases/<case>/results` / `cases/<case>/report` subtree (default case: `arghel`); pass
 `--case <name>` to screen another study without overwriting arghel's outputs.
+The DFT drivers (`run_dft` / `run_pka`) likewise adopt the case's own level of
+theory when `--basis` / `--xc` are unset — so `--case phytic-acid` runs at its
+declared `6-31G(d)` (the production diffuse basis diverges on its compact
+geometry), not the default `6-311++G(d,p)`.
 
 Run the quantum stages (DFT descriptors, Fukui, pKa, cubes) in the
 `corrosim-qm` container. Long jobs — geometry optimisation, frequencies, MEP

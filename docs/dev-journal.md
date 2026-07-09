@@ -1421,4 +1421,138 @@ only in the `corrosim-qm` Docker image; everything else runs in a venv. See
   (DFT tractability), **#180** (QM image rebuild), **#71** Deployment (#66–#68),
   **#40** chemisorption E_ads.
 
+## 2026-07-09 (session 17) — per-case level of theory (#181) + pyrazolo preset (#53)
+
+- **Tool:** Claude Code (Opus 4.8, 1M context).
+- **Scope:** three threads off the phytic-acid wrap. (1) A design Q&A — why
+  B3LYP/6-31G(d) beats AM1, why the production diffuse basis is intractable for
+  phytic acid, and how much RAM the 16 GB laptop can give Docker — which motivated
+  (2) landing **#181**'s first sub-task (per-case level of theory on `CaseStudy`)
+  and (3) teeing up the next validation preset, **pyrazolo-pyrimidine** (#53). Two
+  PRs merged, one issue filed, a Docker compute prepared for the owner to launch in
+  the evening.
+- **#184 — per-case DFT level of theory (#181, 1st sub-task).** `CaseStudy` gains
+  `basis`/`xc` fields (default the adopted production B3LYP/6-311++G(d,p));
+  `phytic-acid` declares `basis="6-31G(d)"` — the level it converges at, since the
+  diffuse (++) functions drive near-linear-dependence on its compact 24-O geometry
+  and the SCF diverges. `resolve_case` backfills `args.basis`/`args.xc` from the
+  case when a driver leaves them unset (hasattr + None guard); `run_dft`/`run_pka`
+  opt in via `None` defaults, while `make_cubes`/`run_fukui` keep their own small
+  6-31G(d). Closes the reproducibility gap: `run_dft --case phytic-acid` now
+  resolves to 6-31G(d) instead of re-diverging. Every case self-documents its full
+  level (ARGHEL restated at production, matching how it already restates
+  metal/medium/pKaH). The remaining two #181 sub-tasks (SCF robustness, memory
+  guard) stay open.
+- **#185 — pyrazolo-pyrimidine validation preset (#53).** Second study on the
+  multi-study suite: three novel derivatives (Awad et al., Sci. Rep. 15:32576,
+  2025) — 3-methyl-1-phenyl-pyrazolo[3,4-d]pyrimidin-4-yloxy propanoate
+  acid/amide/ethyl-ester lead — on Fe(110)/1 M HCl at B3LYP/6-311++G(d,p). Novel
+  (no CAS): SMILES authored + RDKit-verified (formula + MW exact), added to
+  `inhibitors.json` (`source:"paper"`), build offline (36/37/42 atoms).
+  `docs/validation.md` reported column filled (gaps 4.651/4.647/4.640, cmpd-1
+  ΔN +0.244 / E_back −0.582, E_ads −130 kcal/mol, ranking 3 > 2 > 1); **computed
+  column pending the DFT run**. Because the paper's level equals corrosim
+  production, the descriptors compare digit-for-digit (the payoff of #181; unlike
+  the AM1 phytic anchor). Two flagged in-code defaults: medium molarity assumed
+  1 M HCl (the note recorded only "acidic HCl") and pKaH left at the default (no
+  value for novel compounds; does not affect the DFT run).
+- **Framing correction (owner):** ARGHEL is not "special" — it is a validation
+  study like the rest (source = Mohammed 2014, cross-checked in validation.md),
+  distinguished only as the default the drivers use and the one whose report is
+  rendered. Reframed the presets docstring + section headers; rendering is no
+  longer asserted as a preset property.
+- **#183 filed (deferred):** every case study should be rendered (own report
+  bundle), not just ARGHEL — revises **ADR 0018**. Deferred by owner: a complete
+  phytic-acid render needs Docker (missing cubes + `*_fukui.json`; the venv renders
+  only dft/mc/md/pipeline figures). The ADR revision is written when it lands.
+- **Owner preference:** a blank line between dataclass field groups for readability
+  (kept whitespace-free for ruff W293). Recorded to memory.
+- **Docker allocation (16 GB laptop):** the WSL2 VM defaults to ~8 GB (no
+  `.wslconfig`); a 13–14 GB density-fit `_cderi` won't fit — max safe real
+  allocation ~12 GB (`[wsl2] memory=12GB` + swap), or spill `_cderi` to disk (cap
+  pyscf `max_memory`). Memory alone doesn't fix the SCF linear-dependence
+  divergence — `remove_linear_dep_` does. Recorded to memory; it is why the phytic
+  production basis stays out of reach on this box.
+- **Evening compute prep:** the owner will launch the pyrazolo DFT+MC+MD run at
+  20:00 themselves. Prepared `docs/local/run_qm_compute.sh` (gitignored) — one
+  command launches a detached `corrosim-qm` container chaining run_dft
+  (→ `cases/pyrazolo-pyrimidine/results/dft_descriptors_ff.{json,csv}`) + run_mc +
+  run_md; uses `PYTHONPATH=/work/src` + `MSYS_NO_PATHCONV=1` (no rebuild needed). A
+  cloud routine can't reach local Docker, so this is a local one-command script,
+  not a schedule.
+- **Docs:** PLAYBOOK's `--case` note extended (unset `--basis`/`--xc` now adopt the
+  case's level). README stays generic (the case list is data in presets.py, not
+  re-declared). No new ADR — no new directory / content move; per-case level is a
+  schema extension following the CaseStudy-as-single-source-of-truth pattern,
+  documented in-code.
+- **Verification:** `pytest` 208 passed / 1 skip; `ruff check .` clean; `mypy`
+  clean (39 files); `complexipy --color no` snapshot passed (unchanged — the
+  mid-session `complexipy .` failures were a wrong-scope artifact: the gate reads
+  `[tool.complexipy] paths = ["src/corrosim"]`, not the whole tree). Both PRs green
+  pre-merge; tree clean on `main`. Submodule at upstream tip (a6d7747), no bump.
+- **Pending:** **#53 remaining = Docker compute only.** Owner runs
+  `bash docs/local/run_qm_compute.sh` ~20:00 (pyrazolo DFT+MC+MD), then spot-checks
+  the gap ordering (expect ester 3 < 2 < 1) vs validation.md and fills the computed
+  column. Then **#183** (render every study; phytic-acid first — needs cubes +
+  fukui), the two remaining **#181** sub-tasks (SCF robustness, memory guard),
+  **#180** (rebuild the stale corrosim-qm image), **#71** Deployment (#66–#68),
+  **#40** chemisorption E_ads.
+
+## 2026-07-09 (session 18) — README de-slop + em-dash purge; ai-writing-detector skill; imbra-agent-skills repo
+
+Docs-only on corrosim; the rest is cross-project agent tooling.
+
+- **README de-slop:** reviewed the README for AI-writing tells and cut them.
+  Removed scaffolding/signpost sentences ("corrosim has two modes:", "corrosim
+  is two tools:", the "multiscale pipeline ... is documented in" pointer, the
+  "Open report.html ... in Word" paragraph, the "Quercetin is the robust lead"
+  result-claim). Reframed the one-liner so the mechanism is generic ("screens
+  corrosion inhibitors") with "green" as design intent, not a filter. Features
+  simplified to one capability per line. `emit`/`Emit` to `writes`/`Write` for a
+  plainer, consistent verb. Net 28 insertions / 53 deletions, all prose.
+- **Em-dash purge (owner rule):** owner declared the em-dash a definitive
+  AI-writing tell. Removed all 24 from the README, each replaced by the
+  punctuation its role needs (colon for a gloss, parentheses for an aside,
+  comma/period for a break); en-dashes in ranges (`HOMO-LUMO`) kept. Recorded as
+  a feedback memory (`em-dashes-are-ai-tell`).
+- **ai-writing-detector skill (global, `~/.claude/skills`):** built from
+  *Wikipedia:Signs of AI writing*, generalized to any prose; a mechanical grep
+  pass + a judgement pass + a 0-100 score over five bands, with a calibration
+  section to avoid false positives; em-dash reclassified as a strong tell. Scored
+  the README (floor-level clean after the purge) and PLAYBOOK (clean).
+- **imbra-agent-skills repo (new, PRIVATE, Imbra-Ltd):** the authored-capability
+  skills layer, installable onto devices and usable as a submodule. Holds
+  ai-writing-detector, install.ps1/.sh (symlink or copy into `~/.claude/skills`),
+  and discussions. Committed and pushed (github.com/Imbra-Ltd/imbra-agent-skills).
+- **#186 filed:** one command to run the full multiscale study end-to-end. Today
+  the pipeline is 8 driver modules across two environments with real gotchas
+  (run_dft/run_pka do not auto-route outputs; make_report silently drops missing
+  MC/MD/pKa/cubes sections). Proposed a `corrosim-run-study` orchestrator with a
+  `--plan` dry run; UX sketch attached.
+- **Skills survey + architecture:** swept all braboj + imbra-ltd repos; the only
+  skills are three in imbra-ltd/nango-blogs (article-scorer, blog-article,
+  deploy-blog). Two already ban em-dashes, so the AI-tell knowledge is
+  triplicated; dedupe target is ai-writing-detector. Reconciled the skills
+  direction against solid-ai-templates' reference-model work (P1 epic #712 +
+  spikes #179/#414/#415): skills are the only real progressive-disclosure
+  mechanism (corrosim's missed mypy gate is the cited evidence), a compilation
+  target from an agnostic source; two skill kinds (emitted convention vs authored
+  capability) map onto solid-ai-templates (public base) and imbra-agent-skills
+  (private company). Captured in the new repo's
+  discussions/reference-model-and-layering.md.
+- **Verification:** `pytest -q` exit 0 (green, 1 skip). No code/config/test
+  changed this session, only README prose, so ruff/mypy are unaffected. Nothing
+  committed this session (owner commits on request). The working tree also still
+  carries the previous session's unshipped wrap (the session-17 dev-journal entry
+  plus a 4-line PLAYBOOK edit) alongside these README changes.
+- **Pending:** corrosim changes uncommitted (README de-slop + em-dash purge, and
+  the still-unshipped session-17 wrap: dev-journal + PLAYBOOK). Owner to say
+  whether to ship, and how to split (README vs the inherited wrap). Cross-repo
+  follow-ups: dedupe the Nango AI-tell list into ai-writing-detector (lands in
+  nango-blogs); adopt a skill namespace prefix once solid-ai-templates#415
+  settles; optionally comment on #414/#712 with the authored-vs-emitted finding.
+  Prior threads carried from session 17 (unvalidated this session): **#53** Docker
+  compute (owner runs the pyrazolo DFT+MC+MD), then **#183**, the two **#181**
+  sub-tasks, **#180**, **#71**, **#40**.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
