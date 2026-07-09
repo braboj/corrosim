@@ -114,9 +114,11 @@ duplicate.
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
 - Branch off `main` for nontrivial work; never commit directly to `main`.
   Commit and push ONLY when asked.
-- PR titles use the commit format with the number: `... (#NN)`. Do NOT write
-  "closes #N" in a PR body unless the PR actually resolves it — GitHub
-  auto-closes the issue on merge.
+- PR titles use the commit format with the number: `... (#NN)`. Do NOT write a
+  close/fix/resolve keyword next to `#N` in a PR body or commit unless it truly
+  resolves it — GitHub matches the bare substring, so even a *negated* "does not
+  close #N" auto-closes the issue on merge. To link without closing, write "part
+  of #N" or `#N` alone.
 - `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
   never committed.
 - The per-case `cases/<case>/report/` bundle (report.html + report.docx + figures/ +
