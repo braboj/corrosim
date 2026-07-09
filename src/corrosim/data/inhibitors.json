@@ -40,5 +40,26 @@
     "source": "manual",
     "cas": "83-86-3",
     "notes": "myo-Inositol hexakisphosphate (C6H18O24P6). Validation target for the phytic-acid case study (Chidiebere 2014, Fe(110) / 0.5 M H2SO4)."
+  },
+  "pyrazolopyrimidine propanoic acid": {
+    "smiles": "Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)O)c13",
+    "aliases": ["pyrazolo-pyrimidine 1", "ppp acid"],
+    "source": "paper",
+    "cas": null,
+    "notes": "3-(3-methyl-1-phenyl-1H-pyrazolo[3,4-d]pyrimidin-4-yloxy)propanoic acid (C15H14N4O3). Novel compound 1 from Awad et al., Sci. Rep. 15:32576 (2025); validation target for the pyrazolo-pyrimidine case study (Fe(110) / HCl)."
+  },
+  "pyrazolopyrimidine propanamide": {
+    "smiles": "Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)N)c13",
+    "aliases": ["pyrazolo-pyrimidine 2", "ppp amide"],
+    "source": "paper",
+    "cas": null,
+    "notes": "3-(3-methyl-1-phenyl-1H-pyrazolo[3,4-d]pyrimidin-4-yloxy)propanamide (C15H15N5O2). Novel compound 2 from Awad et al., Sci. Rep. 15:32576 (2025); validation target for the pyrazolo-pyrimidine case study (Fe(110) / HCl)."
+  },
+  "pyrazolopyrimidine ethyl ester": {
+    "smiles": "Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)OCC)c13",
+    "aliases": ["pyrazolo-pyrimidine 3", "ppp ester"],
+    "source": "paper",
+    "cas": null,
+    "notes": "ethyl 3-(3-methyl-1-phenyl-1H-pyrazolo[3,4-d]pyrimidin-4-yloxy)propanoate (C17H18N4O3). Novel compound 3, the reported lead (smallest gap, strongest adsorption), from Awad et al., Sci. Rep. 15:32576 (2025); validation target for the pyrazolo-pyrimidine case study (Fe(110) / HCl)."
   }
 }

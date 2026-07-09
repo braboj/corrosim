@@ -290,3 +290,66 @@ the flavonoids does not apply to this class; the oxygen count (TNC) carries it.
   classical MC/MD is a physisorption surrogate, so it can corroborate strong
   adsorption and a flat pose but not the charge-transfer bond — the periodic-DFT
   hand-off would be needed for that.
+
+### Pyrazolo-pyrimidine derivatives — carbon steel (Fe(110)) / HCl
+
+**Preset:** `pyrazolo-pyrimidine` · **Source:** Awad, Abdel Halim, Atlam & Fawzy,
+*A multiscale computational investigation for protection of carbon steel surface
+by pyrazolo-pyrimidine derivatives*, **Sci. Rep. 15:32576 (2025)** (DOI
+10.1038/s41598-025-19022-6). Three novel 3-methyl-1-phenyl-1H-pyrazolo[3,4-d]-
+pyrimidin-4-yloxy propanoate derivatives sharing one aromatic core, differing
+only in the tail: **1** propanoic acid (–COOH), **2** propanamide (–CONH₂), **3**
+ethyl ester (–COOEt, the reported **lead**). Unlike the phytic-acid anchor, this
+paper computes at **B3LYP/6-311++G(d,p)/IEFPCM — corrosim's own production
+level** — so the descriptor numbers compare *directly*, not just qualitatively.
+
+The three compounds are novel (no CAS / not in PubChem); their SMILES were
+authored and RDKit-verified (formula + MW exact) and are confirmed by the DFT run
+(see the pending computed column):
+
+| cmpd | tail | SMILES | formula |
+| --- | --- | --- | --- |
+| 1 | –COOH | `Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)O)c13` | C₁₅H₁₄N₄O₃ |
+| 2 | –CONH₂ | `Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)N)c13` | C₁₅H₁₅N₅O₂ |
+| 3 | –COOEt | `Cc1nn(-c2ccccc2)c3ncnc(OCCC(=O)OCC)c13` | C₁₇H₁₈N₄O₃ |
+
+**Reported values (the comparison target), B3LYP/6-311++G(d,p):**
+
+| Quantity | Cmpd 1 | Cmpd 2 | Cmpd 3 (lead) | Method |
+| --- | --- | --- | --- | --- |
+| E_HOMO (gas, neutral) | −6.261 eV | −6.262 eV | −6.214 eV | DFT |
+| E_LUMO (gas, neutral) | −1.611 eV | −1.615 eV | −1.566 eV | DFT |
+| Gap ΔE (gas, neutral) | 4.651 eV | 4.647 eV | **4.640 eV** | DFT |
+| Gap ΔE (aqueous, neutral) | 4.717 eV | 4.715 eV | **4.713 eV** | DFT + IEFPCM |
+| η / σ / χ (cmpd 1, gas) | 2.325 / 0.430 / 3.936 eV | — | — | DFT |
+| ΔN → Fe (cmpd 1) | +0.244 | — | — | Lukovits (< 3.6) |
+| E_back-donation (cmpd 1) | −0.582 eV | — | — | Gómez (−η/4) |
+| E_ads (max, cmpd 3) | — | — | −129.998 kcal/mol | Adsorption Locator (COMPASS) |
+| Ranking | \| | 3 > 2 > 1 | \| | gap, softness, TNC, E_ads all agree |
+
+**Computed (corrosim), B3LYP/6-311++G(d,p):** *pending the DFT run* — needs the
+QM container (`python -m corrosim.runs.run_dft --case pyrazolo-pyrimidine`). The
+run confirms the authored structures and fills this column: it should reproduce
+the **gap ordering 3 < 2 < 1**, frontier orbitals localised over the fused
+heteroaromatic core, and ΔN < 3.6 for all three.
+
+**Caveats to apply when comparing:**
+
+- **Same level of theory — a direct numeric check.** The paper's
+  B3LYP/6-311++G(d,p) + implicit water is corrosim's production level, so the
+  frontier-orbital descriptors compare digit-for-digit (the payoff over the AM1
+  phytic-acid anchor). These ~40-atom aromatics are well-behaved — no
+  near-linear-dependence — so the full diffuse basis converges.
+- **E_ads observable.** The −130 kcal/mol is an Adsorption-Locator (COMPASS
+  forcefield) value on a periodic slab — a different observable from corrosim's
+  UFF single-molecule van-der-Waals E_ads. Compare the **ranking (3 > 2 > 1)** and
+  regime, not the number.
+- **Novel SMILES.** No CAS/PubChem entry exists; the structures are hand-authored
+  from the paper's core + tail description and stand or fall on the DFT run
+  reproducing the reported gap ordering and descriptor magnitudes.
+- **Medium.** The extracted note records the medium only as acidic HCl (no
+  molarity); the preset uses the standard 1 M HCl, which drives the same
+  protonated regime — verify the concentration against the paper.
+- **FPMD.** The paper's molecular dynamics is periodic Car–Parrinello (Quantum
+  ESPRESSO, PBE + DFT-D2), versus corrosim's classical Brownian MD — compare the
+  adsorption regime and the metal–heteroatom contact, not the trajectory.

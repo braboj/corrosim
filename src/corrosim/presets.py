@@ -190,12 +190,47 @@ PHYTIC_ACID = CaseStudy(
            "(DOI 10.1021/ie404382v).",
 )
 
+PYRAZOLO_PYRIMIDINE = CaseStudy(
+    name="pyrazolo-pyrimidine",
+    molecules=(
+        "pyrazolopyrimidine propanoic acid",
+        "pyrazolopyrimidine propanamide",
+        "pyrazolopyrimidine ethyl ester",
+    ),
+    metal="Fe(110)",
+    # Concentration not stated in the extracted note ("acidic HCl"); 1 M is the
+    # standard carbon-steel/HCl medium and only the label/pH depends on it (both
+    # forms are computed regardless). Verify against the paper.
+    medium="1 M HCl",
+
+    # The paper's level is corrosim's production level, so the frontier-orbital
+    # descriptors compare directly by the number (unlike the AM1 phytic-acid
+    # anchor). These ~40-atom aromatics converge fine at the full diffuse basis.
+    basis="6-311++G(d,p)",
+    xc="b3lyp",
+
+    description="Three 3-methyl-1-phenyl-pyrazolo[3,4-d]pyrimidin-4-yloxy "
+                "propanoate derivatives (acid / amide / ethyl-ester lead) vs "
+                "carbon steel (Fe(110)) in HCl — a same-level "
+                "(B3LYP/6-311++G(d,p)) numeric cross-check of the multiscale "
+                "DFT/MC/MD blueprint.",
+
+    source="Awad, Abdel Halim, Atlam, Fawzy, A multiscale computational "
+           "investigation for protection of carbon steel surface by "
+           "pyrazolo-pyrimidine derivatives, Sci. Rep. 15:32576 (2025), "
+           "DOI 10.1038/s41598-025-19022-6.",
+)
+
 CASE_STUDIES: dict[str, CaseStudy] = {
     "arghel": ARGHEL,
     "argel": ARGHEL,
     "phytic-acid": PHYTIC_ACID,
     "phytic_acid": PHYTIC_ACID,
     "phytic": PHYTIC_ACID,
+    "pyrazolo-pyrimidine": PYRAZOLO_PYRIMIDINE,
+    "pyrazolo_pyrimidine": PYRAZOLO_PYRIMIDINE,
+    "pyrazolo": PYRAZOLO_PYRIMIDINE,
+    "ppp": PYRAZOLO_PYRIMIDINE,
 }
 
 
