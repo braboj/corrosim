@@ -439,11 +439,53 @@ def descriptor_matrix(df: pd.DataFrame) -> tuple[list[str], list[list[str]]]:
                    "Descriptor")
 
 
+# Which direction is "better" for a ranking metric: 'min' (smaller wins) or
+# 'max' (larger wins). Metrics absent here (ΔN, the metal-O distance, TNC) have
+# no single defensible best, so their row is left unmarked. Keyed by both the
+# raw descriptor key (optimised-geometry frame) and the display label (headline
+# summary frame), whichever names the column.
+_RANKING_BETTER = {
+    "gap_ev": "min",
+    "hardness_ev": "min",
+    "softness_inv_ev": "max",
+    "e_ads_kjmol": "min",
+    "score": "max",
+    "Gap (eV)": "min",
+    "Hardness η (eV)": "min",
+    "Softness σ (1/eV)": "max",
+    "E_ads (kJ/mol)": "min",
+    "Score": "max",
+}
+
+
+def _row_winner(series: pd.Series, col: str) -> int | None:
+    """0-based index of the winning molecule in a ranking-metric column.
+
+    'Winning' is the smallest value for a min-metric and the largest for a
+    max-metric; a metric with no defined direction (absent from
+    ``_RANKING_BETTER``) returns None so its row carries no checkmark.
+
+    Args:
+        series: The metric's per-molecule values, in column order.
+        col: The frame column name (raw key or display label).
+
+    Returns:
+        The winning molecule's 0-based index, or None.
+    """
+    direction = _RANKING_BETTER.get(col)
+    if direction is None:
+        return None
+    vals = pd.to_numeric(series, errors="coerce").reset_index(drop=True)
+    if vals.isna().all():
+        return None
+    return int(vals.idxmin() if direction == "min" else vals.idxmax())
+
+
 def ranking_matrix(
     df: pd.DataFrame,
     name_col: str,
     label_map: dict[str, str] | None = None,
-) -> tuple[list[str], list[list[str]]]:
+) -> tuple[list[str], list[list[str]], list[int | None]]:
     """Transpose a best-first ranking frame to molecule-columns / metric-rows.
 
     Molecules keep their (best-first) order, so the winning column comes first.
@@ -456,22 +498,37 @@ def ranking_matrix(
         label_map: Optional raw-key -> display-label map for the metric rows.
 
     Returns:
-        ``(headers, rows)``; see :func:`_matrix`.
+        ``(headers, rows, winners)``: ``headers`` and ``rows`` as in
+        :func:`_matrix`; ``winners[i]`` is the 0-based molecule-column index
+        that wins metric row ``i``, or None when the metric has no defined
+        better direction.
     """
-    return _matrix(df, name_col, label_map, (), "")
+    names = [str(n) for n in df[name_col]]
+    headers = ["", *names]
+    rows: list[list[str]] = []
+    winners: list[int | None] = []
+    for col in df.columns:
+        if col == name_col:
+            continue
+        label = (label_map or {}).get(col, col)
+        rows.append([label, *["" if pd.isna(v) else str(v) for v in df[col]]])
+        winners.append(_row_winner(df[col], col))
+    return headers, rows, winners
 
 
 def _transposed_table_html(
     headers: list[str],
     rows: list[list[str]],
     highlight_col: int | None = None,
+    winners: list[int | None] | None = None,
 ) -> str:
     """Render a transposed ``(headers, rows)`` matrix as HTML.
 
     ``headers[0]`` is the corner label and ``headers[1:]`` the molecule names;
     each row is ``[label, *values]``. When ``highlight_col`` is given (a 0-based
     index into the molecule columns), that column's header and cells carry the
-    ``best`` class.
+    ``best`` class. When ``winners`` is given, ``winners[i]`` marks the winning
+    cell of row ``i`` with a checkmark.
     """
 
     def cls(entity_idx: int) -> str:
@@ -481,14 +538,16 @@ def _transposed_table_html(
 
     head = f"<th>{headers[0]}</th>" + "".join(
         f"<th{cls(j)}>{h}</th>" for j, h in enumerate(headers[1:]))
-    body = "".join(
-        "<tr><th>" + r[0] + "</th>"
-        + "".join(f"<td{cls(j)}>{v}</td>" for j, v in enumerate(r[1:]))
-        + "</tr>"
-        for r in rows
-    )
+    body_rows = []
+    for i, r in enumerate(rows):
+        win = winners[i] if winners is not None else None
+        cells = "<th>" + r[0] + "</th>"
+        for j, v in enumerate(r[1:]):
+            mark = ' <span class="win">✓</span>' if j == win else ""
+            cells += f"<td{cls(j)}>{v}{mark}</td>"
+        body_rows.append(f"<tr>{cells}</tr>")
     return (f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
-            f"<tbody>{body}</tbody></table></div>")
+            f"<tbody>{''.join(body_rows)}</tbody></table></div>")
 
 
 def _descriptor_table_html(df: pd.DataFrame) -> str:
@@ -502,9 +561,11 @@ def _ranking_table_html(
     name_col: str,
     label_map: dict[str, str] | None = None,
 ) -> str:
-    """Render a best-first ranking frame transposed, winner column highlighted."""
-    headers, rows = ranking_matrix(df, name_col, label_map)
-    return _transposed_table_html(headers, rows, highlight_col=0)
+    """Render a best-first ranking frame transposed: winner column highlighted,
+    and the best value in each directional metric row checkmarked.
+    """
+    headers, rows, winners = ranking_matrix(df, name_col, label_map)
+    return _transposed_table_html(headers, rows, highlight_col=0, winners=winners)
 
 
 _REPORT_CSS = """
@@ -519,11 +580,12 @@ _REPORT_CSS = """
  th:first-child,td:first-child{text-align:left}
  thead{background:#f7fafc} tr:nth-child(even){background:#fbfdff}
  .best{background:#f0fff4!important;font-weight:600}
+ .win{color:#2f855a;font-weight:700;margin-left:.2rem}
  .meta{color:#718096;font-size:.85rem}
  figure{margin:.6rem 0} img{max-width:100%;border:1px solid #edf2f7;border-radius:4px}
  figcaption{color:#718096;font-size:.82rem;margin-top:.25rem}
- .grid{display:flex;flex-wrap:wrap;gap:1rem}
- .grid figure{flex:1 1 300px;min-width:280px}
+ .grid{display:flex;flex-direction:column;gap:1rem;align-items:flex-start}
+ .grid figure{width:600px;max-width:100%}
  .note{background:#fffaf0;border:1px solid #feebc8;padding:.6rem .9rem;border-radius:6px;font-size:.88rem}
  .stage{color:#2b6cb0;font-weight:600;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase}
  ul{font-size:.9rem}

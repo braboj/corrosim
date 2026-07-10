@@ -132,10 +132,14 @@ class _Doc:
     def ranking_table(self, df: pd.DataFrame, name_col: str,
                       label_map: dict[str, str] | None = None) -> None:
         """A transposed ranking table (molecules as columns, best-first, winning
-        column bold), matching the HTML report via the shared
-        :func:`ranking_matrix`.
+        column bold, per-metric winner checkmarked), matching the HTML report
+        via the shared :func:`ranking_matrix`.
         """
-        headers, rows = ranking_matrix(df, name_col, label_map)
+        headers, rows, winners = ranking_matrix(df, name_col, label_map)
+        # Mark each metric row's winning cell (offset by 1 for the label column)
+        for i, w in enumerate(winners):
+            if w is not None:
+                rows[i][w + 1] = f"{rows[i][w + 1]} ✓"
         self.content_table(
             {"columns": headers, "rows": rows, "highlight_col": 1})
 

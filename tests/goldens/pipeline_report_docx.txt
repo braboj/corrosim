@@ -5,13 +5,13 @@ The molecules modelled here are screened in silico as representative candidates,
 2. Summary & ranking
 Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+1.34), combining the smallest HOMO–LUMO gap (4.00 eV) with the highest softness — the most readily polarised, electron-donating candidate of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
  | quercetin | kaempferol | isorhamnetin
-Gap (eV) | 4.0 | 4.4 | 4.6
-Hardness η (eV) | 2.0 | 2.2 | 2.3
-Softness σ (1/eV) | 0.5 | 0.455 | 0.435
+Gap (eV) | 4.0 ✓ | 4.4 | 4.6
+Hardness η (eV) | 2.0 ✓ | 2.2 | 2.3
+Softness σ (1/eV) | 0.5 ✓ | 0.455 | 0.435
 ΔN | 0.2 | 0.2 | 0.2
-E_ads (kJ/mol) | -16.0 | -16.5 | -16.7
+E_ads (kJ/mol) | -16.0 | -16.5 | -16.7 ✓
 Fe–O (Å) | 3.65 | 3.35 | 3.45
-Score | 1.341 | -0.283 | -1.059
+Score | 1.341 ✓ | -0.283 | -1.059
 Scored on the neutral HOMO–LUMO gap, hardness and softness (z-scored; higher = stronger). E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
 3. DFT electronic descriptors
 3.1 Frontier-orbital isosurfaces (HOMO / LUMO)
@@ -31,12 +31,12 @@ TNC | -4.0 | -4.0 | -4.0
 E_ads (kJ/mol) | -16.0 | -16.5 | -16.7
 3.3 Optimised-geometry descriptors (DFT-relaxed)
  | quercetin | kaempferol | isorhamnetin
-Gap ΔE (eV) | 3.7 | 4.1 | 4.3
-η hardness (eV) | 1.85 | 2.05 | 2.15
-σ softness (1/eV) | 0.541 | 0.488 | 0.465
+Gap ΔE (eV) | 3.7 ✓ | 4.1 | 4.3
+η hardness (eV) | 1.85 ✓ | 2.05 | 2.15
+σ softness (1/eV) | 0.541 ✓ | 0.488 | 0.465
 ΔN | 0.2 | 0.2 | 0.2
 TNC | -4.0 | -4.0 | -4.0
-Score | 1.342 | -0.284 | -1.058
+Score | 1.342 ✓ | -0.284 | -1.058
 Optimised protonated cations (in-acid)
 Descriptor | quercetin+H+ | kaempferol+H+ | isorhamnetin+H+
 Formula | C15H10O7 | C15H10O7 | C15H10O7
