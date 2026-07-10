@@ -305,7 +305,8 @@ level** — so the descriptor numbers compare *directly*, not just qualitatively
 
 The three compounds are novel (no CAS / not in PubChem); their SMILES were
 authored and RDKit-verified (formula + MW exact) and are confirmed by the DFT run
-(see the pending computed column):
+(clean closed-shell SCF, absolute HOMO matching the paper; see the computed
+column below):
 
 | cmpd | tail | SMILES | formula |
 | --- | --- | --- | --- |
@@ -327,26 +328,82 @@ authored and RDKit-verified (formula + MW exact) and are confirmed by the DFT ru
 | E_ads (max, cmpd 3) | — | — | −129.998 kcal/mol | Adsorption Locator (COMPASS) |
 | Ranking | \| | 3 > 2 > 1 | \| | gap, softness, TNC, E_ads all agree |
 
-**Computed (corrosim), B3LYP/6-311++G(d,p):** *pending the DFT run* — needs the
-QM container (`python -m corrosim.runs.run_dft --case pyrazolo-pyrimidine`). The
-run confirms the authored structures and fills this column: it should reproduce
-the **gap ordering 3 < 2 < 1**, frontier orbitals localised over the fused
-heteroaromatic core, and ΔN < 3.6 for all three.
+**Computed (corrosim), B3LYP/6-311++G(d,p) single-point on MMFF geometry:**
+
+| Quantity | Cmpd 1 (acid) | Cmpd 2 (amide) | Cmpd 3 (ester) |
+| --- | --- | --- | --- |
+| E_HOMO (gas, neutral) | −6.224 eV | −6.176 eV | −6.218 eV |
+| E_LUMO (gas, neutral) | −1.823 eV | −1.752 eV | −1.817 eV |
+| Gap ΔE (gas, neutral) | 4.401 eV | 4.425 eV | 4.401 eV |
+| Gap ΔE (aqueous, neutral) | 4.471 eV | 4.480 eV | 4.471 eV |
+| η / σ / χ (gas) | 2.200 / 0.454 / 4.023 eV | 2.212 / 0.452 / 3.964 eV | 2.200 / 0.454 / 4.017 eV |
+| ΔN → Fe (gas) | +0.181 | +0.194 | +0.182 |
+| E_back-donation (gas) | −0.550 eV | −0.553 eV | −0.550 eV |
+| Composite rank (aqueous score) | 2nd (+0.66) | 3rd (−1.41) | **1st (+0.76)** |
+
+- **MC adsorption** (Fe(110), UFF van-der-Waals): E_ads −20.4 kJ/mol (acid) >
+  −15.6 (amide) > −8.8 (ester), each lying ≈ 2.2 Å above the slab. Ranking
+  **1 > 2 > 3**.
+- **MD metal–O RDF**: first peak 3.85 Å (acid, amide) or 3.95 Å (ester), with a
+  metal–N peak at 3.75 to 3.95 Å for all three. Outer-sphere, physisorption-range
+  contact.
+
+**Reading it: the lead reproduces, the full order and the margins do not.** The
+absolute frontier levels reproduce the paper (computed HOMO −6.18 to −6.22 eV
+against reported −6.21 to −6.26 eV), and the reactivity regime matches: χ ≈ 4 eV,
+all three ΔN between +0.18 and +0.19 (below 3.6, i.e. net electron donation to
+Fe), back-donation negative, and MD metal–O/N contact at 3.8 to 4.0 Å (outer-
+sphere physisorption). On the composite descriptor score (aqueous electro-
+negativity, hardness, softness, z-scored), corrosim ranks **3 > 1 > 2** and so
+picks the **ethyl ester (cmpd 3) as the lead, matching the paper's reported
+lead** (the ester is marginally the softest: lowest η, lowest aqueous gap). It
+does *not* reproduce the paper's full **3 > 2 > 1** order, though: corrosim puts
+the amide (2) last, not the acid. And every margin here is tiny. The aqueous gaps
+span 4.471 to 4.480 eV (ester lowest by 0.4 meV over the acid), the reported gaps
+span just 0.011 eV, and the raw gas-phase gap actually orders the acid marginally
+ahead of the ester (**1 < 3 < 2**). So corrosim identifies the lead correctly but
+on sub-0.01 eV differences that are below the noise floor of an FF-geometry single
+point.
+
+Two further mismatches are worth stating plainly. The computed LUMO sits ≈ 0.2 eV
+deeper than the reported one, so every gap comes out ≈ 0.24 eV narrower (a near-
+uniform offset, consistent with single points on MMFF geometry rather than the
+paper's fully B3LYP-optimised structures). And the MC adsorption order inverts to
+**1 > 2 > 3** (acid strongest, ester weakest), because a single-molecule UFF
+van-der-Waals E_ads does not reward the ester's larger footprint the way the
+paper's periodic COMPASS Adsorption-Locator slab does.
+
+**Verdict.** corrosim confirms the authored structures (clean SCF, absolute
+descriptors matching the paper), the physisorption regime, and the reported
+**lead compound**: the ethyl ester tops the composite descriptor ranking. It
+does not reproduce the full **3 > 2 > 1** order (the acid and amide swap), and the
+margins separating the three sit below what a single point on MMFF geometry can
+resolve, so the lead call is directional rather than robust. The open test is a
+`--optimize` DFT-geometry rerun, to see whether the ordering sharpens above the
+noise on optimised geometry.
 
 **Caveats to apply when comparing:**
 
-- **Same level of theory — a direct numeric check.** The paper's
-  B3LYP/6-311++G(d,p) + implicit water is corrosim's production level, so the
-  frontier-orbital descriptors compare digit-for-digit (the payoff over the AM1
-  phytic-acid anchor). These ~40-atom aromatics are well-behaved — no
-  near-linear-dependence — so the full diffuse basis converges.
+- **Same level of theory, but not the same geometry.** The paper's
+  B3LYP/6-311++G(d,p) with implicit water is corrosim's production level, so the
+  comparison is quantitative rather than merely qualitative (the payoff over the
+  AM1 phytic-acid anchor), and these ~40-atom aromatics are well-behaved (no
+  near-linear-dependence), so the full diffuse basis converges. The residual
+  difference is geometry: corrosim's descriptors here are single points on MMFF
+  geometry, whereas the paper fully optimised at B3LYP. That is the leading reason
+  the computed LUMO/gap sit ≈ 0.2 eV off the reported ones and the 0.01 eV gap
+  ordering does not resolve (see the computed column above).
 - **E_ads observable.** The −130 kcal/mol is an Adsorption-Locator (COMPASS
-  forcefield) value on a periodic slab — a different observable from corrosim's
-  UFF single-molecule van-der-Waals E_ads. Compare the **ranking (3 > 2 > 1)** and
-  regime, not the number.
+  forcefield) value on a periodic slab, a different observable from corrosim's
+  UFF single-molecule van-der-Waals E_ads. Compare the regime (physisorption-range
+  adsorption), not the number, and not the order either: the corrosim
+  single-molecule ranking inverts to 1 > 2 > 3, because that metric does not
+  reward the ester's larger footprint the way a periodic slab does.
 - **Novel SMILES.** No CAS/PubChem entry exists; the structures are hand-authored
-  from the paper's core + tail description and stand or fall on the DFT run
-  reproducing the reported gap ordering and descriptor magnitudes.
+  from the paper's core + tail description. The DFT run validates them on formula
+  and MW (exact) and on absolute frontier levels (computed HOMO −6.18 to −6.22 eV
+  against the reported −6.21 to −6.26 eV); the fine gap ordering is a separate
+  question the run does not settle (see the verdict above).
 - **Medium.** The extracted note records the medium only as acidic HCl (no
   molarity); the preset uses the standard 1 M HCl, which drives the same
   protonated regime — verify the concentration against the paper.
