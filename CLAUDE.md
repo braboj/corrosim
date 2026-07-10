@@ -96,9 +96,16 @@ duplicate.
 | `docs/decisions/` | Architecture decision records (`NNN-slug.md`, one concern each) |
 | `docs/pipeline.md` | Scientific basis for the pipeline (project-specific) |
 | `docs/validation.md` | Computational and experimental validation (project-specific) |
+| `docs/engineering-know-how.md` | Transferable engineering patterns distilled from the codebase (generic) |
 
 - Record significant decisions as ADRs in `docs/decisions/` using the ADR format
   in `docs.md`; each addresses exactly one concern.
+- Judge upstream reusability at decision time, not at wrap-up: when an ADR records
+  a convention, restate it with the domain nouns (molecule, metal, DFT, inhibitor)
+  stripped and re-check whether it stands as generic engineering. If it does, add
+  an `Upstream:` line naming the `solid-ai-templates` template file and the filed
+  issue (or `none`). The end-of-session template-feedback audit harvests these, so
+  a reusable pattern is caught at birth instead of accumulating unflagged.
 - A rule the agent applies every turn belongs in this file as one line; if it
   needs a paragraph, write an ADR and leave a one-line pointer. Session history
   goes in `docs/dev-journal.md`; structure and setup in `README.md` /
@@ -261,7 +268,9 @@ complete these corrosim-specific steps:
 1. Run `pytest -q` (plus `ruff check .` and `mypy`); report the results.
 2. Add a session entry to `docs/dev-journal.md`, ending it with a **Pending**
    line for any open threads — that line is the resume state the next session
-   reads. Record any decision as an ADR in `docs/decisions/`.
+   reads. Record any decision as an ADR in `docs/decisions/` (with its `Upstream:`
+   line), and file any un-filed upstream candidate now, reporting the issue URL
+   rather than "flagged".
 3. Update `MEMORY.md`.
 4. Commit (conventional, with the trailer) and push only when asked.
 
