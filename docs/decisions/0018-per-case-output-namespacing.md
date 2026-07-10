@@ -1,6 +1,7 @@
 # ADR 0018 — Per-case output namespacing (`cases/<case>/results/`, `cases/<case>/report/`)
 
-- Status: Accepted
+- Status: Accepted (the rejected "no per-study report bundle" alternative is
+  revised by ADR 0019 — each case now renders its own bundle)
 - Date: 2026-07-08
 - Relates to: ADR 0006 (report-bundle output layout), ADR 0008 (bundle
   subfolders), ADR 0011 (src layout / subsystem packages), and the

@@ -69,6 +69,38 @@ docker compose run -d --name corrosim_job qm \
 docker logs -f corrosim_job             # poll; then: docker rm corrosim_job
 ```
 
+### Render a validation case end-to-end
+
+Each case study renders the same bundle as arghel (ADR 0019). Run the QM stages
+in the container (detached, since the ESP cubes are slow), then the classical
+stages and the render in the venv:
+
+```bash
+# QM (container): descriptors, condensed Fukui, and the isosurface/ESP cubes.
+# Monitor via a bind-mounted logfile / the output files, NOT docker stdout
+# (the background-shell harness does not capture container stdout on Windows).
+docker compose run -d --rm --name qmjob qm sh -c '
+  python -m corrosim.runs.run_dft   --case <name> &&
+  python -m corrosim.runs.run_fukui --case <name> &&
+  python -m corrosim.runs.make_cubes --molecules "<mol1>,<mol2>" --what orbital,esp
+'
+
+# classical stages + render (venv)
+python -m corrosim.runs.run_mc       --case <name>
+python -m corrosim.runs.run_md       --case <name>
+cp cases/arghel/report/figures/pipeline/fig0_pipeline.png \
+   cases/<name>/report/figures/pipeline/     # fig0 is shared, not regenerated
+python -m corrosim.runs.make_figures --case <name>
+python -m corrosim.runs.make_report  --case <name>
+```
+
+`make_cubes` takes `--molecules` (not `--case`) and writes to the shared
+`cubes/`; its basis stays small (`6-31G(d)` default, since cube shapes are
+basis-insensitive). On a large, charge-dense molecule where the MEP integral
+runs slow or low on memory, drop the grid (`--nx 60`) or skip ESP (`--what
+orbital`). A render with no cubes/Fukui still succeeds: those figure sections
+degrade gracefully to nothing rather than erroring.
+
 After any change to input data, regenerate the dependent artifacts in the same
 change (see 4, Maintenance) and spot-check the diff, not just the file size.
 
