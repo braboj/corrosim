@@ -1662,4 +1662,57 @@ in the background near the end.
   owner's to work: solid-ai-templates #754-761 (+ #349 comment) and corrosim #189.
   Prior threads carried: the two **#181** sub-tasks, **#71**, **#40**.
 
+## 2026-07-10 (session 21) — pyrazolo case shipped (#193) + report table/figure UX (#191, #192)
+
+Processed the pyrazolo compute left unprocessed at the end of session 20, shipped
+it as a full validation case, and refined the report table/figure presentation
+along the way. Three PRs merged.
+
+- **Pyrazolo-pyrimidine validation case (#193).** Parsed the finished DFT matrix
+  and filled the `validation.md` computed column with an honest read: corrosim
+  reproduces the absolute frontier levels, the physisorption regime, and the
+  reported **lead compound** (the ethyl ester tops the composite descriptor
+  ranking), but **not** the full **3 > 2 > 1** order. The margins separating the
+  three sit below what a single-point MMFF-geometry run can resolve (the reported
+  gap spread is ~0.01 eV), the computed gaps run ~0.24 eV narrower than reported
+  (force-field vs the paper's optimised geometry), and the single-molecule MC
+  adsorption order inverts. Ran `run_fukui` + `make_cubes` in Docker (the ESP MEP
+  integral is slow, ~10-12 min per molecule on these ~40-atom aromatics),
+  rendered a placeholder-free bundle (26 figures), committed the whole case.
+- **Report tables transposed (#191).** Every descriptor / ranking / pKaH / cation
+  table now reads molecules-as-columns, quantities-as-rows (the wide 12-to-15
+  column tables were the only thing overflowing the report body). Units live in
+  the row labels; HTML and Word share `descriptor_matrix` / `ranking_matrix`; all
+  tables gain an `overflow-x` safety net. Goldens + arghel bundle regenerated.
+- **Figure + winner-mark UX (#192).** Report figures stack in a single
+  fixed-width (600px) column instead of flowing two or three per row. Ranking
+  tables mark the best value in each metric row with a green checkmark (smallest
+  gap, highest softness, most-negative E_ads, highest score); metrics with no
+  defensible best (ΔN, metal-O distance, TNC) stay unmarked, and the overall-lead
+  column stays highlighted. Chosen interactively by the owner.
+- **ADR 0019 (per-case report bundles).** Rendering the pyrazolo bundle
+  contradicted ADR 0018's rejected "no per-study bundle" alternative, so 0019
+  records the flip: each validation case renders its own bundle
+  (`cases/<case>/report/`), with `validation.md` still the cross-study comparison
+  home. This resolves the policy half of **#183**; the remaining half is the
+  phytic-acid compute-and-render.
+- **PLAYBOOK.** Added a "Render a validation case end-to-end" recipe (the QM
+  container + venv sequence, the shared-`fig0` copy step, and the small-basis /
+  drop-ESP escape hatch for large charge-dense molecules).
+- **Quality gates:** `pytest` (all pass), `ruff`, `mypy`, and the `complexipy`
+  watermark all green at each merge; working tree clean, all feature branches
+  auto-deleted.
+- **Template feedback.** The transpose (orient a comparison table so the fewer
+  entities are columns) and the per-metric winner-mark are generic dataviz ideas,
+  but `solid-ai-templates` covers code/testing/workflow conventions, not
+  generated-report or dataviz structure, so there is no upstream home; recorded
+  as project-specific. ADR 0019 likewise carries `Upstream: none`.
+- **Pending:** **#183** phytic-acid render is the one open case (ADR 0019 settled
+  the policy; the compute-and-render remains): `run_fukui` + `make_cubes` at
+  `6-31G(d)` then venv figures/report. Its ESP cube is the risk step (the folded
+  54-atom, 24-oxygen geometry that forced its DFT off the diffuse basis), so
+  generate cubes at a modest grid / drop `--what esp` if the MEP integral chokes.
+  Cross-repo, filed but owner's to work: solid-ai-templates #754-761 (+ #349),
+  corrosim #189 / #186 / #181 / #180. Prior threads carried: **#71**, **#40**.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
