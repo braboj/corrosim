@@ -1,13 +1,14 @@
 # corrosim
 
 *Density-functional-theory reactivity, adsorption dynamics, and a shareable
-report for green corrosion inhibitors — on free software, end to end.*
+report for green corrosion inhibitors. Free software, end to end.*
 
-corrosim screens green corrosion inhibitors end to end: from a molecule and a
+corrosim screens corrosion inhibitors end to end: from a molecule and a
 metal, it computes reactivity descriptors, estimates adsorption, ranks
-candidates, and emits a self-contained report — all on free, open-source
-software. It is built around the **Arghel (*Solenostemma argel*) flavonoids** on
-mild steel in 1 M HCl, but accepts any molecule and supported substrate.
+candidates, and writes a self-contained report, all on free, open-source
+software. It is built for green, plant-derived inhibitors: the **Arghel
+(*Solenostemma argel*) flavonoids** on mild steel in 1 M HCl. It also accepts
+any molecule and supported substrate.
 
 ![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -15,26 +16,18 @@ mild steel in 1 M HCl, but accepts any molecule and supported substrate.
 
 ## Features
 
-- Screen any molecule — by name or SMILES (Simplified Molecular-Input Line-Entry
-  System) — against a metal surface, and rank a candidate set best-first with a
-  transparent score
-- Compute global reactivity descriptors — HOMO–LUMO gap, chemical
-  hardness/softness, and the Lukovits electron-transfer ΔN — with xTB (extended
-  tight-binding) or DFT (density-functional theory)
-- Map local reactivity — Fukui and dual-descriptor indices, plus
-  electrostatic-potential (ESP) isosurfaces
-- Estimate the adsorption pose — a Monte Carlo search over a rigid metal slab,
-  then Brownian molecular dynamics for the metal–oxygen radial distribution
-  function (RDF)
-- Emit one self-contained HTML report with every figure embedded
+- Screen any molecule (by name or SMILES) against a metal surface
+- Rank your candidates best-first with a transparent score
+- Compute quantum reactivity descriptors (HOMO–LUMO gap, hardness, ΔN) with
+  xTB or DFT
+- Map where a molecule is reactive: Fukui indices and ESP isosurfaces
+- Estimate how it adsorbs: Monte Carlo pose search plus Brownian-dynamics RDF
+- Write one self-contained HTML report, every figure embedded
 - Run end to end on free, open-source engines (xTB, PySCF)
-
-The multiscale pipeline — how each stage works, the diagram, and the science
-behind it — is documented in [`docs/pipeline.md`](docs/pipeline.md).
 
 ## Quick start
 
-Prerequisites: Python 3.10+ with `pip`. No quantum engines needed for this path —
+Prerequisites: Python 3.10+ with `pip`. No quantum engines needed for this path:
 it rebuilds the report from the committed result data.
 
 ```bash
@@ -56,20 +49,9 @@ word report written to cases/arghel/report/report.docx (3101 kB)
 tables in cases/arghel/report/tables/ (per-stage subfolders)
 ```
 
-Open `cases/arghel/report/report.html` in any browser, or `cases/arghel/report/report.docx`
-in Word (both
-are lean and stage-keyed — the same tables and figures under each stage with
-minimal captions; the methodology lives in `docs/pipeline.md`). The `report`
-extra (python-docx) is only needed for the Word file; without it the HTML is
-still built. To run the DFT/xTB stages
-yourself, see
-[Development setup](#development-setup).
-
 ## Usage
 
-corrosim has two modes: a command-line screen and a Python API.
-
-**Command line** — screen the case-study set, rank it, and write a report + CSV:
+**Command line.** Screen the case-study set, rank it, and write a report + CSV:
 
 ```bash
 corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
@@ -92,7 +74,7 @@ Use `--engine xtb` for a sub-second ranking pass, `--input molecules.csv` to
 screen a batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
 van-der-Waals physisorption estimate as an `e_ads_kjmol` column.
 
-**Python** — the same screen from a script:
+**Python.** The same screen from a script:
 
 ```python
 import corrosim
@@ -110,14 +92,7 @@ Output:
 quercetin
 ```
 
-Quercetin is the robust lead across engines and geometries — see
-[`docs/validation.md`](docs/validation.md). The quantum engines (`xtb`, `pyscf`)
-run natively on Linux/macOS via the `qm` extra, or in the Docker image on
-Windows (see [Development setup](#development-setup)).
-
 ## How it fits together
-
-corrosim is two tools:
 
 | | `corrosim` (screen) | `runs/*` → `make_report` (report) |
 | --- | --- | --- |
@@ -133,17 +108,17 @@ does everything else. Full pipeline commands: [`docs/PLAYBOOK.md`](docs/PLAYBOOK
 
 | Path | Contents |
 | --- | --- |
-| `src/corrosim/` | Core package facade — `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
+| `src/corrosim/` | Core package facade: `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
 | `src/corrosim/qm/` | `engines`, `descriptors`, `fukui`, `pka`, `speciation`, `protonation`, `cubes`; `_backend_pyscf`/`_tblite` hold the deferred pyscf/tblite imports (ADR 0015). |
 | `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
 | `src/corrosim/report/` | `report`, `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them). |
-| `src/corrosim/data/` | `inhibitors.json` — the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
-| `src/corrosim/runs/` | Stage drivers — `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` (+ `_cli`: shared CLI plumbing). |
+| `src/corrosim/data/` | `inhibitors.json`: the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
+| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` (+ `_cli`: shared CLI plumbing). |
 | `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |
-| `cases/<case>/results/` | Tracked pipeline data — descriptors, Fukui, MC/MD, pKa. |
+| `cases/<case>/results/` | Tracked pipeline data: descriptors, Fukui, MC/MD, pKa. |
 | `cases/<case>/report/` | Report bundle (`make_report`): `report.html` + `report.docx` + `figures/<stage>/` + `tables/<stage>/`. |
 | `examples/` | Sample batch CSV. |
-| `tests/` | pytest suite (QM-light, no DFT — fast). |
+| `tests/` | pytest suite (QM-light, no DFT, fast). |
 | `docs/` | `pipeline.md`, `validation.md`, `ONBOARDING.md`, `PLAYBOOK.md`, `dev-journal.md`, `decisions/` (ADRs), `diagrams/` (.drawio sources). |
 | `Dockerfile`, `docker-compose.yml` | The `corrosim-qm` QM environment (PySCF + tblite). |
 
@@ -166,7 +141,7 @@ mypy                          # type-check (non-strict; CI gate)
 complexipy                    # cognitive-complexity ratchet (CI gate)
 ```
 
-**External tool — Docker (for the quantum stages).** The DFT/xTB engines
+**External tool: Docker (for the quantum stages).** The DFT/xTB engines
 (`pyscf`, `tblite`, `geometric`) have no native-Windows wheels and run only in
 the bundled `corrosim-qm` image; everything else runs in the venv.
 
@@ -219,14 +194,14 @@ The screening run is configured through CLI options (`corrosim --help`):
 
 ## Links
 
-- [Pipeline — scientific basis](docs/pipeline.md)
-- [Validation — computational and experimental](docs/validation.md)
+- [Pipeline: scientific basis](docs/pipeline.md)
+- [Validation: computational and experimental](docs/validation.md)
 - [Architecture decisions (ADRs)](docs/decisions/)
-- [Onboarding guide](docs/ONBOARDING.md) — setup for new contributors
-- [Operational playbook](docs/PLAYBOOK.md) — day-to-day tasks and workflows
-- [Development journal](docs/dev-journal.md) — session history
+- [Onboarding guide](docs/ONBOARDING.md): setup for new contributors
+- [Operational playbook](docs/PLAYBOOK.md): day-to-day tasks and workflows
+- [Development journal](docs/dev-journal.md): session history
 - [Issue tracker](https://github.com/braboj/corrosim/issues)
 
 ## License
 
-MIT — see [LICENSE](LICENSE). © 2026 Branimir Georgiev.
+MIT. See [LICENSE](LICENSE). © 2026 Branimir Georgiev.
