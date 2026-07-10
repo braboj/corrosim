@@ -46,6 +46,9 @@ g16_*/
 .vscode/
 ~$*.docx        # Word lock/owner files
 
+# Claude Code per-user settings (shared .claude/settings.json stays trackable)
+.claude/settings.local.json
+
 # Local-only notes (kept with the project, never pushed)
 *.local.md
 docs/local/
