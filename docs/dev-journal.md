@@ -1555,4 +1555,111 @@ Docs-only on corrosim; the rest is cross-project agent tooling.
   compute (owner runs the pyrazolo DFT+MC+MD), then **#183**, the two **#181**
   sub-tasks, **#180**, **#71**, **#40**.
 
+## 2026-07-10 (session 19) — QM image rebuild (#180), pyrazolo compute in-flight (#53), template-gap tickets
+
+Compute session plus a run of upstream-template gap tickets surfaced while
+explaining the config files.
+
+- **#180 QM image rebuilt.** No local `corrosim-qm` image existed, so a fresh
+  `docker compose build` regenerated the editable install: `import corrosim` now
+  resolves to `/work/src/corrosim` (the ADR-0011 path) with no `PYTHONPATH`
+  workaround, verified via a bind-mounted probe (`pyscf 2.13.1`, `tblite` import
+  OK). Windows gotcha found and worked around: `docker` stdout is not captured by
+  the background-shell harness, so QM jobs are monitored via bind-mounted
+  logfiles / their output files on the host, and `docker compose run` needs `-T`.
+- **#53 pyrazolo compute.** MC + MD ran in the venv (no QM needed): MC E_ads
+  ranking is acid −20.4 > amide −15.6 > ester −8.8 kJ/mol; MD Fe-O peaks
+  3.85-3.95 A with Fe-N peaks present. The DFT matrix
+  (B3LYP/6-311++G(d,p), forms=both) was launched detached and is STILL running at
+  session close (~2 h in, on molecule 2 of 3); each protonated diffuse-basis SCF
+  is 12-15 min at 8 threads. Descriptors, the `validation.md` computed column, and
+  the report render all wait on it finishing.
+- **#188 merged.** `.gitignore` now ignores `.claude/settings.local.json`
+  (scoped to the local file so a shared `.claude/settings.json` stays trackable).
+  Squash-merged from a branch.
+- **Stray `report/` removed.** An empty pre-ADR-0018 `report/tables/` at the repo
+  root (untracked, from before per-case output routing) was deleted after the
+  owner released a native process that held it as its working directory (found via
+  Resource Monitor).
+- **Upstream template-gap tickets (solid-ai-templates), from a quality-gates +
+  config-file coverage audit:** #749 (bug) Go stacks inherit the Python/TS
+  complexity-tool line with no Go tool; #750 (spike, reframed) move the concrete
+  complexity-tool mapping to the language layer (DIP); #751 (bug) prescribe
+  `.gitattributes` so the LF-only MUST is enforceable (EditorConfig is editor-side
+  only; this is corrosim's own EOL-churn fix generalized); #752 (task) cover Docker
+  Compose in the infra layer; #753 (task, P2) add `base/language/python.md` and a
+  tooling section to `typescript.md` as the home for per-language tool selection
+  (umbrella that subsumes #750). All cross-linked.
+- **corrosim #189 (spike) filed:** define what `examples/` should contain; a bare
+  `examples/molecules.csv` with empty SMILES columns reads as broken rather than a
+  name-or-SMILES demo.
+- **Memory:** added `wuseria-husky-hooks` (Imbra-Ltd/wuseria uses Husky +
+  lint-staged, not pre-commit; the Python-vs-JS hook-tooling split; a
+  config-hygiene reference for #751/#753).
+- **Quality gates:** `pytest -q` green (1 skip), `ruff check .` clean, `mypy`
+  clean (39 files). Nothing committed this session beyond the merged #188 (owner
+  commits on request); working tree carries only the in-flight
+  `cases/pyrazolo-pyrimidine/` results and this journal entry.
+- **Pending:** the pyrazolo **DFT is still running detached** (molecule 2 of 3) and
+  survives session teardown; on completion: parse `dft_descriptors_ff`, fill the
+  `validation.md` pyrazolo computed column and check the reported gap ordering
+  3 < 2 < 1 vs Awad 2025, then commit the whole pyrazolo case (DFT + MC + MD +
+  figures + report) as one change. Then **#183** phytic-acid render (make_cubes +
+  run_fukui at B3LYP/6-31G(d), then venv figures/report), serialized after the DFT
+  frees the CPU. **#180** optional CI/Makefile pin (drift prevention) remains.
+  Cross-repo, filed but not landed (owner's to work): solid-ai-templates
+  #749/#750/#751/#752/#753 and corrosim #189. Prior threads carried: the two
+  **#181** sub-tasks, **#71**, **#40**.
+
+## 2026-07-10 (session 20) — engineering know-how doc + skill; upstream feedback loop
+
+A meta/tooling session (no new pipeline code); the detached pyrazolo DFT finished
+in the background near the end.
+
+- **`docs/engineering-know-how.md` (new).** A generic, project-agnostic
+  distillation of the codebase's transferable software-engineering patterns:
+  package structure, dependency isolation, config, CLI, typing contracts,
+  testability, CI/CD, DevSecOps, cross-platform, decision hygiene. Built by three
+  read-only fan-out passes (ADRs, config/CI toolchain, source patterns) then
+  synthesis. Iterated per owner steer: stripped ALL repo/domain references
+  (no ADR numbers, file paths, or chemistry), placeholder names (`mypkg`,
+  `Profile`, `nativelib`); added verbatim-then-genericized code examples and ASCII
+  diagrams; finally reorganized by the solid-ai-templates taxonomy (core /
+  language / infra / security / workflow) plus a **free-form** section that
+  doubles as the upstream-candidate queue. Style: no em-dashes, no `---` dividers.
+- **`engineering-know-how` skill (Imbra-Ltd/imbra-agent-skills).** Authored the
+  reusable capability behind the doc (`SKILL.md` + `reference.md`: scope, fan-out
+  method, genericize + style rules, taxonomy outline, extractor prompts, gap
+  analysis). Installed onto the device and pushed (commits `aac0945` add,
+  `36a7491` taxonomy structure).
+- **Upstream feedback loop.** A gap analysis of the doc against the templates
+  surfaced 7 genuine gaps, filed on braboj/solid-ai-templates: **#754** in-process
+  config model, **#755** `base/core/cli.md`, **#756** scoped coverage, **#757**
+  single-backdoor optional-dep module, **#758** AST public-API-contract test,
+  **#759** full-history secret scan, **#760** reconcile the `mypy --strict`
+  mandate. Then root-caused why these were not auto-filed at prior session ends
+  (the template-feedback audit item fired shallowly: gated on an explicit
+  end-signal, delta-only scope, domain-skin bias, one-line depth) and filed the
+  process meta-fix **#761**; commented the taxonomy mechanism on #761 and a
+  cross-note on #349.
+- **CLAUDE.md process fix.** New 1.4 rule: judge upstream reusability at
+  ADR-decision time (strip the domain nouns, add an `Upstream:` line), and 6.3
+  harvests it in the end-of-session audit. Indexed the new doc in the 1.4 table.
+- **`.markdownlint.json`** added in the memory folder so MD041 accepts `name:`
+  frontmatter as the title.
+- **pyrazolo DFT (#53) FINISHED** in the background (container exited 0;
+  `dft_descriptors_ff.{csv,json}` written). MC + MD were already done. The case is
+  now compute-complete but UNPROCESSED and uncommitted (see Pending).
+- **Verification:** `pytest -q`, `ruff check .`, `mypy` run at wrap-up (results in
+  the PR). Shipped `docs/engineering-know-how.md` + the CLAUDE.md rule + this
+  journal via PR on a branch (squash-merged).
+- **Pending:** the pyrazolo **DFT is now COMPLETE but UNPROCESSED**: parse
+  `dft_descriptors_ff`, fill the `validation.md` pyrazolo computed column, verify
+  the reported HOMO-LUMO gap ordering ester 3 < 2 < 1 vs Awad 2025, regenerate
+  figures + report, then commit the whole `cases/pyrazolo-pyrimidine/` case as one
+  change (currently untracked). Then **#183** phytic-acid render (make_cubes +
+  run_fukui at B3LYP/6-31G(d), then venv figures/report). Cross-repo, filed but
+  owner's to work: solid-ai-templates #754-761 (+ #349 comment) and corrosim #189.
+  Prior threads carried: the two **#181** sub-tasks, **#71**, **#40**.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
