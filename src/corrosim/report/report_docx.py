@@ -25,7 +25,14 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
 from . import report_content as _content
-from .report import prepare_report_data, rank_inhibitors, results_dataframe
+from .report import (
+    DESCRIPTOR_ROW_LABELS,
+    descriptor_matrix,
+    prepare_report_data,
+    rank_inhibitors,
+    ranking_matrix,
+    results_dataframe,
+)
 from .report_layout import figure_path
 
 if TYPE_CHECKING:
@@ -99,22 +106,10 @@ class _Doc:
         run.font.color.rgb = _MUTED
 
     # --- tables -------------------------------------------------------------
-    def df_table(self, df: pd.DataFrame, *,
-                 highlight_first: bool = False) -> None:
-        cols = list(df.columns)
-        t = self.doc.add_table(rows=1, cols=len(cols))
-        t.style = "Table Grid"
-        for i, c in enumerate(cols):
-            _set_cell(t.rows[0].cells[i], c, bold=True)
-        for ri, (_, row) in enumerate(df.iterrows()):
-            cells = t.add_row().cells
-            for i, c in enumerate(cols):
-                v = row[c]
-                _set_cell(cells[i], "" if pd.isna(v) else v,
-                          bold=(highlight_first and ri == 0))
-
     def content_table(self, payload: dict) -> None:
         cols, rows = payload["columns"], payload["rows"]
+        # Optional column to embolden (the winning molecule in a ranking)
+        highlight_col = payload.get("highlight_col")
         t = self.doc.add_table(rows=1, cols=len(cols))
         t.style = "Table Grid"
         for i, c in enumerate(cols):
@@ -122,9 +117,27 @@ class _Doc:
         for row in rows:
             cells = t.add_row().cells
             for i, c in enumerate(row):
-                _set_cell(cells[i], c)
+                _set_cell(cells[i], c, bold=(i == highlight_col))
         if payload.get("caption"):
             self.para(payload["caption"], muted=True, size=8)
+
+    def descriptor_table(self, df: pd.DataFrame) -> None:
+        """A transposed descriptor table (molecules as columns, descriptors as
+        labelled rows), matching the HTML report via the shared
+        :func:`descriptor_matrix`.
+        """
+        headers, rows = descriptor_matrix(df)
+        self.content_table({"columns": headers, "rows": rows})
+
+    def ranking_table(self, df: pd.DataFrame, name_col: str,
+                      label_map: dict[str, str] | None = None) -> None:
+        """A transposed ranking table (molecules as columns, best-first, winning
+        column bold), matching the HTML report via the shared
+        :func:`ranking_matrix`.
+        """
+        headers, rows = ranking_matrix(df, name_col, label_map)
+        self.content_table(
+            {"columns": headers, "rows": rows, "highlight_col": 1})
 
     def save(self, path: str) -> str:
         self.doc.save(path)
@@ -154,15 +167,18 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
         f"protonated** at this pH — the {spec.dominant} form dominates. "
         f"Population-weighted descriptors (blended lead "
         f"**{summary['blended_lead']}**):", muted=True, size=9)
-    d.df_table(results_dataframe(summary["blended_rows"]))
+    d.descriptor_table(results_dataframe(summary["blended_rows"]))
     if computed_pkah:
         basis = ("frequency-corrected" if pka_freq_corrected
                  else "electronic-only")
         d.content_table({
-            "columns": ["molecule", "computed pKaH", "% protonated"],
-            "rows": [[r["name"], f"{r['pkah']:.1f}",
-                      f"{r['f_protonated'] * 100:.2f}%"]
-                     for r in computed_pkah],
+            "columns": ["", *[r["name"] for r in computed_pkah]],
+            "rows": [
+                ["computed pKaH",
+                 *[f"{r['pkah']:.1f}" for r in computed_pkah]],
+                ["% protonated",
+                 *[f"{r['f_protonated'] * 100:.2f}%" for r in computed_pkah]],
+            ],
             "caption": f"Computed pKaH (DFT cycle, {basis}).",
         })
 
@@ -193,7 +209,7 @@ def _summary_section(d: _Doc, prep: PreparedReport) -> None:
     bl = prep.bottom_line()
     if bl:
         d.para(bl)
-    d.df_table(prep.summary, highlight_first=True)
+    d.ranking_table(prep.summary, "Inhibitor")
     d.para(_content.score_note(prep.m_elem), muted=True, size=9)
 
 
@@ -215,7 +231,7 @@ def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
     d.figure(figdir, "fig3_descriptors.png", "Reactivity descriptors")
     d.figure(figdir, "fig3b_protonation.png", "Protonation effect")
     d.heading("Full descriptor table (neutral, aqueous)", level=2)
-    d.df_table(prep.full)
+    d.descriptor_table(prep.full)
     if os.path.exists(figure_path(figdir, "fig8_geometry_comparison.png")):
         d.heading("Geometry refinement (FF vs DFT-optimised)", level=2)
         d.figure(figdir, "fig8_geometry_comparison.png",
@@ -234,12 +250,13 @@ def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
         keep = [n for n in order if n in set(ndf["name"])]
         ndf = ndf.set_index("name").loc[keep].reset_index()
     ranked = rank_inhibitors(ndf)
-    d.df_table(ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                       "delta_n", "tnc", "score"]].round(3),
-               highlight_first=True)
+    d.ranking_table(
+        ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
+                "delta_n", "tnc", "score"]].round(3),
+        "name", DESCRIPTOR_ROW_LABELS)
     if opt_acid_rows:
         d.heading("Optimised protonated cations (in-acid)", level=3)
-        d.df_table(results_dataframe(opt_acid_rows))
+        d.descriptor_table(results_dataframe(opt_acid_rows))
 
 
 def _acid_cation_section(d: _Doc, acid_cation_rows: list[dict] | None,
@@ -248,7 +265,7 @@ def _acid_cation_section(d: _Doc, acid_cation_rows: list[dict] | None,
     if not acid_cation_rows:
         return
     d.heading("Species in the acidic medium (protonated cation)", level=2)
-    d.df_table(results_dataframe(acid_cation_rows))
+    d.descriptor_table(results_dataframe(acid_cation_rows))
     d.para(f"Protonated +1 cation descriptors in {medium}; the headline "
            "ranking stays on the neutral form (see docs/pipeline.md).",
            muted=True, size=9)

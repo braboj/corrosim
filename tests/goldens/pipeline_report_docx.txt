@@ -4,44 +4,83 @@ The molecules modelled here are screened in silico as representative candidates,
 1. Overview
 2. Summary & ranking
 Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+1.34), combining the smallest HOMO–LUMO gap (4.00 eV) with the highest softness — the most readily polarised, electron-donating candidate of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
-Inhibitor | Gap (eV) | Hardness η (eV) | Softness σ (1/eV) | ΔN | E_ads (kJ/mol) | Fe–O (Å) | Score
-quercetin | 4.0 | 2.0 | 0.5 | 0.2 | -16.0 | 3.65 | 1.341
-kaempferol | 4.4 | 2.2 | 0.455 | 0.2 | -16.5 | 3.35 | -0.283
-isorhamnetin | 4.6 | 2.3 | 0.435 | 0.2 | -16.7 | 3.45 | -1.059
+ | quercetin | kaempferol | isorhamnetin
+Gap (eV) | 4.0 | 4.4 | 4.6
+Hardness η (eV) | 2.0 | 2.2 | 2.3
+Softness σ (1/eV) | 0.5 | 0.455 | 0.435
+ΔN | 0.2 | 0.2 | 0.2
+E_ads (kJ/mol) | -16.0 | -16.5 | -16.7
+Fe–O (Å) | 3.65 | 3.35 | 3.45
+Score | 1.341 | -0.283 | -1.059
 Scored on the neutral HOMO–LUMO gap, hardness and softness (z-scored; higher = stronger). E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
 3. DFT electronic descriptors
 3.1 Frontier-orbital isosurfaces (HOMO / LUMO)
 3.2 Full descriptor table (neutral, aqueous)
-name | formula | charge | level | homo_ev | lumo_ev | gap_ev | hardness_ev | softness_inv_ev | electronegativity_ev | electrophilicity_ev | delta_n | back_donation_ev | tnc | e_ads_kjmol
-quercetin | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.0 | 4.0 | 2.0 | 0.5 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0 | -16.0
-kaempferol | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -1.6 | 4.4 | 2.2 | 0.455 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0 | -16.5
-isorhamnetin | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -1.4 | 4.6 | 2.3 | 0.435 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0 | -16.7
+Descriptor | quercetin | kaempferol | isorhamnetin
+Formula | C15H10O7 | C15H10O7 | C15H10O7
+HOMO (eV) | -6.0 | -6.0 | -6.0
+LUMO (eV) | -2.0 | -1.6 | -1.4
+Gap ΔE (eV) | 4.0 | 4.4 | 4.6
+η hardness (eV) | 2.0 | 2.2 | 2.3
+σ softness (1/eV) | 0.5 | 0.455 | 0.435
+χ electronegativity (eV) | 4.0 | 4.0 | 4.0
+ω electrophilicity (eV) | 4.0 | 4.0 | 4.0
+ΔN | 0.2 | 0.2 | 0.2
+E_back-donation (eV) | -0.5 | -0.5 | -0.5
+TNC | -4.0 | -4.0 | -4.0
+E_ads (kJ/mol) | -16.0 | -16.5 | -16.7
 3.3 Optimised-geometry descriptors (DFT-relaxed)
-name | gap_ev | hardness_ev | softness_inv_ev | delta_n | tnc | score
-quercetin | 3.7 | 1.85 | 0.541 | 0.2 | -4.0 | 1.342
-kaempferol | 4.1 | 2.05 | 0.488 | 0.2 | -4.0 | -0.284
-isorhamnetin | 4.3 | 2.15 | 0.465 | 0.2 | -4.0 | -1.058
+ | quercetin | kaempferol | isorhamnetin
+Gap ΔE (eV) | 3.7 | 4.1 | 4.3
+η hardness (eV) | 1.85 | 2.05 | 2.15
+σ softness (1/eV) | 0.541 | 0.488 | 0.465
+ΔN | 0.2 | 0.2 | 0.2
+TNC | -4.0 | -4.0 | -4.0
+Score | 1.342 | -0.284 | -1.058
 Optimised protonated cations (in-acid)
-name | formula | charge | level | homo_ev | lumo_ev | gap_ev | hardness_ev | softness_inv_ev | electronegativity_ev | electrophilicity_ev | delta_n | back_donation_ev | tnc
-quercetin+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.9 | 3.1 | 1.5 | 0.667 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0
-kaempferol+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.6 | 3.4 | 1.7 | 0.588 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0
-isorhamnetin+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.4 | 3.6 | 1.8 | 0.556 | 4.0 | 4.0 | 0.2 | -0.5 | -4.0
+Descriptor | quercetin+H+ | kaempferol+H+ | isorhamnetin+H+
+Formula | C15H10O7 | C15H10O7 | C15H10O7
+HOMO (eV) | -6.0 | -6.0 | -6.0
+LUMO (eV) | -2.9 | -2.6 | -2.4
+Gap ΔE (eV) | 3.1 | 3.4 | 3.6
+η hardness (eV) | 1.5 | 1.7 | 1.8
+σ softness (1/eV) | 0.667 | 0.588 | 0.556
+χ electronegativity (eV) | 4.0 | 4.0 | 4.0
+ω electrophilicity (eV) | 4.0 | 4.0 | 4.0
+ΔN | 0.2 | 0.2 | 0.2
+E_back-donation (eV) | -0.5 | -0.5 | -0.5
+TNC | -4.0 | -4.0 | -4.0
 3.4 Species in the acidic medium (protonated cation)
-name | formula | charge | level | homo_ev | lumo_ev | gap_ev | hardness_ev | softness_inv_ev | electronegativity_ev | electrophilicity_ev | delta_n | back_donation_ev | tnc
-quercetin+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.7 | 3.3 | 1.6 | 0.625 | 4.0 | 4.0 | -0.05 | -0.5 | -4.0
-kaempferol+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.4 | 3.6 | 1.8 | 0.556 | 4.0 | 4.0 | -0.07 | -0.5 | -4.0
-isorhamnetin+H+ | C15H10O7 | 1 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.2 | 3.8 | 1.9 | 0.526 | 4.0 | 4.0 | -0.06 | -0.5 | -4.0
+Descriptor | quercetin+H+ | kaempferol+H+ | isorhamnetin+H+
+Formula | C15H10O7 | C15H10O7 | C15H10O7
+HOMO (eV) | -6.0 | -6.0 | -6.0
+LUMO (eV) | -2.7 | -2.4 | -2.2
+Gap ΔE (eV) | 3.3 | 3.6 | 3.8
+η hardness (eV) | 1.6 | 1.8 | 1.9
+σ softness (1/eV) | 0.625 | 0.556 | 0.526
+χ electronegativity (eV) | 4.0 | 4.0 | 4.0
+ω electrophilicity (eV) | 4.0 | 4.0 | 4.0
+ΔN | -0.05 | -0.07 | -0.06
+E_back-donation (eV) | -0.5 | -0.5 | -0.5
+TNC | -4.0 | -4.0 | -4.0
 Protonated +1 cation descriptors in 1 M HCl; the headline ranking stays on the neutral form (see docs/pipeline.md).
 3.5 Speciation in 1 M HCl (pH ≈ 0.0)
 97% neutral / 3% protonated at this pH — the neutral form dominates. Population-weighted descriptors (blended lead quercetin):
-name | formula | charge | level | homo_ev | lumo_ev | gap_ev | hardness_ev | softness_inv_ev | electronegativity_ev | electrophilicity_ev | delta_n | back_donation_ev | tnc
-quercetin | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -2.022 | 3.978 | 1.988 | 0.504 | 4.0 | 4.0 | 0.192 | -0.5 | -4.0
-kaempferol | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -1.624 | 4.376 | 2.188 | 0.458 | 4.0 | 4.0 | 0.192 | -0.5 | -4.0
-isorhamnetin | C15H10O7 | 0 | B3LYP/6-311++G(d,p) (ddCOSMO:water) | -6.0 | -1.424 | 4.576 | 2.288 | 0.438 | 4.0 | 4.0 | 0.192 | -0.5 | -4.0
-molecule | computed pKaH | % protonated
-quercetin | -12.1 | 0.00%
-kaempferol | -11.2 | 0.00%
-isorhamnetin | -10.8 | 0.00%
+Descriptor | quercetin | kaempferol | isorhamnetin
+Formula | C15H10O7 | C15H10O7 | C15H10O7
+HOMO (eV) | -6.0 | -6.0 | -6.0
+LUMO (eV) | -2.022 | -1.624 | -1.424
+Gap ΔE (eV) | 3.978 | 4.376 | 4.576
+η hardness (eV) | 1.988 | 2.188 | 2.288
+σ softness (1/eV) | 0.504 | 0.458 | 0.438
+χ electronegativity (eV) | 4.0 | 4.0 | 4.0
+ω electrophilicity (eV) | 4.0 | 4.0 | 4.0
+ΔN | 0.192 | 0.192 | 0.192
+E_back-donation (eV) | -0.5 | -0.5 | -0.5
+TNC | -4.0 | -4.0 | -4.0
+ | quercetin | kaempferol | isorhamnetin
+computed pKaH | -12.1 | -11.2 | -10.8
+% protonated | 0.00% | 0.00% | 0.00%
 Computed pKaH (DFT cycle, frequency-corrected).
 3.6 Local reactivity (Fukui)
 quercetin: O0 (f⁻=0.090), O4 (f⁻=0.070)

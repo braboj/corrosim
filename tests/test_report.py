@@ -68,8 +68,8 @@ def test_pipeline_report_is_self_contained(tmp_path):
 
     html = out.read_text(encoding="utf-8")
     assert os.path.exists(out)
-    # quercetin (smaller gap+hardness) ranks first and is highlighted
-    assert 'class="best"><td>quercetin' in html
+    # quercetin (smaller gap+hardness) ranks first: its column is highlighted
+    assert '<th class="best">quercetin</th>' in html
     # adsorption data merged in from MC/MD
     assert "-16.0" in html and "3.65" in html
     # no external resource references — the file is shareable on its own
@@ -98,7 +98,7 @@ def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Species in the acidic medium" in html
     assert "quercetin+H+" in html
-    assert 'class="best"><td>quercetin<' in html        # neutral lead still headline
+    assert '<th class="best">quercetin</th>' in html    # neutral lead still headline
 
     # no cation rows (non-acidic medium) -> no in-acid section
     out2 = tmp_path / "report2.html"
