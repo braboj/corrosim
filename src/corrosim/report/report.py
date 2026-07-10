@@ -165,10 +165,12 @@ def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
         caveat=("These molecules are documented major constituents of the extract, "
                 "simulated as representatives — not a verified profile of your specific "
                 "sample. Confirm with LC-MS/GC-MS for a publication."),
-        rank_table=_html_table(ranked[["name", "gap_ev", "hardness_ev",
-                                       "softness_inv_ev", "delta_n", "score"]],
-                               best_first_row=True),
-        full_table=_html_table(df),
+        rank_table=_ranking_table_html(
+            ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
+                    "delta_n", "score"]],
+            "name", DESCRIPTOR_ROW_LABELS),
+        full_table=_descriptor_table_html(
+            results_dataframe(df.to_dict("records"))),
         img_hl=_fig_to_b64(plot_homo_lumo(df)),
         img_desc=_fig_to_b64(plot_descriptor_bars(df)),
         method=("Descriptors from frontier-orbital energies (Koopmans' theorem). "
@@ -257,7 +259,7 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
         return []
     return [
         "<h3>Species in the acidic medium (protonated cation)</h3>",
-        _html_table(results_dataframe(acid_cation_rows)),
+        _descriptor_table_html(results_dataframe(acid_cation_rows)),
         f'<p class="meta">Protonated +1 cation descriptors in {medium}; the '
         "headline ranking stays on the neutral form (see docs/pipeline.md).</p>",
     ]
@@ -282,7 +284,7 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
                       "delta_n", "tnc", "score"]].round(3)
     out = [
         "<h3>Optimised-geometry descriptors (DFT-relaxed)</h3>",
-        _html_table(summary, best_first_row=True),
+        _ranking_table_html(summary, "name", DESCRIPTOR_ROW_LABELS),
     ]
     if opt_acid_rows:
         adf = pd.DataFrame(opt_acid_rows)
@@ -292,7 +294,7 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
             adf = adf.sort_values("_o").drop(columns=["_b", "_o"])
         out += [
             "<h4>Optimised protonated cations (in-acid)</h4>",
-            _html_table(results_dataframe(adf.to_dict("records"))),
+            _descriptor_table_html(results_dataframe(adf.to_dict("records"))),
         ]
     return out
 
@@ -306,16 +308,16 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
     """
     if not computed_pkah:
         return []
-    head = "<tr><th>molecule</th><th>computed pKaH</th><th>% protonated @ this pH</th></tr>"
-    body = "".join(
-        f"<tr><td>{r['name']}</td><td>{r['pkah']:.1f}</td>"
-        f"<td>{r['f_protonated'] * 100:.2f}%</td></tr>"
-        for r in computed_pkah
-    )
+    head = "<th></th>" + "".join(f"<th>{r['name']}</th>" for r in computed_pkah)
+    row_pkah = "<th>computed pKaH</th>" + "".join(
+        f"<td>{r['pkah']:.1f}</td>" for r in computed_pkah)
+    row_prot = "<th>% protonated @ this pH</th>" + "".join(
+        f"<td>{r['f_protonated'] * 100:.2f}%</td>" for r in computed_pkah)
     basis = "frequency-corrected" if freq_corrected else "electronic-only"
     return [
         "<h4>Computed pKaH (DFT deprotonation cycle)</h4>",
-        f"<table><thead>{head}</thead><tbody>{body}</tbody></table>",
+        f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
+        f"<tbody><tr>{row_pkah}</tr><tr>{row_prot}</tr></tbody></table></div>",
         f'<p class="meta">B3LYP/6-311++G(d,p) + ddCOSMO deprotonation cycle '
         f"({basis}).</p>",
     ]
@@ -338,7 +340,7 @@ def _speciation_block(summary: dict | None, medium: str,
         f"{spec.f_protonated:.0%} protonated</b> at this pH — the "
         f"{spec.dominant} form dominates. Population-weighted descriptors "
         f"(blended lead <b>{summary['blended_lead']}</b>):</p>",
-        _html_table(results_dataframe(summary["blended_rows"])),
+        _descriptor_table_html(results_dataframe(summary["blended_rows"])),
         *_computed_pka_block(computed_pkah, pka_freq_corrected),
     ]
 
@@ -364,15 +366,145 @@ def top_donor_sites_of_element(fukui_rows: list[dict], element: str = "O",
     return sel[:n]
 
 
-def _html_table(d: pd.DataFrame, best_first_row: bool = False) -> str:
+# Every descriptor/ranking table is shown transposed: molecules as columns, each
+# quantity a labelled row. With one to a few molecules and many quantities that
+# keeps the table inside the page width and lets each row name carry its unit.
+# The constant-per-table charge/level fields are dropped from descriptor tables —
+# they are stated in the section context, not repeated down every column.
+DESCRIPTOR_ROW_LABELS = {
+    "formula": "Formula",
+    "homo_ev": "HOMO (eV)",
+    "lumo_ev": "LUMO (eV)",
+    "gap_ev": "Gap ΔE (eV)",
+    "hardness_ev": "η hardness (eV)",
+    "softness_inv_ev": "σ softness (1/eV)",
+    "electronegativity_ev": "χ electronegativity (eV)",
+    "electrophilicity_ev": "ω electrophilicity (eV)",
+    "delta_n": "ΔN",
+    "back_donation_ev": "E_back-donation (eV)",
+    "tnc": "TNC",
+    "e_ads_kjmol": "E_ads (kJ/mol)",
+    "score": "Score",
+}
+
+_DESCRIPTOR_DROP = ("charge", "level")
+
+
+def _matrix(
+    df: pd.DataFrame,
+    name_col: str,
+    label_map: dict[str, str] | None,
+    drop: tuple[str, ...],
+    corner: str,
+) -> tuple[list[str], list[list[str]]]:
+    """Transpose a frame to molecule-columns / quantity-rows form.
+
+    Args:
+        df: The source frame.
+        name_col: Column whose values become the (molecule) column headers.
+        label_map: Optional raw-key -> display-label map for the row names.
+        drop: Columns to skip (e.g. constant charge/level).
+        corner: The top-left corner cell label.
+
+    Returns:
+        ``(headers, rows)`` with ``headers = [corner, *names]`` and one
+        ``[label, *cell strings]`` per remaining column; NaN renders as "".
+    """
+    names = [str(n) for n in df[name_col]]
+    headers = [corner, *names]
     rows = []
-    for i, (_, r) in enumerate(d.iterrows()):
-        cls = ' class="best"' if (best_first_row and i == 0) else ""
-        cells = "".join(f"<td>{'' if pd.isna(r[c]) else r[c]}</td>" for c in d.columns)
-        rows.append(f"<tr{cls}>{cells}</tr>")
-    head = "".join(f"<th>{c}</th>" for c in d.columns)
-    return (f"<table><thead><tr>{head}</tr></thead>"
-            f"<tbody>{''.join(rows)}</tbody></table>")
+    for col in df.columns:
+        if col == name_col or col in drop:
+            continue
+        label = (label_map or {}).get(col, col)
+        cells = ["" if pd.isna(v) else str(v) for v in df[col]]
+        rows.append([label, *cells])
+    return headers, rows
+
+
+def descriptor_matrix(df: pd.DataFrame) -> tuple[list[str], list[list[str]]]:
+    """Transpose a descriptor frame to molecule-columns / descriptor-rows form.
+
+    Shared by the HTML and Word renderers so both show the identical shape:
+    each molecule a column, each descriptor a labelled row (unit in the label),
+    with the constant charge/level fields dropped.
+
+    Args:
+        df: A :func:`results_dataframe`-shaped frame with a ``name`` column.
+
+    Returns:
+        ``(headers, rows)``; see :func:`_matrix`.
+    """
+    return _matrix(df, "name", DESCRIPTOR_ROW_LABELS, _DESCRIPTOR_DROP,
+                   "Descriptor")
+
+
+def ranking_matrix(
+    df: pd.DataFrame,
+    name_col: str,
+    label_map: dict[str, str] | None = None,
+) -> tuple[list[str], list[list[str]]]:
+    """Transpose a best-first ranking frame to molecule-columns / metric-rows.
+
+    Molecules keep their (best-first) order, so the winning column comes first.
+    Pass ``label_map`` to prettify raw metric keys; pass None when the columns
+    are already display labels.
+
+    Args:
+        df: A ranking frame sorted best-first, with ``name_col`` plus metrics.
+        name_col: Column whose values become the column headers.
+        label_map: Optional raw-key -> display-label map for the metric rows.
+
+    Returns:
+        ``(headers, rows)``; see :func:`_matrix`.
+    """
+    return _matrix(df, name_col, label_map, (), "")
+
+
+def _transposed_table_html(
+    headers: list[str],
+    rows: list[list[str]],
+    highlight_col: int | None = None,
+) -> str:
+    """Render a transposed ``(headers, rows)`` matrix as HTML.
+
+    ``headers[0]`` is the corner label and ``headers[1:]`` the molecule names;
+    each row is ``[label, *values]``. When ``highlight_col`` is given (a 0-based
+    index into the molecule columns), that column's header and cells carry the
+    ``best`` class.
+    """
+
+    def cls(entity_idx: int) -> str:
+        return (' class="best"'
+                if highlight_col is not None and entity_idx == highlight_col
+                else "")
+
+    head = f"<th>{headers[0]}</th>" + "".join(
+        f"<th{cls(j)}>{h}</th>" for j, h in enumerate(headers[1:]))
+    body = "".join(
+        "<tr><th>" + r[0] + "</th>"
+        + "".join(f"<td{cls(j)}>{v}</td>" for j, v in enumerate(r[1:]))
+        + "</tr>"
+        for r in rows
+    )
+    return (f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
+            f"<tbody>{body}</tbody></table></div>")
+
+
+def _descriptor_table_html(df: pd.DataFrame) -> str:
+    """Render a descriptor frame as a transposed HTML table (no highlight)."""
+    headers, rows = descriptor_matrix(df)
+    return _transposed_table_html(headers, rows)
+
+
+def _ranking_table_html(
+    df: pd.DataFrame,
+    name_col: str,
+    label_map: dict[str, str] | None = None,
+) -> str:
+    """Render a best-first ranking frame transposed, winner column highlighted."""
+    headers, rows = ranking_matrix(df, name_col, label_map)
+    return _transposed_table_html(headers, rows, highlight_col=0)
 
 
 _REPORT_CSS = """
@@ -381,6 +513,7 @@ _REPORT_CSS = """
  h1{font-size:1.6rem;margin-bottom:.2rem}
  h2{font-size:1.2rem;margin-top:2rem;border-bottom:2px solid #e2e8f0;padding-bottom:.3rem}
  h3{font-size:1rem;margin-top:1.2rem;color:#2d3748}
+ .tw{overflow-x:auto;max-width:100%;margin:.6rem 0}
  table{border-collapse:collapse;width:100%;font-size:.88rem;margin:.6rem 0}
  th,td{border:1px solid #e2e8f0;padding:.38rem .55rem;text-align:right}
  th:first-child,td:first-child{text-align:left}
@@ -581,7 +714,7 @@ def _summary_section(prep: PreparedReport) -> list[str]:
     return [
         "<h2>Summary &amp; ranking</h2>",
         f"<p>{_inline(bl)}</p>" if bl else "",
-        _html_table(prep.summary, best_first_row=True),
+        _ranking_table_html(prep.summary, "Inhibitor"),
         f'<p class="meta">{_inline(_content.score_note(prep.m_elem))}</p>',
     ]
 
@@ -610,7 +743,7 @@ def _dft_section(prep: PreparedReport, figdir: str) -> list[str]:
                        "Protonation effect (DFT-optimised cations)"),
         ]),
         "<h3>Full descriptor table (neutral, aqueous)</h3>",
-        _html_table(prep.full),
+        _descriptor_table_html(prep.full),
         _geometry_block(figdir),
     ]
 
