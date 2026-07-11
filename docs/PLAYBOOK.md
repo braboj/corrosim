@@ -77,13 +77,16 @@ stages and the render in the venv:
 
 ```bash
 # QM (container): descriptors, condensed Fukui, and the isosurface/ESP cubes.
-# Monitor via a bind-mounted logfile / the output files, NOT docker stdout
-# (the background-shell harness does not capture container stdout on Windows).
-docker compose run -d --rm --name qmjob qm sh -c '
-  python -m corrosim.runs.run_dft   --case <name> &&
-  python -m corrosim.runs.run_fukui --case <name> &&
-  python -m corrosim.runs.make_cubes --molecules "<mol1>,<mol2>" --what orbital,esp
-'
+# Redirect the whole run to a logfile under logs/ and poll that (plus the output
+# files); the background-shell harness does not capture container stdout on
+# Windows. logs/ is a gitignored local scratch folder (create it if missing).
+mkdir -p logs
+docker compose run -d --rm --name qmjob qm sh -c '{
+    python -m corrosim.runs.run_dft    --case <name> &&
+    python -m corrosim.runs.run_fukui  --case <name> &&
+    python -m corrosim.runs.make_cubes --molecules "<mol1>,<mol2>" --what orbital,esp ;
+  } > /work/logs/<name>.log 2>&1'
+tail -f logs/<name>.log          # poll progress; rm the log once the job is done
 
 # classical stages + render (venv)
 python -m corrosim.runs.run_mc       --case <name>
