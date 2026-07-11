@@ -1,0 +1,31 @@
+form,name,descriptor,ff,dft_opt,delta
+neutral,pyrazolopyrimidine propanoic acid,gap_ev,4.471,4.662,0.192
+neutral,pyrazolopyrimidine propanoic acid,hardness_ev,2.235,2.331,0.096
+neutral,pyrazolopyrimidine propanoic acid,softness_inv_ev,0.447,0.429,-0.018
+neutral,pyrazolopyrimidine propanoic acid,delta_n,0.169,0.173,0.003
+neutral,pyrazolopyrimidine propanoic acid,tnc,-4.001,-3.947,0.054
+neutral,pyrazolopyrimidine propanamide,gap_ev,4.48,4.669,0.189
+neutral,pyrazolopyrimidine propanamide,hardness_ev,2.24,2.335,0.094
+neutral,pyrazolopyrimidine propanamide,softness_inv_ev,0.446,0.428,-0.018
+neutral,pyrazolopyrimidine propanamide,delta_n,0.172,0.176,0.004
+neutral,pyrazolopyrimidine propanamide,tnc,-4.269,-4.2,0.069
+neutral,pyrazolopyrimidine ethyl ester,gap_ev,4.471,4.667,0.196
+neutral,pyrazolopyrimidine ethyl ester,hardness_ev,2.235,2.333,0.098
+neutral,pyrazolopyrimidine ethyl ester,softness_inv_ev,0.447,0.429,-0.019
+neutral,pyrazolopyrimidine ethyl ester,delta_n,0.171,0.175,0.004
+neutral,pyrazolopyrimidine ethyl ester,tnc,-4.565,-4.432,0.132
+protonated,pyrazolopyrimidine propanoic acid,gap_ev,3.908,4.404,0.496
+protonated,pyrazolopyrimidine propanoic acid,hardness_ev,1.954,2.202,0.248
+protonated,pyrazolopyrimidine propanoic acid,softness_inv_ev,0.512,0.454,-0.058
+protonated,pyrazolopyrimidine propanoic acid,delta_n,-0.052,-0.041,0.011
+protonated,pyrazolopyrimidine propanoic acid,tnc,-4.247,-4.329,-0.082
+protonated,pyrazolopyrimidine propanamide,gap_ev,3.834,4.526,0.691
+protonated,pyrazolopyrimidine propanamide,hardness_ev,1.917,2.263,0.346
+protonated,pyrazolopyrimidine propanamide,softness_inv_ev,0.522,0.442,-0.08
+protonated,pyrazolopyrimidine propanamide,delta_n,0.0,0.032,0.032
+protonated,pyrazolopyrimidine propanamide,tnc,-4.562,-4.458,0.104
+protonated,pyrazolopyrimidine ethyl ester,gap_ev,3.941,4.422,0.481
+protonated,pyrazolopyrimidine ethyl ester,hardness_ev,1.97,2.211,0.24
+protonated,pyrazolopyrimidine ethyl ester,softness_inv_ev,0.507,0.452,-0.055
+protonated,pyrazolopyrimidine ethyl ester,delta_n,-0.044,-0.04,0.004
+protonated,pyrazolopyrimidine ethyl ester,tnc,-4.704,-4.903,-0.199

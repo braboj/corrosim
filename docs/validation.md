@@ -384,7 +384,8 @@ the flavonoids does not apply to this class; the oxygen count (TNC) carries it.
 > **Status: 🟡 Partial *(quantitative)*.** Reproduces the absolute frontier
 > descriptors and the reported lead (ethyl ester), but not the full 3 > 2 > 1
 > order; the separating margins sit below the noise floor. A DFT-geometry rerun
-> is in progress to test whether the order sharpens.
+> closes the absolute offset to ≈ 0.05 eV but confirms the order is noise-limited
+> (the gap-lead flips ester → acid with geometry), not geometry-limited.
 
 | What we check | corrosim | Reported (Awad 2025) | Match |
 |---|---|---|:-:|
@@ -479,21 +480,33 @@ descriptors matching the paper), the physisorption regime, and the reported
 **lead compound**: the ethyl ester tops the composite descriptor ranking. It
 does not reproduce the full **3 > 2 > 1** order (the acid and amide swap), and the
 margins separating the three sit below what a single point on MMFF geometry can
-resolve, so the lead call is directional rather than robust. The open test is a
-`--optimize` DFT-geometry rerun, to see whether the ordering sharpens above the
-noise on optimised geometry.
+resolve, so the lead call is directional rather than robust.
+
+That open test has now been run. A full `--optimize` DFT-geometry rerun
+(B3LYP/6-31G(d) relaxation, then descriptors at the production basis;
+`dft_descriptors_opt`, `run_dft --optimize`) raises every neutral gap by ≈ 0.19
+to 0.20 eV, landing within ≈ 0.05 eV of the reported values (aqueous gaps: acid
+4.662, amide 4.669, ester 4.667 eV vs reported 4.717 / 4.715 / 4.713). So
+geometry was indeed the cause of the ≈ 0.24 eV offset, and matching it removes
+the last confound: the absolute agreement is now excellent. The fine ordering,
+however, does *not* sharpen. The optimised gaps span only 0.007 eV (below the
+reported 0.011 eV spread), and the gap-lead flips from the ester (FF geometry) to
+the acid (DFT geometry). That flip is the finding: the 3 > 2 > 1 order is
+noise-limited, not geometry-limited, so no single-method run resolves it (figure
+`fig8_geometry_comparison.png`; `compare_geometry` reports the gap ranking
+CHANGED, the ΔN ranking PRESERVED).
 
 **Caveats to apply when comparing:**
 
-- **Same level of theory, but not the same geometry.** The paper's
+- **Same level of theory, and now the same geometry.** The paper's
   B3LYP/6-311++G(d,p) with implicit water is corrosim's production level, so the
   comparison is quantitative rather than merely qualitative (the payoff over the
   AM1 phytic-acid anchor), and these ~40-atom aromatics are well-behaved (no
-  near-linear-dependence), so the full diffuse basis converges. The residual
-  difference is geometry: corrosim's descriptors here are single points on MMFF
-  geometry, whereas the paper fully optimised at B3LYP. That is the leading reason
-  the computed LUMO/gap sit ≈ 0.2 eV off the reported ones and the 0.01 eV gap
-  ordering does not resolve (see the computed column above).
+  near-linear-dependence), so the full diffuse basis converges. The shipped
+  report's descriptors are single points on MMFF geometry, whose LUMO/gap sit
+  ≈ 0.24 eV low; the `--optimize` rerun (above) closes that to ≈ 0.05 eV,
+  confirming geometry as the cause. Neither geometry resolves the 0.01 eV gap
+  ordering, because it sits below the noise floor.
 - **E_ads observable.** The −130 kcal/mol is an Adsorption-Locator (COMPASS
   forcefield) value on a periodic slab, a different observable from corrosim's
   UFF single-molecule van-der-Waals E_ads. Compare the regime (physisorption-range
