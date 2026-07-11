@@ -1,28 +1,114 @@
 # Validation
 
-How `corrosim`'s screening result for the Arghel (*Solenostemma argel*) flavonoids
-holds up against independent published work, on a defined steel substrate.
+corrosim's job is to **rank and explain** candidate inhibitors from first
+principles; proving that a molecule actually inhibits is an experimental
+question. So validation cross-checks each computed result against an
+independently published study of the same or a comparable system, and reads the
+agreement only at the level the methods allow:
 
-## Substrate
+- **Level of theory sets the ceiling.** Published descriptors come from many
+  methods (AM1 semi-empirical, B3LYP DFT, periodic DFT, xTB) whose orbital
+  energies sit on different scales. A comparison is only as quantitative as the
+  method match: most cases are read for the *qualitative* picture (oxygen- vs
+  ring-localised frontier orbitals, soft vs hard, the direction of electron
+  donation), and only a same-level source supports a direct numeric comparison.
+- **Geometry matters.** A force-field (MMFF) single point and a fully
+  DFT-optimised geometry give descriptors that differ by a near-uniform offset
+  (gaps ≈ 0.2 to 0.5 eV); compare the trend and the ranking, not the last digit.
+- **Adsorption observables are not interchangeable.** A single-molecule UFF
+  van-der-Waals `E_ads`, an isotherm-fitted `ΔG°_ads`, and a periodic COMPASS
+  binding energy `E_bind` are three different quantities. Compare their **sign,
+  regime (physi- vs chemisorption), and order of magnitude**, never the number.
+- **A screening result is a hypothesis, not a measurement.** Which molecule
+  leads is a prediction; confirming it needs isolated-compound electrochemistry.
 
-Modelled as a **pure Fe(110) slab** (Φ = 4.82 eV, η_metal ≈ 0). The experimental
-coupon is a clean low-carbon (mild) steel, ~AISI 1020-equivalent:
+Each reproduced paper ships as a **validation preset** (`presets.CASE_STUDIES`,
+one `CaseStudy` per study, each with a `source` citation); its outputs live under
+`cases/<case>/` and it renders its own report bundle (ADR 0019). The three cases
+below span that rigor spectrum: an experiment-anchored study (Arghel), a
+qualitative AM1 anchor (phytic acid), and a same-level DFT numeric cross-check
+(pyrazolo-pyrimidine).
+
+The pipeline produces four things; each is checked against a published quantity,
+and *how* it is read depends on the method gap:
+
+```text
+   corrosim computes          checked against (published)
+   ─────────────────          ───────────────────────────
+   DFT descriptors     ──►     HOMO / LUMO / gap / ΔN
+        │            → numbers if same level of theory, else the picture
+        ▼
+   MC adsorption pose  ──►     E_ads  vs  ΔG°ads  vs  E_bind
+        │            → three observables: compare sign + regime, not value
+        ▼
+   MD metal–O RDF      ──►     adsorption distance & contact regime
+        │            → physisorption vs chemisorption range
+        ▼
+   composite ranking   ──►     reported lead / ordering
+                     → a screening prediction, not experimental proof
+```
+
+Each case carries a **validation status** for how its computed result compares to
+the published target:
+
+| Status | Meaning |
+|---|---|
+| ✅ **Validated** | agrees with the independent target across every claim the methods can compare |
+| 🟡 **Partial** | reproduces some claims, not all |
+| ❌ **Rejected** | contradicts the independent target |
+| ⏳ **Pending** | not yet assessed |
+
+A *(qualitative)* tag marks a regime-and-picture comparison only (the published
+method differs too much for a numeric check); *(quantitative)* marks a direct
+same-level numeric comparison.
+
+| Case | System | Published method | Status |
+|---|---|---|---|
+| **1 · Arghel flavonoids** | mild steel / 1 M HCl | experiment + independent DFT | ✅ Validated |
+| **2 · Phytic acid** | Q235 / 0.5 M H₂SO₄ | AM1 semi-empirical | ✅ Validated *(qualitative)* |
+| **3 · Pyrazolo-pyrimidine** | carbon steel / HCl | same-level B3LYP DFT | 🟡 Partial *(quantitative)* |
+
+## Substrate model: Fe(110) slab
+
+Every case models mild / carbon steel as a **pure Fe(110) slab** (Φ = 4.82 eV,
+η_metal ≈ 0), consistent with the corrosion literature, which uniformly treats
+"mild/carbon steel" as Fe(110). The reference coupon below (the Mohammed 2014
+Arghel experiment of Case 1) is a clean low-carbon (mild) steel, ~AISI
+1020-equivalent, and shows why the slab is the right atomistic model:
 
 | C | Si | Mn | P | S | Cu | Ni | Cr | V | Fe |
 |---|----|----|---|---|----|----|----|---|----|
 | 0.204 | 0.089 | 0.59 | 0.001 | 0.001 | 0.170 | 0.028 | 0.029 | 0.0062 | rest |
 
 The surface is ~98.3 % Fe and every alloying element is a dilute residual
-(<0.6 %), so an iron slab is the correct atomistic model — consistent with the
-literature, which uniformly models "mild/carbon steel" as Fe(110). The very low
+(<0.6 %), so an iron slab is the correct atomistic model. The very low
 S (0.001 %) means almost no MnS inclusions, i.e. uniform corrosion dominates over
-pitting — relevant to the *experiment*, not the simulation.
+pitting (relevant to the *experiment*, not the simulation).
 
-## Stage-1 descriptors (B3LYP/6-311++G(d,p))
+## Case 1: Arghel flavonoids (mild steel / 1 M HCl)
+
+> **Status: ✅ Validated.** Mechanism, regime, efficacy, and ranking all
+> consistent with experiment (Mohammed 2014) and independent Fe(110) DFT. The
+> per-molecule lead remains a prediction pending isolated-compound assay.
+
+| What we check | corrosim | Independent evidence | Match |
+|---|---|---|:-:|
+| Mechanism | physisorption (MC + MD) | Langmuir, physical adsorption (Mohammed 2014) | ✅ |
+| Contact regime | Fe–O RDF ≈ 3.5 Å | physisorption range | ✅ |
+| Efficacy | strong adsorber | IE up to 99.62 % (experiment) | ✅ |
+| Lead compound | quercetin | quercetin strongest (black-tea Fe(110) DFT) | ✅ |
+| Per-molecule order | quercetin > iso > kaempferol | not tested (extract only, no LC-MS) | ⏳ |
+
+The default study: *Solenostemma argel* flavonoids (quercetin, isorhamnetin,
+kaempferol) on mild steel in 1 M HCl, and the only case with a direct experiment
+on the exact system (Mohammed 2014). It is corrosim's default preset, but a
+validation case like the others, not a privileged reference.
+
+### DFT descriptors (B3LYP/6-311++G(d,p))
 
 Full DFT at the adopted production level (ADR 0002), neutral form, gas and aqueous
 (ddCOSMO). All three flavonoids show a **physical, positive ΔN (0.16–0.24)** inside
-the Lukovits 0 < ΔN < 3.6 window — DFT corrects the spurious negative ΔN that xTB
+the Lukovits 0 < ΔN < 3.6 window; DFT corrects the spurious negative ΔN that xTB
 gives (its orbital energies sit off the Koopmans scale). **Quercetin** has the
 smallest gap and highest softness (the composite-ranking lead), while
 **isorhamnetin** leads on charge transfer (ΔN) and electron richness (TNC) via its
@@ -38,7 +124,7 @@ separate them.
 | Isorhamnetin | gas | −5.897 | −1.781 | 4.116 | 2.058 | +0.238 | −5.31 |
 | Kaempferol | gas | −6.234 | −2.063 | 4.171 | 2.086 | +0.161 | −4.07 |
 
-For contrast, xTB (GFN2) gives the right gap *ordering* but unphysical ΔN/χ — use
+For contrast, xTB (GFN2) gives the right gap *ordering* but unphysical ΔN/χ. Use
 it only for screening, never for reported descriptors:
 
 | Molecule | Method | HOMO (eV) | LUMO (eV) | Gap (eV) | ΔN |
@@ -54,13 +140,13 @@ gas/aqueous matrix: `cases/arghel/results/dft_descriptors_ff.{json,csv}` (run `p
 carbonyl, a very weak base. A literature-range estimate (pKaH ≈ −1.5) puts the
 gap/softness composite lead on a knife-edge: it **crosses from quercetin to
 isorhamnetin at only ~5–7 % protonation** (pKaH ≈ −1.1 to −1.3). So which lead is
-correct hinges on the protonation pKa — the dominant uncertainty for the acidic
+correct hinges on the protonation pKa, the dominant uncertainty for the acidic
 case (more than geometry or level of theory).
 
 **Computed pKaH resolves it (ADR 0005; frequency-corrected, issue #18).** A DFT
 deprotonation cycle (B3LYP/6-311++G(d,p) + ddCOSMO on B3LYP/6-31G(d) gas
 opt+frequency geometries; `cases/arghel/results/pka.json`, `run_pka --freq`) gives
-**pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −3.92** — all far below
+**pKaH = quercetin −13.3, kaempferol −12.9, isorhamnetin −3.92**, all far below
 the crossover, so every flavonoid is **< 0.1 % protonated in 1 M HCl**. The
 neutral form is therefore the physically dominant species, not just the
 conventional choice, and the **quercetin lead is robust**. The ZPE/thermal/entropy
@@ -69,13 +155,13 @@ electronic-only estimate, deepening the conclusion.
 
 *Clean minima (issue #34, resolved).* All six species (each neutral and its cation)
 are clean minima with no imaginary frequencies. The isorhamnetin cation had earlier
-kept one imaginary mode — its nearly-flat 3'-OMe torsion tips slightly negative under
-the default integration grid — so it was re-optimised at a **finer grid (level 4)**
+kept one imaginary mode (its nearly-flat 3'-OMe torsion tips slightly negative under
+the default integration grid), so it was re-optimised at a **finer grid (level 4)**
 with an **imaginary-mode displacement** (`run_pka --tight`) to a true minimum
 (`n_imag = 0`). That refines its pKaH −5.12 → **−3.92** (*less* negative: the old
 saddle inflated the cation's Gibbs correction, and stabilising the cation raises its
-basicity). The conclusion is unchanged — isorhamnetin is still ~0.01 % protonated and
-is not the lead — and it remains the most geometry-sensitive of the three (its
+basicity). The conclusion is unchanged (isorhamnetin is still ~0.01 % protonated and
+is not the lead), and it remains the most geometry-sensitive of the three (its
 electronic-only pKaH on the DFT-optimised geometry is +1.7, pulled firmly neutral
 only by the correction).
 
@@ -84,7 +170,7 @@ only by the correction).
 The matrix above uses force-field (MMFF) geometries with a DFT single point. Re-running
 the neutral set with a **DFT geometry optimisation** first (B3LYP/6-31G(d), gas phase;
 `run_dft --optimize`, data in `cases/arghel/results/dft_descriptors_opt.{json,csv}`) shifts every descriptor
-in the same direction but **leaves both rankings unchanged** — the lead assignments are
+in the same direction but **leaves both rankings unchanged**, the lead assignments are
 geometry-robust:
 
 | Descriptor (neutral, aqueous) | Shift FF → DFT-opt | Effect |
@@ -100,22 +186,22 @@ Ranking by gap stays **quercetin < isorhamnetin < kaempferol**; ranking by ΔN s
 cheap proxy, and the production numbers tighten with the relaxed geometry (figure
 `fig8_geometry_comparison.png`; reproduce with `python -m corrosim.runs.compare_geometry`).
 
-## Cross-check against published Fe(110) studies
+### Adsorption cross-check against published Fe(110) studies
 
 | Source | Method | Quercetin | Kaempferol |
 |---|---|---|---|
-| **corrosim (Stage-2 MC)** | UFF vdW, Metropolis/annealing pose search | −16.0 kJ/mol | −16.6 kJ/mol |
-| **corrosim (Stage-3 MD)** | Brownian MD, Fe–O RDF first peak | 3.65 Å (physisorption) | 3.35 Å |
+| **corrosim (MC adsorption)** | UFF vdW, Metropolis/annealing pose search | −16.0 kJ/mol | −16.6 kJ/mol |
+| **corrosim (MD RDF)** | Brownian MD, Fe–O RDF first peak | 3.65 Å (physisorption) | 3.35 Å |
 | **Black tea extract study** (Mater. Chem. Phys., 2025) | DFT, periodic + dispersion | strongest constituent; ΔGads ≈ −20 kJ/mol (overall physicochemical ~−35) | weaker than quercetin |
 | **Lady's mantle study** (Results in Chemistry, 2025) | DFT/MC | — | strong adsorption confirmed (reference compound) |
 
 (Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `cases/arghel/results/mc_adsorption.json`,
 `cases/arghel/results/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
-## Experimental validation (Mohammed 2014)
+### Experimental validation (Mohammed 2014)
 
-The one direct experiment on *this exact system* — Arghel extract on mild steel in
-1 M HCl — is the MSc thesis of E. M. Mohammed (*Corrosion Inhibition of Steel in
+The one direct experiment on *this exact system* (Arghel extract on mild steel in
+1 M HCl) is the MSc thesis of E. M. Mohammed (*Corrosion Inhibition of Steel in
 Acidic Medium by Herbs Extract*, Materials Science Dept., Institute of Graduate
 Studies & Research, Alexandria University, 2014); it is also the source of the
 substrate composition table above. A methanolic Arghel extract (25–150 ppm) was
@@ -139,15 +225,15 @@ thesis concludes **physical adsorption**.
 
 **What this confirms.** The model and the experiment agree on three points:
 
-- **Medium and substrate** — 1 M HCl on mild steel — match the corrosim model exactly.
-- **Mechanism** — physisorption with a Langmuir isotherm — is exactly what corrosim
-  predicts independently (Stage-2 MC E_ads ≈ −16 kJ/mol; Stage-3 Fe–O RDF at
+- **Medium and substrate** (1 M HCl on mild steel) match the corrosim model exactly.
+- **Mechanism** (physisorption with a Langmuir isotherm) is exactly what corrosim
+  predicts independently (MC E_ads ≈ −16 kJ/mol; MD Fe–O RDF at
   ~3.5 Å, the physisorption range).
-- **Efficacy** — the extract is a genuinely strong inhibitor (up to 99.62 %),
+- **Efficacy:** the extract is a genuinely strong inhibitor (up to 99.62 %),
   supporting Arghel flavonoids as effective mild-steel inhibitors in acid.
 
 **What it does not settle.** The study uses a bulk methanolic extract with **no
-LC-MS/GC-MS**, so it validates the *extract*, not the individual flavonoids — it
+LC-MS/GC-MS**, so it validates the *extract*, not the individual flavonoids; it
 neither confirms nor refutes the quercetin > isorhamnetin > kaempferol ranking.
 That per-molecule claim still needs LC-MS plus isolated-compound electrochemistry.
 
@@ -157,41 +243,41 @@ observables and must not be equated**: the MC value is a single-molecule van der
 Waals interaction energy on Fe(110) in vacuum, whereas ΔG°_ads is a standard
 adsorption *free* energy fitted from an isotherm for the *whole extract*, carrying
 entropic, solvent-displacement and coverage terms. They agree on regime
-(physisorption/borderline) and order of magnitude, not on a number — the
+(physisorption/borderline) and order of magnitude, not on a number. The
 experimental value sits at the upper edge of the physisorption window (|ΔG| ≳
 32 kJ/mol borders the mixed physi-/chemisorption zone), consistent with the
 residual charge-transfer contribution that corrosim's classical vdW level omits
-(the Stage-3 EAM+GAFF/periodic-DFT hand-off would add it).
+(the EAM+GAFF/periodic-DFT hand-off would add it).
 
-## Reading
+### Reading
 
 - **Ranking validated.** The black tea study independently ran DFT on Fe(110) and
-  found quercetin the strongest-adsorbing constituent — the same conclusion
+  found quercetin the strongest-adsorbing constituent, the same conclusion
   `corrosim` reaches, now confirmed at our own DFT level. Lady's mantle adds a
   second source affirming kaempferol/Fe(110) adsorption.
 - **The adsorption-energy gap is now small.** The crude single-orientation height
-  scan gave only ≈ −4.5 kJ/mol; the **Metropolis/annealing pose search (Stage-2
-  MC) reaches ≈ −16 kJ/mol**, at the lower edge of the published black-tea DFT band
-  (−20 to −35 kJ/mol) — full rotational sampling finds the high-contact poses the
+  scan gave only ≈ −4.5 kJ/mol; the **Metropolis/annealing pose search (MC
+  adsorption) reaches ≈ −16 kJ/mol**, at the lower edge of the published black-tea DFT band
+  (−20 to −35 kJ/mol); full rotational sampling finds the high-contact poses the
   height scan missed. It remains a *physisorption* proxy (UFF van der Waals, no
   charge transfer / water displacement), consistent with the Fe–O RDF peaking at
   ~3.3–3.8 Å (the > 3.5 Å physisorption range) and with experimental reports of
   physical adsorption. The residual gap to the DFT free energy is the
-  charge-transfer/chemisorption contribution, which the LAMMPS EAM+GAFF Stage-3
+  charge-transfer/chemisorption contribution, which the LAMMPS EAM+GAFF
   hand-off (or periodic DFT) would add.
 
-## Defensible claim
+### Defensible claim
 
 > Of the documented major Arghel flavonoids, **quercetin is the strongest
-> predicted corrosion inhibitor on mild steel** — confirmed at both semi-empirical
+> predicted corrosion inhibitor on mild steel**, confirmed at both semi-empirical
 > and DFT levels, ranking-consistent with the UFF adsorption estimate, and in
 > agreement with an independent published DFT study of black-tea polyphenols on
 > Fe(110).
 
 Simulations rank and explain; they do not by themselves prove efficiency. For the
-Arghel *extract* that proof now exists — the Mohammed (2014) PDP/EIS study above
+Arghel *extract* that proof now exists: the Mohammed (2014) PDP/EIS study above
 confirms strong physisorptive inhibition of mild steel in 1 M HCl (IE up to
-99.62 %). The per-*molecule* attribution — which flavonoid actually leads — is a
+99.62 %). The per-*molecule* attribution (which flavonoid actually leads) is a
 computational **prediction**, not an experimental result. Testing it directly would
 need sample-specific LC-MS plus isolated-compound electrochemistry; both are
 **out of scope for this study (no laboratory access)**. The constituents are
@@ -199,23 +285,25 @@ therefore treated as documented-representative (El-Shiekh et al. 2024, and the
 Fe(110) black-tea / lady's-mantle DFT precedents above), and the ranking is offered
 as a screening hypothesis rather than a measured result.
 
-## Multi-study validation suite
+## Case 2: Phytic acid (Q235 mild steel, Fe(110) / 0.5 M H₂SO₄)
 
-The Arghel study above is validation study #1. To exercise the substrate- and
-medium-agnostic design against *independent* published systems, corrosim ships a
-**validation preset** per reproduced paper (`presets.CASE_STUDIES`, each with a
-`source` citation); its outputs live under `cases/<case>/results/` and its reported
-target values are recorded below. Run one with, e.g.,
-`python -m corrosim.runs.run_dft --case phytic-acid` (QM in the container).
+> **Status: ✅ Validated *(qualitative)*.** corrosim reproduces the charge-dense,
+> multidentate oxygen-chelator picture and the flat-lying physisorption regime of
+> the AM1 study; the orbital numbers are not comparable across methods.
 
-### Phytic acid — Q235 mild steel (Fe(110)) / 0.5 M H₂SO₄
+| What we check | corrosim | Reported (AM1 paper) | Match |
+|---|---|---|:-:|
+| Frontier picture | O-localised, charge-dense (huge TNC) | O-localised frontier orbitals | ✅ |
+| HOMO / LUMO / gap (numeric) | B3LYP/6-31G(d) | AM1 (different scale) | ❌ |
+| Adsorption geometry | flat-lying, ≈ 2.3 Å above slab | flat, 553.89 Å² footprint | ✅ |
+| Mechanism | physisorption surrogate | chemisorption | 🟡 |
 
 **Preset:** `phytic-acid` · **Source:** Chidiebere, Oguzie, Liu, Li & Wang,
 *Corrosion Inhibition of Q235 Mild Steel in 0.5 M H₂SO₄ Solution by Phytic Acid
 and Synergistic Iodide Additives*, **Ind. Eng. Chem. Res. 2014, 53, 7670–7679**
 (DOI 10.1021/ie404382v). Phytic acid = *myo*-inositol hexakisphosphate
 (C₆H₁₈O₂₄P₆, CAS 83-86-3). This is a Tier-1 anchor: a fully experiment-validated
-DFT+MD workflow, on a non-flavonoid inhibitor in a sulfuric — not hydrochloric —
+DFT+MD workflow, on a non-flavonoid inhibitor in a sulfuric, not hydrochloric,
 medium.
 
 **Reported values (the comparison target):**
@@ -245,53 +333,66 @@ below):
 
 - **MC adsorption** (Fe(110)): E_ads = −0.12 eV (−11.5 kJ/mol), lying flat ≈ 2.3 Å
   above the slab.
-- **MD Fe–O RDF**: first peak at 3.25 Å (no Fe–N peak — phytic acid carries no
+- **MD Fe–O RDF**: first peak at 3.25 Å (no Fe–N peak; phytic acid carries no
   nitrogen).
 
-**Reading it — a different inhibitor archetype from the flavonoids.** Phytic acid
+**Reading it: a different inhibitor archetype from the flavonoids.** Phytic acid
 is *saturated* (no π system), so B3LYP gives it a large gap (7.3 eV) and a modest
 ΔN (+0.09, well below the flavonoids' 0.16–0.24): it is not a soft, small-gap
-frontier-orbital donor. What stands out instead is the enormous TNC (−14.6) — the
-summed partial charge of its 24 phosphate oxygens — so corrosim reads phytic acid
+frontier-orbital donor. What stands out instead is the enormous TNC (−14.6), the
+summed partial charge of its 24 phosphate oxygens, so corrosim reads phytic acid
 as a **charge-dense, multidentate oxygen chelator** that grips through many O atoms
 at once. The flat MC pose (≈ 2.3 Å) and the tight 3.25 Å Fe–O RDF peak corroborate
-that flat-lying, oxygen-anchored adsorption — the same picture the paper draws (a
+that flat-lying, oxygen-anchored adsorption, the same picture the paper draws (a
 flat orientation, 553.89 Å² footprint, chemisorption through the phosphate O's),
 reached by a different route. The frontier-orbital "softness" argument that orders
 the flavonoids does not apply to this class; the oxygen count (TNC) carries it.
 
-**Caveats to apply when comparing (not oversights — level-of-theory differences):**
+**Caveats to apply when comparing (not oversights, level-of-theory differences):**
 
 - **AM1 ≠ B3LYP.** The reported orbital energies are AM1 semi-empirical and sit
-  on a different scale from corrosim's B3LYP — exactly the caution we document for
+  on a different scale from corrosim's B3LYP, exactly the caution we document for
   xTB. The numeric HOMO/LUMO/gap differ (AM1 also compresses the gap of a
-  saturated system like this one); compare the qualitative picture — oxygen-
-  localized frontier orbitals and flat-lying, multidentate adsorption — not the
+  saturated system like this one); compare the qualitative picture (oxygen-
+  localized frontier orbitals and flat-lying, multidentate adsorption), not the
   digits.
 - **Basis: 6-31G(d), not the production 6-311++G(d,p).** Phytic acid folds its six
   phosphates inward (radius of gyration ≈ 4 Å), packing its 24 oxygens close
   together; the production basis's diffuse (`++`) functions then drive the overlap
   matrix near-singular and the SCF diverges, while the density-fitting workaround
   exceeds the container's memory. A converged result comes from dropping the
-  diffuse augmentation (6-31G(d) — no near-linear-dependence, ~450 basis functions,
+  diffuse augmentation (6-31G(d): no near-linear-dependence, ~450 basis functions,
   low-memory), a common level for large inhibitors in the corrosion literature.
   Because the comparison here is qualitative (against AM1), this is the right
   trade; but the *absolute* LUMO/gap stay basis-sensitive (diffuse functions matter
   most for the virtual orbitals), so lean on the picture, not the last digit.
-- **Medium.** 0.5 M H₂SO₄ (a diprotic strong acid), not the Arghel HCl —
+- **Medium.** 0.5 M H₂SO₄ (a diprotic strong acid), not the Arghel HCl;
   `medium.py` models it as the acidic protonated regime. Phytic acid is itself a
-  poly-acid (not a base), so the neutral form is its species in acid — the run is
+  poly-acid (not a base), so the neutral form is its species in acid; the run is
   neutral-only, and the protonated-cation row the flavonoids carry does not apply.
 - **E_bind observable.** The −199 kcal/mol is a COMPASS *periodic* binding energy
   (many metal–adsorbate contacts), a different observable from corrosim's UFF
-  single-molecule van-der-Waals E_ads — compare regime and sign, not the number
+  single-molecule van-der-Waals E_ads; compare regime and sign, not the number
   (the same distinction drawn for the Arghel MC vs experimental ΔG°_ads above).
 - **Chemisorption claim.** The paper argues chemical adsorption; corrosim's
   classical MC/MD is a physisorption surrogate, so it can corroborate strong
-  adsorption and a flat pose but not the charge-transfer bond — the periodic-DFT
+  adsorption and a flat pose but not the charge-transfer bond; the periodic-DFT
   hand-off would be needed for that.
 
-### Pyrazolo-pyrimidine derivatives — carbon steel (Fe(110)) / HCl
+## Case 3: Pyrazolo-pyrimidine derivatives (carbon steel, Fe(110) / HCl)
+
+> **Status: 🟡 Partial *(quantitative)*.** Reproduces the absolute frontier
+> descriptors and the reported lead (ethyl ester), but not the full 3 > 2 > 1
+> order; the separating margins sit below the noise floor. A DFT-geometry rerun
+> is in progress to test whether the order sharpens.
+
+| What we check | corrosim | Reported (Awad 2025) | Match |
+|---|---|---|:-:|
+| Absolute HOMO / LUMO | −6.18 to −6.22 eV | −6.21 to −6.26 eV | ✅ |
+| Reactivity regime | χ ≈ 4 eV, ΔN > 0, physisorption | same | ✅ |
+| Lead compound | ester tops composite ranking | ethyl ester | ✅ |
+| Full order (3 > 2 > 1) | 3 > 1 > 2 | 3 > 2 > 1 | ❌ |
+| Adsorption order | 1 > 2 > 3 (single-molecule MC) | ester max (periodic COMPASS) | ❌ |
 
 **Preset:** `pyrazolo-pyrimidine` · **Source:** Awad, Abdel Halim, Atlam & Fawzy,
 *A multiscale computational investigation for protection of carbon steel surface
@@ -300,8 +401,8 @@ by pyrazolo-pyrimidine derivatives*, **Sci. Rep. 15:32576 (2025)** (DOI
 pyrimidin-4-yloxy propanoate derivatives sharing one aromatic core, differing
 only in the tail: **1** propanoic acid (–COOH), **2** propanamide (–CONH₂), **3**
 ethyl ester (–COOEt, the reported **lead**). Unlike the phytic-acid anchor, this
-paper computes at **B3LYP/6-311++G(d,p)/IEFPCM — corrosim's own production
-level** — so the descriptor numbers compare *directly*, not just qualitatively.
+paper computes at **B3LYP/6-311++G(d,p)/IEFPCM, corrosim's own production
+level**, so the descriptor numbers compare *directly*, not just qualitatively.
 
 The three compounds are novel (no CAS / not in PubChem); their SMILES were
 authored and RDKit-verified (formula + MW exact) and are confirmed by the DFT run
@@ -406,7 +507,7 @@ noise on optimised geometry.
   question the run does not settle (see the verdict above).
 - **Medium.** The extracted note records the medium only as acidic HCl (no
   molarity); the preset uses the standard 1 M HCl, which drives the same
-  protonated regime — verify the concentration against the paper.
+  protonated regime; verify the concentration against the paper.
 - **FPMD.** The paper's molecular dynamics is periodic Car–Parrinello (Quantum
-  ESPRESSO, PBE + DFT-D2), versus corrosim's classical Brownian MD — compare the
+  ESPRESSO, PBE + DFT-D2), versus corrosim's classical Brownian MD; compare the
   adsorption regime and the metal–heteroatom contact, not the trajectory.
