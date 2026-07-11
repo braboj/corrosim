@@ -1715,4 +1715,57 @@ along the way. Three PRs merged.
   Cross-repo, filed but owner's to work: solid-ai-templates #754-761 (+ #349),
   corrosim #189 / #186 / #181 / #180. Prior threads carried: **#71**, **#40**.
 
+## 2026-07-11 (session 22): validation suite completed and epic #53 closed
+
+Six PRs plus the epic. Completed the #53 multi-study validation suite, resolved
+the pyrazolo geometry open-test, reframed `docs/validation.md`, and closed the
+epic honestly.
+
+- **Phytic-acid render (#195, closes #183).** Ran `run_fukui` + `make_cubes`
+  (orbital, then ESP at `--nx 60` to stay under container memory on the folded
+  24-oxygen geometry), then rendered the venv bundle. Phytic acid now ships the
+  same per-case bundle as arghel and pyrazolo; Fukui reads a single dominant
+  oxygen donor (O9, f-=+0.71). Descriptors stayed at 6-31G(d).
+- **validation.md reframe (#196, ADR 0020).** Restructured around the validation
+  *approach* rather than Arghel: general principles up top (level-of-theory
+  ceiling, geometry offset, the `E_ads`/`ΔG°ads`/`E_bind` observable rule,
+  screening-as-hypothesis), then arghel/phytic/pyrazolo as three peer cases.
+  Added a status vocabulary (Validated/Partial/Rejected/Pending +
+  qualitative/quantitative qualifier), a per-case status badge and claim-by-claim
+  scorecard, a summary table, and an ASCII comparison diagram. Renamed the stale
+  Stage-1/2/3 labels to the named work. Ran the ai-writing-detector: the doc
+  scored ~58/100 driven almost entirely by em-dash density, so swept all 51 prose
+  em-dashes (down to ~15, all table no-data cells).
+- **logs/ scratch folder (#197).** Detached QM jobs write monitoring logs to a
+  gitignored `logs/` (the container bind-mount only reaches `/work`); the PLAYBOOK
+  render recipe now redirects to `logs/<name>.log` with a `mkdir -p`.
+- **Submodule bump to v2.35 (#198).** `docs/solid-ai-templates` a6d7747 to
+  6969ccd, pulling in the resolved upstream issues distilled from corrosim's own
+  patterns (#754, #756, #758, #759, #760, #761, #751, #752, #745, #746).
+- **Pyrazolo geometry open-test resolved (#199).** Ran the flagged `--optimize`
+  DFT-geometry rerun (6 species, ~19 h detached; the ester tail converged slowly,
+  host slept overnight). Optimised geometry closes the absolute offset: every
+  neutral gap rises ~0.20 eV, landing within ~0.05 eV of reported (was ~0.24 eV
+  low), confirming geometry as the cause. The 3>2>1 order still does not sharpen:
+  the opt gaps span 0.007 eV (below the reported 0.011 eV spread) and the gap-lead
+  flips ester-to-acid between FF and DFT geometry, so it is noise-limited, not
+  geometry-limited (`compare_geometry`: gap ranking CHANGED, ΔN PRESERVED).
+  Case 3 stays Partial, now with a tested explanation.
+- **Epic #53 closed + #200 filed.** All three cases done (arghel Validated, phytic
+  Validated-qualitative, pyrazolo Partial). Closed #53 honestly: all three cases
+  are Fe(110), so the "non-Fe substrate" goal and the Tier-2 preset tail were
+  carried forward to **#200**, not claimed complete. Also set the GitHub About +
+  20 topics.
+- **Verification.** `pytest -q`, `ruff check .`, `mypy` green at each merge; main
+  clean, feature branches auto-deleted.
+- **Template feedback.** The validation status vocabulary, scorecard, and ASCII
+  diagram are results-presentation conventions for a generated document, outside
+  the solid-ai-templates code/testing/workflow scope (ADR 0020 `Upstream: none`).
+  The `logs/` + poll-a-bind-mounted-logfile trick is a niche Windows/Docker/
+  background-shell quirk, kept project-specific.
+- **Pending:** epic-level validation work is done. Open corrosim threads: **#200**
+  (non-Fe Cu/Al cases + Tier-2 tail), the **#71** deployment epic (#66 Colab /
+  #67 GHCR+PyPI / #68 Pages), standalone **#40** (quantitative chemisorption), and
+  #189 / #186 / #181 / #180. Cross-repo: solid-ai-templates now current at v2.35.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
