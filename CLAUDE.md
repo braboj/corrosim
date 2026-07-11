@@ -40,8 +40,9 @@ structure](README.md) is the single source of truth** — the annotated
 module/driver map lives there; read it rather than duplicating it here. Agent-relevant facts that
 tree does not carry:
 
-- `cubes/` — regenerable volumetric `.cube` files; `docs/local/` — private
-  notes/literature (tracked-vs-gitignored: see § 2.1).
+- `cubes/` — regenerable volumetric `.cube` files; `logs/` gitignored
+  detached-job monitoring logs; `docs/local/` — private notes/literature
+  (tracked-vs-gitignored: see § 2.1).
 - `docs/diagrams/` — editable `.drawio` diagram sources.
 - `docs/solid-ai-templates/` — the quality-convention submodule (see this file's
   header).
