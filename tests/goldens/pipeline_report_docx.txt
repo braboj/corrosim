@@ -3,16 +3,22 @@ Substrate: Fe(110)  |  Medium: 1 M HCl  |  DFT level: B3LYP/6-311++G(d,p) (ddCOS
 The molecules modelled here are screened in silico as representative candidates, not a verified analysis of any real sample. Confirm the actual composition experimentally (e.g. by LC-MS/GC-MS) before drawing firm conclusions.
 1. Overview
 2. Summary & ranking
-Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+1.34), combining the smallest HOMO–LUMO gap (4.00 eV) with the highest softness — the most readily polarised, electron-donating candidate of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
+Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+1.34), combining the smallest HOMO–LUMO gap (3.68 eV) with the highest softness — the most readily polarised, electron-donating candidate of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). The lead holds across all 4 descriptor bases evaluated (geometry and protonation). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
  | quercetin | kaempferol | isorhamnetin
-Gap (eV) | 4.0 ✓ | 4.4 | 4.6
-Hardness η (eV) | 2.0 ✓ | 2.2 | 2.3
-Softness σ (1/eV) | 0.5 ✓ | 0.455 | 0.435
+Gap (eV) | 3.682 ✓ | 4.078 | 4.278
+Hardness η (eV) | 1.839 ✓ | 2.039 | 2.139
+Softness σ (1/eV) | 0.544 ✓ | 0.491 | 0.468
 ΔN | 0.2 | 0.2 | 0.2
 E_ads (kJ/mol) | -16.0 | -16.5 | -16.7 ✓
 Fe–O (Å) | 3.65 | 3.35 | 3.45
-Score | 1.341 ✓ | -0.283 | -1.059
-Scored on the neutral HOMO–LUMO gap, hardness and softness (z-scored; higher = stronger). E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
+Score | 1.341 ✓ | -0.283 | -1.058
+Ranking basis | Top candidate
+force-field geometry, neutral | quercetin
+force-field geometry, pH-weighted | quercetin
+DFT-relaxed geometry, neutral | quercetin
+DFT-relaxed geometry, pH-weighted | quercetin
+Lead robust: the same candidate tops all 4 descriptor bases (geometry and protonation).
+Scored on the HOMO–LUMO gap, hardness and softness of the canonical basis (DFT-relaxed geometry, pH-weighted; z-scored; higher = stronger). The geometry / protonation panels below are a sensitivity check, not separate rankings. E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
 3. DFT electronic descriptors
 3.1 Frontier-orbital isosurfaces (HOMO / LUMO)
 3.2 Full descriptor table (neutral, aqueous)
@@ -30,13 +36,19 @@ E_back-donation (eV) | -0.5 | -0.5 | -0.5
 TNC | -4.0 | -4.0 | -4.0
 E_ads (kJ/mol) | -16.0 | -16.5 | -16.7
 3.3 Optimised-geometry descriptors (DFT-relaxed)
- | quercetin | kaempferol | isorhamnetin
-Gap ΔE (eV) | 3.7 ✓ | 4.1 | 4.3
-η hardness (eV) | 1.85 ✓ | 2.05 | 2.15
-σ softness (1/eV) | 0.541 ✓ | 0.488 | 0.465
+Descriptor | quercetin | kaempferol | isorhamnetin
+Formula | C15H10O7 | C15H10O7 | C15H10O7
+HOMO (eV) | -6.0 | -6.0 | -6.0
+LUMO (eV) | -2.3 | -1.9 | -1.7
+Gap ΔE (eV) | 3.7 | 4.1 | 4.3
+η hardness (eV) | 1.85 | 2.05 | 2.15
+σ softness (1/eV) | 0.541 | 0.488 | 0.465
+χ electronegativity (eV) | 4.0 | 4.0 | 4.0
+ω electrophilicity (eV) | 4.0 | 4.0 | 4.0
 ΔN | 0.2 | 0.2 | 0.2
+E_back-donation (eV) | -0.5 | -0.5 | -0.5
 TNC | -4.0 | -4.0 | -4.0
-Score | 1.342 ✓ | -0.284 | -1.058
+Sensitivity: descriptors on the DFT-relaxed geometry (the geometry axis of the ranking ensemble). The headline ranks on the canonical basis; see the Summary.
 Optimised protonated cations (in-acid)
 Descriptor | quercetin+H+ | kaempferol+H+ | isorhamnetin+H+
 Formula | C15H10O7 | C15H10O7 | C15H10O7
@@ -63,9 +75,9 @@ Gap ΔE (eV) | 3.3 | 3.6 | 3.8
 ΔN | -0.05 | -0.07 | -0.06
 E_back-donation (eV) | -0.5 | -0.5 | -0.5
 TNC | -4.0 | -4.0 | -4.0
-Protonated +1 cation descriptors in 1 M HCl; the headline ranking stays on the neutral form (see docs/pipeline.md).
+Protonated +1 cation descriptors in 1 M HCl; a component of the pH-weighted canonical basis (see the Summary), shown here on its own.
 3.5 Speciation in 1 M HCl (pH ≈ 0.0)
-97% neutral / 3% protonated at this pH — the neutral form dominates. Population-weighted descriptors (blended lead quercetin):
+97% neutral / 3% protonated at this pH — the neutral form dominates. Population-weighted descriptors (the speciation axis of the ranking ensemble; the headline ranks on the canonical basis):
 Descriptor | quercetin | kaempferol | isorhamnetin
 Formula | C15H10O7 | C15H10O7 | C15H10O7
 HOMO (eV) | -6.0 | -6.0 | -6.0

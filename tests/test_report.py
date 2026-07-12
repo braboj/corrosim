@@ -168,6 +168,25 @@ def test_computed_pka_block_frequency_corrected_caption(tmp_path):
     assert "electronic-only" not in html
 
 
+def test_pipeline_report_reports_tie_when_lead_not_robust(tmp_path):
+    # A leads on the force-field geometry, B once the geometry is relaxed, so no
+    # single lead survives a change of basis -> the headline is a tie, with no
+    # crowned winner, and the lead-by-basis panel shows the flip.
+    neutral = [_descr_row("A", 4.0, 2.0), _descr_row("B", 4.1, 2.05),
+               _descr_row("C", 4.6, 2.3)]
+    opt = [_descr_row("A", 4.2, 2.1), _descr_row("B", 4.0, 2.0),
+           _descr_row("C", 4.6, 2.3)]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(neutral, [], [], {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), order=["A", "B", "C"],
+                                 opt_neutral_rows=opt)
+    html = out.read_text(encoding="utf-8")
+    assert "no single lead is robust" in html
+    assert "reported as a tie" in html
+    assert "Ranking basis" in html            # lead-by-basis sensitivity table
+    assert 'class="best"' not in html         # no molecule is crowned in a tie
+
+
 def test_pipeline_report_renders_optimised_descriptor_section(tmp_path):
     neutral = [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)]
     opt_neutral = [_descr_row("quercetin", 3.6, 1.8), _descr_row("kaempferol", 4.0, 2.0)]

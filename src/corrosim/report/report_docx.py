@@ -26,16 +26,18 @@ from docx.shared import Inches, Pt, RGBColor
 
 from . import report_content as _content
 from .report import (
-    DESCRIPTOR_ROW_LABELS,
+    canonical_summary,
     descriptor_matrix,
     prepare_report_data,
-    rank_inhibitors,
     ranking_matrix,
+    report_ensemble,
     results_dataframe,
+    summary_sentence,
 )
 from .report_layout import figure_path
 
 if TYPE_CHECKING:
+    from .ranking import RankingEnsemble
     from .report import PreparedReport
 
 _MUTED = RGBColor(0x71, 0x80, 0x96)
@@ -130,18 +132,24 @@ class _Doc:
         self.content_table({"columns": headers, "rows": rows})
 
     def ranking_table(self, df: pd.DataFrame, name_col: str,
-                      label_map: dict[str, str] | None = None) -> None:
-        """A transposed ranking table (molecules as columns, best-first, winning
-        column bold, per-metric winner checkmarked), matching the HTML report
-        via the shared :func:`ranking_matrix`.
+                      label_map: dict[str, str] | None = None,
+                      mark_winners: bool = True) -> None:
+        """A transposed ranking table (molecules as columns, best-first),
+        matching the HTML report via the shared :func:`ranking_matrix`.
+
+        With ``mark_winners`` the winning column is bold and each metric's best
+        cell is checkmarked; pass ``mark_winners=False`` for a tie within method
+        resolution, so no molecule is crowned.
         """
         headers, rows, winners = ranking_matrix(df, name_col, label_map)
-        # Mark each metric row's winning cell (offset by 1 for the label column)
-        for i, w in enumerate(winners):
-            if w is not None:
-                rows[i][w + 1] = f"{rows[i][w + 1]} ✓"
+        if mark_winners:
+            # Mark each metric row's winning cell (offset by 1 for the label)
+            for i, w in enumerate(winners):
+                if w is not None:
+                    rows[i][w + 1] = f"{rows[i][w + 1]} ✓"
         self.content_table(
-            {"columns": headers, "rows": rows, "highlight_col": 1})
+            {"columns": headers, "rows": rows,
+             "highlight_col": 1 if mark_winners else None})
 
     def save(self, path: str) -> str:
         self.doc.save(path)
@@ -169,8 +177,9 @@ def _speciation_section(d: _Doc, summary: dict | None, medium: str,
     d.para(
         f"**{spec.f_neutral:.0%} neutral / {spec.f_protonated:.0%} "
         f"protonated** at this pH — the {spec.dominant} form dominates. "
-        f"Population-weighted descriptors (blended lead "
-        f"**{summary['blended_lead']}**):", muted=True, size=9)
+        "Population-weighted descriptors (the speciation axis of the ranking "
+        "ensemble; the headline ranks on the canonical basis):",
+        muted=True, size=9)
     d.descriptor_table(results_dataframe(summary["blended_rows"]))
     if computed_pkah:
         basis = ("frequency-corrected" if pka_freq_corrected
@@ -207,14 +216,37 @@ def _overview_section(d: _Doc, figdir: str) -> None:
     d.figure(figdir, "fig0_pipeline.png", "corrosim pipeline")
 
 
-def _summary_section(d: _Doc, prep: PreparedReport) -> None:
-    """Headline sentence + the ranking table + the one-line scoring note."""
+def _lead_by_basis(d: _Doc, ensemble: RankingEnsemble) -> None:
+    """The lead-by-basis sensitivity table + a one-line robustness note.
+
+    Emitted only when more than one basis exists, mirroring the HTML report.
+    """
+    v = ensemble.verdict
+    if v.n_bases < 2:
+        return
+    d.content_table({
+        "columns": ["Ranking basis", "Top candidate"],
+        "rows": [[label, lead] for label, lead in ensemble.lead_by_basis()],
+    })
+    d.para(_content.robustness_note(v.robust, v.n_bases), muted=True, size=9)
+
+
+def _summary_section(d: _Doc, prep: PreparedReport,
+                     ensemble: RankingEnsemble) -> None:
+    """Headline sentence + the canonical ranking table + robustness panel.
+
+    The ranking is checkmarked only when the lead is robust; a tie renders plain
+    and the lead-by-basis table shows which candidate tops each basis.
+    """
     d.heading("Summary & ranking", level=1)
-    bl = prep.bottom_line()
-    if bl:
-        d.para(bl)
-    d.ranking_table(prep.summary, "Inhibitor")
-    d.para(_content.score_note(prep.m_elem), muted=True, size=9)
+    sentence = summary_sentence(prep, ensemble)
+    if sentence:
+        d.para(sentence)
+    d.ranking_table(canonical_summary(prep, ensemble), "Inhibitor",
+                    mark_winners=ensemble.verdict.robust)
+    _lead_by_basis(d, ensemble)
+    d.para(_content.score_note(prep.m_elem, ensemble.canonical.label),
+           muted=True, size=9)
 
 
 def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
@@ -245,7 +277,12 @@ def _dft_section(d: _Doc, prep: PreparedReport, figdir: str,
 def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
                                 opt_acid_rows: list[dict] | None,
                                 order: list[str] | None) -> None:
-    """Optional DFT-optimised-geometry descriptor tables (neutral + cation)."""
+    """DFT-relaxed-geometry sensitivity panel (neutral + cation descriptors).
+
+    The geometry axis of the ranking ensemble, shown as plain descriptor tables
+    — no score or winner marks; the headline scores this basis (when present)
+    on the canonical Summary table.
+    """
     if not opt_neutral_rows:
         return
     d.heading("Optimised-geometry descriptors (DFT-relaxed)", level=2)
@@ -253,11 +290,10 @@ def _optimised_geometry_section(d: _Doc, opt_neutral_rows: list[dict] | None,
     if order:
         keep = [n for n in order if n in set(ndf["name"])]
         ndf = ndf.set_index("name").loc[keep].reset_index()
-    ranked = rank_inhibitors(ndf)
-    d.ranking_table(
-        ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                "delta_n", "tnc", "score"]].round(3),
-        "name", DESCRIPTOR_ROW_LABELS)
+    d.descriptor_table(results_dataframe(ndf.to_dict("records")))
+    d.para("Sensitivity: descriptors on the DFT-relaxed geometry (the geometry "
+           "axis of the ranking ensemble). The headline ranks on the canonical "
+           "basis; see the Summary.", muted=True, size=9)
     if opt_acid_rows:
         d.heading("Optimised protonated cations (in-acid)", level=3)
         d.descriptor_table(results_dataframe(opt_acid_rows))
@@ -270,9 +306,9 @@ def _acid_cation_section(d: _Doc, acid_cation_rows: list[dict] | None,
         return
     d.heading("Species in the acidic medium (protonated cation)", level=2)
     d.descriptor_table(results_dataframe(acid_cation_rows))
-    d.para(f"Protonated +1 cation descriptors in {medium}; the headline "
-           "ranking stays on the neutral form (see docs/pipeline.md).",
-           muted=True, size=9)
+    d.para(f"Protonated +1 cation descriptors in {medium}; a component of the "
+           "pH-weighted canonical basis (see the Summary), shown here on its "
+           "own.", muted=True, size=9)
 
 
 def _fukui_section(d: _Doc, prep: PreparedReport, figdir: str,
@@ -360,11 +396,14 @@ def build_docx_report(
     """
     prep = prepare_report_data(neutral_aq_rows, mc_rows, md_rows, fukui_by_name,
                                metal, order)
+    ensemble = report_ensemble(neutral_aq_rows, acid_cation_rows,
+                               opt_neutral_rows, opt_acid_rows,
+                               speciation_summary)
     names = list(prep.df["name"])
     d = _Doc()
     _docx_header(d, prep, metal, medium, generated_at)
     _overview_section(d, figdir)
-    _summary_section(d, prep)
+    _summary_section(d, prep, ensemble)
     _dft_section(d, prep, figdir, names)
     _optimised_geometry_section(d, opt_neutral_rows, opt_acid_rows, order)
     _acid_cation_section(d, acid_cation_rows, medium)
