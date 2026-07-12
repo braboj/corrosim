@@ -122,6 +122,40 @@ def render_pdf(p: Prepared) -> bytes: ...
 Scope a shared abstraction to genuine duplication, and delete it when its only
 consumer goes away. A seam that no longer serves two callers is just dead code.
 
+#### Rank on one declared basis; gate the claim on robustness
+
+When a scoring or ranking function can be computed on several interchangeable
+input *bases* — different methods, parameterizations, or preprocessing choices
+for the same items — evaluating each and reporting them side by side lets one
+output crown several different "winners", and the headline basis ends up chosen
+by whichever code path ran first rather than by a decision. Declare exactly one
+*canonical* basis as an explicit, testable property of the run (not the
+incidental result of a default path); render every other basis as a labelled
+sensitivity panel with no competing "best"; and assert a single top result only
+when it survives every basis. When the leaders disagree, the ordering is finer
+than the estimator resolves — report a tie, not a rank.
+
+```python
+def build_ensemble(bases: dict[str, list[dict]]) -> Ensemble:
+    ranked = {name: rank(rows) for name, rows in bases.items()}
+    canonical = max(ranked, key=basis_priority)      # declared, not incidental
+    leaders = {r[0]["id"] for r in ranked.values()}
+    robust = len(leaders) == 1                        # every basis agrees
+    return Ensemble(canonical, ranked, robust,
+                    lead=next(iter(leaders)) if robust else None)
+```
+
+```text
+   basis A  basis B  basis C     each --> rank --> a leader
+      \________|________/
+               v
+       leaders all agree?  --yes--> assert the lead
+                           --no --> tie within resolution (report, don't rank)
+```
+
+Carry the verdict, not just the winner: a rank with no robustness signal reads
+as more certain than the inputs support.
+
 #### Inject the one axis you are tempted to hardcode
 
 Thread the parameter that varies through the code and derive labels and lookups

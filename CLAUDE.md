@@ -275,7 +275,12 @@ complete these corrosim-specific steps:
    reads. Record any decision as an ADR in `docs/decisions/` (with its `Upstream:`
    line), and file any un-filed upstream candidate now, reporting the issue URL
    rather than "flagged".
-3. Update `MEMORY.md`.
-4. Commit (conventional, with the trailer) and push only when asked.
+3. Distill any transferable engineering pattern introduced this session into
+   `docs/engineering-know-how.md`, genericized (domain nouns — molecule, metal,
+   DFT, inhibitor — stripped). This runs EVERY wrap-up, not as a periodic
+   reconciliation: if the session produced no reusable pattern, say so and move
+   on.
+4. Update `MEMORY.md`.
+5. Commit (conventional, with the trailer) and push only when asked.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
