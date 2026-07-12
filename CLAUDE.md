@@ -279,7 +279,11 @@ complete these corrosim-specific steps:
    `docs/engineering-know-how.md`, genericized (domain nouns — molecule, metal,
    DFT, inhibitor — stripped). This runs EVERY wrap-up, not as a periodic
    reconciliation: if the session produced no reusable pattern, say so and move
-   on.
+   on. `engineering-know-how.md` holds ONLY generic, standalone patterns —
+   anything project-specific (a corrosim decision, structure, command, or result)
+   belongs in its own home (ADR / README / ONBOARDING / PLAYBOOK / dev-journal),
+   never here. The test: strip the domain skin; if the pattern no
+   longer stands on its own, it is project documentation, not know-how.
 4. Update `MEMORY.md`.
 5. Commit (conventional, with the trailer) and push only when asked.
 
