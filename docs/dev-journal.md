@@ -1768,4 +1768,48 @@ epic honestly.
   #67 GHCR+PyPI / #68 Pages), standalone **#40** (quantitative chemisorption), and
   #189 / #186 / #181 / #180. Cross-repo: solid-ai-templates now current at v2.35.
 
+## 2026-07-12 (session 23): canonical ranking basis + robustness gate (ADR 0021)
+
+Started from a reader's question — why the pyrazolo headline crowned the ethyl
+ester when the ester's gap edge over the propanoic acid is sub-milli-eV and the
+DFT-optimised geometry flips the lead. Tracing it showed the report scored the
+composite z-score independently on three descriptor bases (force-field vs
+DFT-relaxed geometry x neutral vs pH-blend speciation) and named up to three
+different leads, with the "headline" basis chosen by which CSV the driver's
+default path resolved to. Framed the fix generically and shipped it.
+
+- **ADR 0021 (Accepted).** One declared canonical basis (best geometry x
+  pH-weighted speciation x solvated phase); every other basis is a labelled
+  sensitivity panel, never a competing ranking; the lead is asserted only when it
+  survives a change of basis, else the report calls a tie within method
+  resolution. Confirmed the two open defaults with the owner (best-available
+  geometry; pH-weighted speciation). `Upstream: none` — a scientific-computing /
+  results-presentation pattern (home is `docs/engineering-know-how.md`), outside
+  the solid-ai-templates code/testing/workflow scope.
+- **Implementation (#202).** New `report/ranking.py` owns `rank_inhibitors` +
+  `build_ensemble` (assembles every available basis, picks the canonical one,
+  judges robustness by leader agreement). The HTML and Word summary sections now
+  score the canonical basis, render a lead-by-basis sensitivity table + a
+  robust/tie verdict sentence, and suppress the winner marks on a tie; the
+  optimised-geometry / protonated-cation / speciation tables were demoted to
+  plain descriptor panels (no score row, no competing "best"). The bundled
+  `ranking.csv` follows the canonical basis. Removed the now-dead FF-neutral
+  `PreparedReport.bottom_line` / `ranked` / `summary`.
+- **Re-rendered all three bundles.** Pyrazolo now reads honestly as a tie (ethyl
+  ester tops force-field-neutral, the propanoic acid tops the other three bases;
+  propanamide robustly weakest) — the direct answer to the opening question.
+  Arghel stays a robust quercetin lead across all four bases; phytic acid is a
+  single-molecule / single-basis lead.
+- **Tests + gates.** New `tests/test_ranking.py` pins canonical selection and both
+  the robust and tie verdicts; a report-level test asserts the tie renders with no
+  crowned winner; goldens regenerated and eyeballed. `pytest` 215 passed /1
+  skipped, `ruff` + `mypy` clean, complexipy adds no over-threshold function.
+- **Docs.** README structure map gains `report/ranking`; CLAUDE.md §5.1 gains a
+  review check for the canonical-basis + robustness convention.
+- **Pending:** ADR 0021's transferable kernel ("rank on one declared basis; treat
+  alternatives as a sensitivity ensemble; never order finer than the estimator
+  resolves") is flagged for the next `docs/engineering-know-how.md` reconciliation
+  — captured in the ADR, not yet written into the doc. Prior open threads
+  unchanged: **#200**, **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

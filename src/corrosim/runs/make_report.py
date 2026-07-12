@@ -233,16 +233,21 @@ def _render_reports(
                 "(install it with: pip install -e .[report])")
 
 
-def _bundle_tables(args: argparse.Namespace, rows: list[dict]) -> None:
+def _bundle_tables(args: argparse.Namespace,
+                   ensemble: report.RankingEnsemble) -> None:
     """Copy the report's source tables next to it, so the bundle stands alone.
+
+    The bundled ``ranking.csv`` is the canonical-basis ranking the headline is
+    scored on (best geometry x pH-weighted speciation), so the data artefact and
+    the report agree on which basis is authoritative.
 
     Args:
         args: Parsed CLI arguments (paths + the tables root).
-        rows: Neutral descriptor rows, for the ranking table.
+        ensemble: The ranking ensemble (source of the canonical ranking).
     """
     ranking_dst = table_path(args.tablesdir, "ranking.csv")
     os.makedirs(os.path.dirname(ranking_dst), exist_ok=True)
-    report.rank_inhibitors(pd.DataFrame(rows)).to_csv(ranking_dst, index=False)
+    ensemble.canonical.ranked.to_csv(ranking_dst, index=False)
     for src in (args.descriptors, args.opt_descriptors,
                 f"{args.datadir}/geometry_comparison.csv", args.pka):
         if os.path.exists(src):
@@ -336,6 +341,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     computed_pkah, pka_freq_corrected = _computed_pkah(args.pka, present, spec)
     opt_neutral_rows, opt_acid_rows = _opt_geometry_rows(
         args.opt_descriptors, order, spec)
+    ensemble = report.report_ensemble(rows, acid_rows, opt_neutral_rows,
+                                      opt_acid_rows, speciation_summary)
 
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
@@ -358,7 +365,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         opt_neutral_rows=opt_neutral_rows, opt_acid_rows=opt_acid_rows,
     )
     _render_reports(rows, mc_rows, md_rows, fukui_by_name, args, common)
-    _bundle_tables(args, rows)
+    _bundle_tables(args, ensemble)
     return 0
 
 

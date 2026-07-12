@@ -111,7 +111,7 @@ does everything else. Full pipeline commands: [`docs/PLAYBOOK.md`](docs/PLAYBOOK
 | `src/corrosim/` | Core package facade: `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
 | `src/corrosim/qm/` | `engines`, `descriptors`, `fukui`, `pka`, `speciation`, `protonation`, `cubes`; `_backend_pyscf`/`_tblite` hold the deferred pyscf/tblite imports (ADR 0015). |
 | `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
-| `src/corrosim/report/` | `report`, `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them). |
+| `src/corrosim/report/` | `report`, `ranking` (canonical basis + robustness gate), `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them). |
 | `src/corrosim/data/` | `inhibitors.json`: the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
 | `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` (+ `_cli`: shared CLI plumbing). |
 | `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |

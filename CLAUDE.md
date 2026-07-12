@@ -230,6 +230,9 @@ and `python-lib.md` as the standard.
 - Case study read from `presets.ARGHEL`, not re-declared.
 - Dependent artifacts (the `cases/<case>/report/` bundle) regenerated in the same
   change.
+- Rankings report one canonical basis (best geometry, pH-weighted speciation)
+  and gate the lead on robustness; sensitivity panels carry no competing "best"
+  (ADR 0021).
 
 ### 5.2 Structure audit
 

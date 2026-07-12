@@ -10,7 +10,7 @@ import datetime
 import io
 import os
 import re
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 # Backend auto-selected: inline in Jupyter, Agg when headless
 import matplotlib.pyplot as plt
@@ -19,7 +19,21 @@ import pandas as pd
 from ..presets import metal_element
 from ..qm.descriptors import DESCRIPTOR_META
 from . import report_content as _content
+from .ranking import RankingEnsemble, build_ensemble, rank_inhibitors
 from .report_layout import figure_path
+
+__all__ = [
+    "rank_inhibitors",
+    "build_ensemble",
+    "RankingEnsemble",
+    "results_dataframe",
+    "prepare_report_data",
+    "PreparedReport",
+    "build_pipeline_report",
+    "build_html_report",
+    "descriptor_matrix",
+    "ranking_matrix",
+]
 
 
 def results_dataframe(rows: list[dict]) -> pd.DataFrame:
@@ -39,38 +53,6 @@ def results_dataframe(rows: list[dict]) -> pd.DataFrame:
         cols.append("e_ads_kjmol")
     cols = [c for c in cols if c in df.columns]
     return df[cols].round(3)
-
-
-def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
-    """Composite ranking from z-scored gap / hardness / softness.
-
-    Stronger inhibition is associated with a smaller gap, lower hardness and
-    higher softness; those are z-scored and combined.
-
-    Args:
-        df: A descriptor frame with gap_ev / hardness_ev / softness_inv_ev.
-
-    Returns:
-        ``df`` sorted best-first with a ``score`` column (higher = better).
-    """
-    ranked = df.copy()
-
-    def zscore(series, invert=False):
-        std = series.std(ddof=0)
-        if std == 0:
-            return series * 0
-        z = (series - series.mean()) / std
-        return -z if invert else z
-
-    # Smaller gap + lower hardness + higher softness => stronger inhibition;
-    # the mean of the equally-weighted components keeps score O(1) as they grow
-    components = [
-        zscore(ranked["gap_ev"], invert=True),
-        zscore(ranked["hardness_ev"], invert=True),
-        zscore(ranked["softness_inv_ev"]),
-    ]
-    ranked["score"] = (sum(components) / len(components)).round(3)
-    return ranked.sort_values("score", ascending=False).reset_index(drop=True)
 
 
 def _fig_to_b64(fig) -> str:
@@ -260,18 +242,20 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
     return [
         "<h3>Species in the acidic medium (protonated cation)</h3>",
         _descriptor_table_html(results_dataframe(acid_cation_rows)),
-        f'<p class="meta">Protonated +1 cation descriptors in {medium}; the '
-        "headline ranking stays on the neutral form (see docs/pipeline.md).</p>",
+        f'<p class="meta">Protonated +1 cation descriptors in {medium}; a '
+        "component of the pH-weighted canonical basis (see the Summary), shown "
+        "here on its own.</p>",
     ]
 
 
 def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
                           opt_acid_rows: list[dict] | None,
                           order: list[str] | None = None) -> list[str]:
-    """Optimised-geometry descriptor section: the DFT-relaxed
-    (B3LYP/6-31G(d)) descriptor matrix — the neutral ranking plus the optimised
-    protonated cations — surfaced alongside the FF-geometry headline table.
-    Returns [] when no optimised matrix was supplied.
+    """DFT-relaxed-geometry sensitivity panel: the optimised descriptor matrix
+    (neutral + protonated cations) shown as the geometry axis of the ranking's
+    sensitivity ensemble, not a competing ranking — so no score row or winner
+    marks. The headline scores this basis (when present) on the canonical table
+    above. Returns [] when no optimised matrix was supplied.
     """
     if not opt_neutral_rows:
         return []
@@ -279,12 +263,12 @@ def _opt_descriptor_block(opt_neutral_rows: list[dict] | None,
     if order:
         ndf = (ndf.set_index("name").loc[[n for n in order if n in set(ndf["name"])]]
                .reset_index())
-    ranked = rank_inhibitors(ndf)
-    summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                      "delta_n", "tnc", "score"]].round(3)
     out = [
         "<h3>Optimised-geometry descriptors (DFT-relaxed)</h3>",
-        _ranking_table_html(summary, "name", DESCRIPTOR_ROW_LABELS),
+        _descriptor_table_html(results_dataframe(ndf.to_dict("records"))),
+        '<p class="meta">Sensitivity: descriptors on the DFT-relaxed geometry '
+        "(the geometry axis of the ranking ensemble). The headline ranks on the "
+        "canonical basis; see the Summary.</p>",
     ]
     if opt_acid_rows:
         adf = pd.DataFrame(opt_acid_rows)
@@ -339,7 +323,8 @@ def _speciation_block(summary: dict | None, medium: str,
         f'<p class="meta"><b>{spec.f_neutral:.0%} neutral / '
         f"{spec.f_protonated:.0%} protonated</b> at this pH — the "
         f"{spec.dominant} form dominates. Population-weighted descriptors "
-        f"(blended lead <b>{summary['blended_lead']}</b>):</p>",
+        "(the speciation axis of the ranking ensemble; the headline ranks on "
+        "the canonical basis):</p>",
         _descriptor_table_html(results_dataframe(summary["blended_rows"])),
         *_computed_pka_block(computed_pkah, pka_freq_corrected),
     ]
@@ -560,11 +545,18 @@ def _ranking_table_html(
     df: pd.DataFrame,
     name_col: str,
     label_map: dict[str, str] | None = None,
+    mark_winners: bool = True,
 ) -> str:
-    """Render a best-first ranking frame transposed: winner column highlighted,
-    and the best value in each directional metric row checkmarked.
+    """Render a best-first ranking frame transposed.
+
+    With ``mark_winners`` the winning column is highlighted and the best value
+    in each directional metric row is checkmarked. When the lead is a tie within
+    method resolution, pass ``mark_winners=False`` to render a plain table — no
+    highlight, no checkmarks — so no molecule is visually crowned.
     """
     headers, rows, winners = ranking_matrix(df, name_col, label_map)
+    if not mark_winners:
+        return _transposed_table_html(headers, rows)
     return _transposed_table_html(headers, rows, highlight_col=0, winners=winners)
 
 
@@ -602,15 +594,16 @@ _REPORT_CSS = """
 
 class PreparedReport(NamedTuple):
     """The report's derived data, shared by the HTML and Word renderers so both
-    outputs draw on the same ranking / merged adsorption columns / Fukui summary.
+    outputs draw on the same adsorption columns and Fukui summary.
+
+    The headline ranking is not carried here: it is computed per canonical basis
+    by :func:`report_ensemble` (the neutral force-field rows are only one of the
+    bases), and the adsorption columns on ``df`` are grafted onto whichever basis
+    wins by :func:`canonical_summary`.
     """
 
     # Ordered neutral rows + e_ads/ads_dist
     df: pd.DataFrame
-    # Best-first with score
-    ranked: pd.DataFrame
-    # Headline summary columns
-    summary: pd.DataFrame
     # Full descriptor table
     full: pd.DataFrame
     level: str
@@ -619,31 +612,6 @@ class PreparedReport(NamedTuple):
     # (molecule, "O5 (f⁻=0.090), ...")
     fukui_items: list[tuple[str, str]]
 
-    def bottom_line(self) -> str | None:
-        """Data-derived headline naming the top-ranked inhibitor, or None.
-
-        Reads the lead straight off the ranking (never hardcoded), so the
-        sentence stays correct if the molecule set or substrate changes. Both
-        renderers wrap the returned prose in their own note box; the extraction
-        lives here so it is not duplicated. See ``report_content.bottom_line``.
-
-        Returns:
-            The headline sentence (``**bold**`` markup), or None when there are
-            no ranked rows.
-        """
-        if not len(self.ranked):
-            return None
-        lead = self.ranked.iloc[0]
-        eads = lead.get("e_ads_kjmol")
-        return _content.bottom_line(
-            len(self.df),
-            str(lead["name"]),
-            float(lead["score"]),
-            float(lead["gap_ev"]),
-            float(eads) if eads is not None and pd.notna(eads) else None,
-            self.m_elem,
-        )
-
     @classmethod
     def derive(cls, neutral_aq_rows: list[dict], mc_rows: list[dict],
                md_rows: list[dict], fukui_by_name: dict[str, list[dict]],
@@ -651,8 +619,8 @@ class PreparedReport(NamedTuple):
         """Build the shared report data once, for both renderers.
 
         Orders the neutral frame, merges the adsorption columns (Monte-Carlo
-        E_ads + Brownian-MD metal-O first peak), ranks, and summarises the Fukui
-        top donors. Construction lives on the type as a factory classmethod;
+        E_ads + Brownian-MD metal-O first peak), and summarises the Fukui top
+        donors. Construction lives on the type as a factory classmethod;
         ``prepare_report_data`` is the stable public wrapper.
 
         Args:
@@ -685,12 +653,7 @@ class PreparedReport(NamedTuple):
         # break Series.round on the None values — to_numeric makes it NaN-safe.
         df["ads_dist_A"] = pd.to_numeric(df["ads_dist_A"], errors="coerce").round(2)
 
-        ranked = rank_inhibitors(df)
         level = str(df["level"].iloc[0]) if "level" in df.columns and len(df) else "—"
-        summary = ranked[["name", "gap_ev", "hardness_ev", "softness_inv_ev",
-                          "delta_n", "e_ads_kjmol", "ads_dist_A", "score"]].round(3)
-        summary = summary.rename(columns={**_SUMMARY_LABELS,
-                                          "ads_dist_A": f"{m_elem}–O (Å)"})
         full = results_dataframe(df.to_dict("records"))
 
         fukui_items = []
@@ -701,12 +664,12 @@ class PreparedReport(NamedTuple):
             tops = top_donor_sites_of_element(rows, "O", 3)
             sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
             fukui_items.append((name, sites))
-        return cls(df, ranked, summary, full, level, m_elem, fukui_items)
+        return cls(df, full, level, m_elem, fukui_items)
 
 
 # Human-readable headers for the headline summary table (display only; the raw
 # result keys stay on the full descriptor table). ads_dist_A is labelled with the
-# actual metal in PreparedReport.derive.
+# actual metal in canonical_summary.
 _SUMMARY_LABELS = {
     "name": "Inhibitor",
     "gap_ev": "Gap (eV)",
@@ -741,6 +704,37 @@ def prepare_report_data(neutral_aq_rows: list[dict], mc_rows: list[dict],
                                  fukui_by_name, metal, order)
 
 
+def report_ensemble(
+    neutral_aq_rows: list[dict],
+    acid_cation_rows: list[dict] | None,
+    opt_neutral_rows: list[dict] | None,
+    opt_acid_rows: list[dict] | None,
+    speciation_summary: dict | None,
+) -> RankingEnsemble:
+    """Build the ranking ensemble both renderers score the headline against.
+
+    Selects the canonical basis and judges the lead's robustness from the rows
+    already threaded to the report; the protonated-population weight is read off
+    the speciation summary (it depends only on pH and pKaH, so it applies to the
+    force-field and DFT-relaxed blends alike).
+
+    Args:
+        neutral_aq_rows: Force-field neutral aqueous descriptor rows.
+        acid_cation_rows: Force-field protonated-cation rows, or None.
+        opt_neutral_rows: DFT-relaxed neutral rows, or None.
+        opt_acid_rows: DFT-relaxed protonated-cation rows, or None.
+        speciation_summary: The pH-speciation summary (source of the population
+            weight), or None when the medium is non-ionising.
+
+    Returns:
+        The :class:`RankingEnsemble` for the headline + sensitivity panel.
+    """
+    f_protonated = (speciation_summary["speciation"].f_protonated
+                    if speciation_summary else None)
+    return build_ensemble(neutral_aq_rows, acid_cation_rows, opt_neutral_rows,
+                          opt_acid_rows, f_protonated)
+
+
 # The HTML report is assembled section by section (each helper returns its HTML
 # fragments), mirroring report_docx's _*_section builders so the two outlines
 # stay diffable. build_pipeline_report joins them and numbers the headings.
@@ -770,14 +764,101 @@ def _overview_section(figdir: str) -> list[str]:
     ]
 
 
-def _summary_section(prep: PreparedReport) -> list[str]:
-    """Headline sentence + the ranking table + the one-line scoring note."""
-    bl = prep.bottom_line()
+def _eads_by_name(prep: PreparedReport) -> dict[str, Any]:
+    """Map molecule name -> adsorption energy (kJ/mol), for the summary merge."""
+    return dict(zip(prep.df["name"], prep.df["e_ads_kjmol"]))
+
+
+def canonical_summary(prep: PreparedReport,
+                      ensemble: RankingEnsemble) -> pd.DataFrame:
+    """Headline summary frame for the canonical basis.
+
+    Ranks on the canonical basis (best geometry x pH-weighted speciation) and
+    grafts the per-molecule adsorption columns (Monte-Carlo E_ads + Brownian-MD
+    metal-O distance, keyed by name) onto it — those validate the lead but do
+    not enter the score, so they attach to whichever basis is canonical.
+
+    Args:
+        prep: The shared report data (source of the adsorption columns).
+        ensemble: The ranking ensemble (source of the canonical ranking).
+
+    Returns:
+        A best-first summary frame with the headline columns, display-labelled.
+    """
+    ranked = ensemble.canonical.ranked.copy()
+    eads, dist = _eads_by_name(prep), dict(
+        zip(prep.df["name"], prep.df["ads_dist_A"]))
+    ranked["e_ads_kjmol"] = ranked["name"].map(eads)
+    ranked["ads_dist_A"] = ranked["name"].map(dist)
+    cols = ["name", "gap_ev", "hardness_ev", "softness_inv_ev", "delta_n",
+            "e_ads_kjmol", "ads_dist_A", "score"]
+    return ranked[cols].round(3).rename(
+        columns={**_SUMMARY_LABELS, "ads_dist_A": f"{prep.m_elem}–O (Å)"})
+
+
+def summary_sentence(prep: PreparedReport,
+                     ensemble: RankingEnsemble) -> str | None:
+    """The headline sentence: a single robust lead, or a tie within resolution.
+
+    Args:
+        prep: The shared report data (molecule count, substrate element).
+        ensemble: The ranking ensemble carrying the robustness verdict.
+
+    Returns:
+        The ``**bold**``-marked sentence, or None when there are no ranked rows.
+    """
+    v = ensemble.verdict
+    n = len(prep.df)
+    if not len(ensemble.canonical.ranked):
+        return None
+    if v.robust and v.lead is not None:
+        lead_row = ensemble.canonical.ranked.iloc[0]
+        eads = _eads_by_name(prep).get(v.lead)
+        return _content.bottom_line(
+            n, v.lead, float(lead_row["score"]), float(lead_row["gap_ev"]),
+            float(eads) if eads is not None and pd.notna(eads) else None,
+            prep.m_elem, v.n_bases)
+    return _content.bottom_line_tie(n, v.coleaders, v.laggard, v.n_bases)
+
+
+def _lead_by_basis_block(ensemble: RankingEnsemble) -> list[str]:
+    """The lead-by-basis sensitivity table + a one-line robustness note.
+
+    Emitted only when more than one basis exists (a single basis has nothing to
+    compare against), it shows which candidate tops each basis so a lead that
+    flips with geometry or protonation is visible at a glance.
+    """
+    v = ensemble.verdict
+    if v.n_bases < 2:
+        return []
+    body = "".join(f"<tr><th>{lbl}</th><td>{lead}</td></tr>"
+                   for lbl, lead in ensemble.lead_by_basis())
+    note = _content.robustness_note(v.robust, v.n_bases)
+    return [
+        '<div class="tw"><table><thead><tr><th>Ranking basis</th>'
+        f"<th>Top candidate</th></tr></thead><tbody>{body}</tbody></table></div>",
+        f'<p class="meta">{_inline(note)}</p>',
+    ]
+
+
+def _summary_section(prep: PreparedReport,
+                     ensemble: RankingEnsemble) -> list[str]:
+    """Headline sentence + the canonical ranking table + robustness panel.
+
+    The table is checkmarked only when the lead is robust; when the leaders flip
+    across bases it renders plain (no crowned winner), and the lead-by-basis
+    table shows the disagreement.
+    """
+    sentence = summary_sentence(prep, ensemble)
     return [
         "<h2>Summary &amp; ranking</h2>",
-        f"<p>{_inline(bl)}</p>" if bl else "",
-        _ranking_table_html(prep.summary, "Inhibitor"),
-        f'<p class="meta">{_inline(_content.score_note(prep.m_elem))}</p>',
+        f"<p>{_inline(sentence)}</p>" if sentence else "",
+        _ranking_table_html(canonical_summary(prep, ensemble), "Inhibitor",
+                            mark_winners=ensemble.verdict.robust),
+        *_lead_by_basis_block(ensemble),
+        f'<p class="meta">'
+        f"{_inline(_content.score_note(prep.m_elem, ensemble.canonical.label))}"
+        "</p>",
     ]
 
 
@@ -882,8 +963,9 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
 
     Tables are built from the committed result data; figures are embedded
     inline (base64) from ``figdir`` so the file stands alone. The headline
-    ranking uses the neutral form; ``acid_cation_rows`` are surfaced as a
-    labelled in-acid comparison when the medium is acidic.
+    ranking uses the canonical basis (best geometry x pH-weighted speciation)
+    and is gated on robustness; the other bases are surfaced as labelled
+    sensitivity panels.
 
     Args:
         neutral_aq_rows: Neutral aqueous descriptor rows.
@@ -909,6 +991,9 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
     """
     prep = prepare_report_data(neutral_aq_rows, mc_rows, md_rows, fukui_by_name,
                                metal, order)
+    ensemble = report_ensemble(neutral_aq_rows, acid_cation_rows,
+                               opt_neutral_rows, opt_acid_rows,
+                               speciation_summary)
 
     # Assemble the document shell + each section in order, then number the
     # headings once over the joined string. Section order mirrors the Word
@@ -919,7 +1004,7 @@ def build_pipeline_report(neutral_aq_rows: list[dict], mc_rows: list[dict],
         f"<style>{_REPORT_CSS}</style></head><body>",
         *_header_section(metal, medium, prep, generated_at),
         *_overview_section(figdir),
-        *_summary_section(prep),
+        *_summary_section(prep, ensemble),
         *_dft_section(prep, figdir),
         *_opt_descriptor_block(opt_neutral_rows, opt_acid_rows, order),
         *_acid_cation_block(acid_cation_rows, medium),
