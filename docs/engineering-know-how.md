@@ -239,6 +239,18 @@ def resolve(args) -> Profile:
     return p
 ```
 
+#### Check the regime before adding a per-item knob
+
+A per-item configuration axis is only worth its weight when the operating point
+actually distinguishes the items. Before splitting one shared value into many,
+check whether the regime collapses the difference: if every item saturates to the
+same response at the operating point, a single shared value is correct and the
+extra knob is dead weight and a maintenance liability. Parameterize when the
+inputs diverge *and* the output resolves the divergence, not on the mere
+possibility that they might differ. (The inverse of "inject the one axis you are
+tempted to hardcode": there, one value must vary and is wrongly fixed; here, the
+values could vary but the regime makes the distinction moot.)
+
 #### Namespace outputs per run; never hardcode an output root
 
 As soon as a second run configuration exists, a flat output root collides:

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "trimethoprim",
+    "surface": "Al(111)",
+    "e_ads_ev": -1.3492,
+    "e_ads_kjmol": -130.18,
+    "best_height_A": 2.81,
+    "accept_ratio": 0.035
+  },
+  {
+    "name": "sulfamethoxazole",
+    "surface": "Al(111)",
+    "e_ads_ev": -1.0329,
+    "e_ads_kjmol": -99.66,
+    "best_height_A": 3.13,
+    "accept_ratio": 0.077
+  }
+]

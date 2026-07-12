@@ -80,6 +80,29 @@ def test_pyrazolo_pyrimidine_validation_preset():
     assert all(build_molecule(n) is not None for n in case.molecule_list())
 
 
+def test_tmp_smx_validation_preset_is_the_first_non_fe_case():
+    from corrosim.qm.descriptors import METAL_WORK_FUNCTION
+
+    case = case_study("tmp-smx")
+    # the co-trimoxazole antibiotic pair
+    assert case.molecules == ("trimethoprim", "sulfamethoxazole")
+    # the point of this case: a non-Fe substrate, exercising the fcc(111) slab
+    # and the aluminium work function rather than the bcc(110) Fe default
+    assert case.metal == "Al(111)" and case.metal_element == "Al"
+    assert case.metal in METAL_WORK_FUNCTION       # Al descriptor support is wired
+    assert case.medium == "1 M HCl"
+    # both basic sites are protonated at pH ~0, so a single case pKaH suffices
+    assert case.pkah == 7.1
+    # the paper's level equals corrosim production, so a direct numeric check
+    assert case.basis == "6-311++G(d,p)" and case.xc == "b3lyp"
+    assert "Odozi" in case.source and "10.1016/j.exm.2026.100027" in case.source
+    assert case.results_dir == "cases/tmp-smx/results"
+    # aliases resolve to the same preset (case-insensitive)
+    assert case_study("tmpsmx") is case is case_study("TMP_SMX")
+    # both antibiotics are in the shipped library and build offline
+    assert all(build_molecule(n) is not None for n in case.molecule_list())
+
+
 def test_case_study_carries_the_dft_level():
     # the level of theory is a per-case field of the single source of truth, so
     # a preset that converges only at a smaller basis stays self-reproducing
