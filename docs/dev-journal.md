@@ -1806,10 +1806,14 @@ default path resolved to. Framed the fix generically and shipped it.
   skipped, `ruff` + `mypy` clean, complexipy adds no over-threshold function.
 - **Docs.** README structure map gains `report/ranking`; CLAUDE.md §5.1 gains a
   review check for the canonical-basis + robustness convention.
-- **Pending:** ADR 0021's transferable kernel ("rank on one declared basis; treat
-  alternatives as a sensitivity ensemble; never order finer than the estimator
-  resolves") is flagged for the next `docs/engineering-know-how.md` reconciliation
-  — captured in the ADR, not yet written into the doc. Prior open threads
-  unchanged: **#200**, **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
+- **Know-how distillation now per-session.** On the user's steer, ADR 0021's
+  transferable kernel ("rank on one declared basis; treat alternatives as a
+  sensitivity ensemble; never order finer than the estimator resolves") was
+  written straight into `docs/engineering-know-how.md` (Quality and design)
+  instead of being deferred, and CLAUDE.md §6.3 gained a standing step 3 making
+  the distillation an every-wrap-up task, not a periodic reconciliation. Upstream
+  candidate: tighten solid-ai-templates `scope.md` item 11 the same way.
+- **Pending:** none from this session's work. Prior open threads unchanged:
+  **#200**, **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
