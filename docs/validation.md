@@ -618,6 +618,17 @@ gas/neutral:**
 - **MD metal–O RDF**: first peak 3.55 Å for both (metal–N 3.65 to 3.75 Å); mean
   interaction energy −67.1 kJ/mol (TMP) vs −75.9 (SMX). Outer-sphere,
   physisorption-range contact by the classical field.
+- **Local reactivity (Fukui and ESP).** The condensed Fukui map (fmo,
+  B3LYP/6-31G(d)) and the ESP-on-density isosurface, now both shipped in the
+  bundle (figs 4, 7, and the 2b HOMO/LUMO isosurfaces), localise the
+  nucleophilic centres (the f⁻ donor density and the electron-rich red ESP lobes)
+  on the heteroatom-bearing ends. SMX's strongest donor site is the
+  sulfonamide/isoxazole nitrogen (top f⁻ +0.26 at N16); TMP's are the
+  trimethoxybenzyl oxygens and an adjacent ring carbon (top f⁻ +0.29 at C7),
+  while its diaminopyrimidine ring reads as the electrophilic (f⁺) acceptor end.
+  The paper presents its own Fukui and ESP as maps rather than tables, so this is
+  a qualitative site comparison (the same heteroatom-centred donor picture), not
+  a digit-by-digit one.
 
 **Reading it: the DFT picture and the tie reproduce; the adsorption ordering is
 observable-dependent.** The absolute frontier levels reproduce the paper

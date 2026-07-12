@@ -1,0 +1,254 @@
+[
+  {
+    "idx": 0,
+    "symbol": "C",
+    "f_plus": 0.0002,
+    "f_minus": 0.0008,
+    "dual": -0.0007,
+    "s_plus": 0.0002,
+    "s_minus": 0.0008
+  },
+  {
+    "idx": 1,
+    "symbol": "C",
+    "f_plus": 0.0078,
+    "f_minus": 0.0156,
+    "dual": -0.0078,
+    "s_plus": 0.0078,
+    "s_minus": 0.0156
+  },
+  {
+    "idx": 2,
+    "symbol": "C",
+    "f_plus": 0.0052,
+    "f_minus": 0.0004,
+    "dual": 0.0048,
+    "s_plus": 0.0052,
+    "s_minus": 0.0004
+  },
+  {
+    "idx": 3,
+    "symbol": "C",
+    "f_plus": -0.0021,
+    "f_minus": 0.0118,
+    "dual": -0.0139,
+    "s_plus": -0.0021,
+    "s_minus": 0.0118
+  },
+  {
+    "idx": 4,
+    "symbol": "N",
+    "f_plus": 0.0007,
+    "f_minus": 0.0648,
+    "dual": -0.0641,
+    "s_plus": 0.0007,
+    "s_minus": 0.0648
+  },
+  {
+    "idx": 5,
+    "symbol": "O",
+    "f_plus": 0.0015,
+    "f_minus": 0.0112,
+    "dual": -0.0097,
+    "s_plus": 0.0015,
+    "s_minus": 0.0112
+  },
+  {
+    "idx": 6,
+    "symbol": "N",
+    "f_plus": 0.0111,
+    "f_minus": 0.0761,
+    "dual": -0.065,
+    "s_plus": 0.0111,
+    "s_minus": 0.0761
+  },
+  {
+    "idx": 7,
+    "symbol": "S",
+    "f_plus": 0.0567,
+    "f_minus": 0.0045,
+    "dual": 0.0522,
+    "s_plus": 0.0567,
+    "s_minus": 0.0045
+  },
+  {
+    "idx": 8,
+    "symbol": "O",
+    "f_plus": 0.014,
+    "f_minus": 0.0125,
+    "dual": 0.0015,
+    "s_plus": 0.014,
+    "s_minus": 0.0125
+  },
+  {
+    "idx": 9,
+    "symbol": "O",
+    "f_plus": 0.0082,
+    "f_minus": 0.0194,
+    "dual": -0.0111,
+    "s_plus": 0.0082,
+    "s_minus": 0.0194
+  },
+  {
+    "idx": 10,
+    "symbol": "C",
+    "f_plus": 0.1486,
+    "f_minus": 0.1736,
+    "dual": -0.025,
+    "s_plus": 0.1486,
+    "s_minus": 0.1736
+  },
+  {
+    "idx": 11,
+    "symbol": "C",
+    "f_plus": 0.0049,
+    "f_minus": 0.0144,
+    "dual": -0.0095,
+    "s_plus": 0.0049,
+    "s_minus": 0.0144
+  },
+  {
+    "idx": 12,
+    "symbol": "C",
+    "f_plus": 0.1657,
+    "f_minus": 0.1187,
+    "dual": 0.047,
+    "s_plus": 0.1657,
+    "s_minus": 0.1187
+  },
+  {
+    "idx": 13,
+    "symbol": "C",
+    "f_plus": 0.1766,
+    "f_minus": 0.0972,
+    "dual": 0.0795,
+    "s_plus": 0.1766,
+    "s_minus": 0.0972
+  },
+  {
+    "idx": 14,
+    "symbol": "C",
+    "f_plus": 0.03,
+    "f_minus": 0.0908,
+    "dual": -0.0608,
+    "s_plus": 0.03,
+    "s_minus": 0.0908
+  },
+  {
+    "idx": 15,
+    "symbol": "C",
+    "f_plus": 0.3203,
+    "f_minus": 0.0185,
+    "dual": 0.3018,
+    "s_plus": 0.3203,
+    "s_minus": 0.0185
+  },
+  {
+    "idx": 16,
+    "symbol": "N",
+    "f_plus": 0.0391,
+    "f_minus": 0.2623,
+    "dual": -0.2232,
+    "s_plus": 0.0391,
+    "s_minus": 0.2623
+  },
+  {
+    "idx": 17,
+    "symbol": "H",
+    "f_plus": 0.0,
+    "f_minus": -0.0,
+    "dual": 0.0,
+    "s_plus": 0.0,
+    "s_minus": -0.0
+  },
+  {
+    "idx": 18,
+    "symbol": "H",
+    "f_plus": 0.0005,
+    "f_minus": 0.0011,
+    "dual": -0.0006,
+    "s_plus": 0.0005,
+    "s_minus": 0.0011
+  },
+  {
+    "idx": 19,
+    "symbol": "H",
+    "f_plus": 0.0005,
+    "f_minus": 0.001,
+    "dual": -0.0005,
+    "s_plus": 0.0005,
+    "s_minus": 0.001
+  },
+  {
+    "idx": 20,
+    "symbol": "H",
+    "f_plus": -0.0,
+    "f_minus": 0.0,
+    "dual": -0.0,
+    "s_plus": -0.0,
+    "s_minus": 0.0
+  },
+  {
+    "idx": 21,
+    "symbol": "H",
+    "f_plus": 0.0029,
+    "f_minus": 0.0001,
+    "dual": 0.0028,
+    "s_plus": 0.0029,
+    "s_minus": 0.0001
+  },
+  {
+    "idx": 22,
+    "symbol": "H",
+    "f_plus": 0.0,
+    "f_minus": -0.0,
+    "dual": 0.0,
+    "s_plus": 0.0,
+    "s_minus": -0.0
+  },
+  {
+    "idx": 23,
+    "symbol": "H",
+    "f_plus": 0.0,
+    "f_minus": 0.0001,
+    "dual": -0.0001,
+    "s_plus": 0.0,
+    "s_minus": 0.0001
+  },
+  {
+    "idx": 24,
+    "symbol": "H",
+    "f_plus": 0.0001,
+    "f_minus": 0.0,
+    "dual": 0.0,
+    "s_plus": 0.0001,
+    "s_minus": 0.0
+  },
+  {
+    "idx": 25,
+    "symbol": "H",
+    "f_plus": 0.0,
+    "f_minus": 0.0,
+    "dual": 0.0,
+    "s_plus": 0.0,
+    "s_minus": 0.0
+  },
+  {
+    "idx": 26,
+    "symbol": "H",
+    "f_plus": 0.001,
+    "f_minus": 0.0026,
+    "dual": -0.0016,
+    "s_plus": 0.001,
+    "s_minus": 0.0026
+  },
+  {
+    "idx": 27,
+    "symbol": "H",
+    "f_plus": 0.0062,
+    "f_minus": 0.0026,
+    "dual": 0.0037,
+    "s_plus": 0.0062,
+    "s_minus": 0.0026
+  }
+]
