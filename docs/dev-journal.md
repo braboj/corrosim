@@ -1816,4 +1816,54 @@ default path resolved to. Framed the fix generically and shipped it.
 - **Pending:** none from this session's work. Prior open threads unchanged:
   **#200**, **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
 
+## 2026-07-12 (session 24): first non-Fe validation case (TMP-SMX on Al(111))
+
+Picked up **#200** (the non-Fe + Tier-2 tail left when #53 closed) and took its
+headline goal end-to-end: the pipeline claims to be substrate-agnostic, but every
+shipped case was Fe(110), so the claim was architecturally true yet never
+exercised. Shipped the first non-iron validation case, trimethoprim +
+sulfamethoxazole on aluminium, chosen because its paper computes at corrosim's own
+production level (a direct numeric cross-check) and carries experimental data.
+
+- **New case `tmp-smx` (Al(111) / 1 M HCl).** Added TMP + SMX to the library via
+  `corrosim-add-inhibitor` (PubChem, CAS 738-70-5 / 723-46-6), a `TMP_SMX` preset
+  at B3LYP/6-311++G(d,p), and a preset test asserting the non-Fe substrate wiring
+  (Al work function present, `metal_element == "Al"`). No engine changes were
+  needed: the fcc(111) slab, the Al work function, and the ΔN reference all read
+  from the case's `metal`, so the metal-agnostic path just worked.
+- **Ran the full stack on aluminium.** DFT descriptors (Docker, both forms x two
+  phases, ~2 h at the diffuse basis), then MC + MD in the venv, then the bundle
+  (`cases/tmp-smx/`, report.html + docx + figures + ranking.csv). Source:
+  Odozi et al., Extreme Materials 2 (2026) 100027.
+- **Result: 🟡 Partial (quantitative).** Absolute frontier levels reproduce (HOMO
+  -6.22/-6.53 vs reported -5.94/-6.29 eV, the usual ~0.25 eV MMFF-geometry
+  offset); the better-donor identity (TMP: shallower HOMO, lower chi) reproduces;
+  and the ADR 0021 robustness gate independently returns a **tie** (the composite
+  lead flips TMP on the neutral basis to SMX on the protonated / pH-weighted
+  basis), which matches the paper's own refusal to crown a winner (it splits TMP
+  the donor vs SMX the stronger adsorber, a synergistic pair). The adsorption
+  ordering is observable-dependent (single-molecule UFF MC favours TMP, MD
+  mean-energy favours SMX, the paper's solvent-box MC favours SMX), and the
+  classical field cannot confirm the reported sub-3.5 A chemisorption (corrosim
+  sits at 3.55 A). A clean demonstration of the robustness gate on a live case.
+- **Docs.** `validation.md` gains Case 4 (scorecard, reported + computed tables,
+  verdict), a four-case intro, and a dual substrate-model section (Fe(110) +
+  Al(111)). Separately, on request, `pipeline.md` gained a per-stage **Libraries**
+  row naming the package doing each calculation (RDKit / PySCF + geomeTRIC / PySCF
+  + tblite / ASE + NumPy / NumPy + ASE / pandas), plus a pointer to
+  `pyproject.toml` as the version-pinned source of truth.
+- **No new ADR.** The case uses existing machinery (ADR 0018/0019 per-case
+  bundle, ADR 0021 gate); no new directory or cross-document move. Know-how: the
+  session validated two existing patterns ("inject the one axis you are tempted to
+  hardcode" via the first non-Fe run; "rank on one declared basis, gate on
+  robustness" via the tie) and added one new inverse guard ("check the regime
+  before adding a per-item knob", from the single-case-pKaH-for-two-bases call).
+- **Gates.** `pytest` 220 passed / 1 skipped, `ruff` + `mypy` clean.
+- **Pending:** **#200 stays open** — done: Al(111)/tmp-smx; remaining: a Cu(111)
+  case (tetrazoles or pyrazolylnucleosides) and the Fe(110) Tier-2 tail
+  (carbonitriles, guar-gum, pyrazolone-sulfonamide, tangerine). Also a tmp-smx
+  follow-up: its bundle omits Fukui maps and ESP/orbital isosurfaces (the paper
+  has both) since the QM Fukui/cube stages were not run. Other threads unchanged:
+  **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

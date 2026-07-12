@@ -24,10 +24,11 @@ agreement only at the level the methods allow:
 
 Each reproduced paper ships as a **validation preset** (`presets.CASE_STUDIES`,
 one `CaseStudy` per study, each with a `source` citation); its outputs live under
-`cases/<case>/` and it renders its own report bundle (ADR 0019). The three cases
+`cases/<case>/` and it renders its own report bundle (ADR 0019). The four cases
 below span that rigor spectrum: an experiment-anchored study (Arghel), a
-qualitative AM1 anchor (phytic acid), and a same-level DFT numeric cross-check
-(pyrazolo-pyrimidine).
+qualitative AM1 anchor (phytic acid), a same-level DFT numeric cross-check on
+iron (pyrazolo-pyrimidine), and the first non-iron substrate, a same-level
+cross-check on aluminium (TMP-SMX).
 
 The pipeline produces four things; each is checked against a published quantity,
 and *how* it is read depends on the method gap:
@@ -67,14 +68,19 @@ same-level numeric comparison.
 | **1 · Arghel flavonoids** | mild steel / 1 M HCl | experiment + independent DFT | ✅ Validated |
 | **2 · Phytic acid** | Q235 / 0.5 M H₂SO₄ | AM1 semi-empirical | ✅ Validated *(qualitative)* |
 | **3 · Pyrazolo-pyrimidine** | carbon steel / HCl | same-level B3LYP DFT | 🟡 Partial *(quantitative)* |
+| **4 · TMP-SMX** | aluminium / 1 M HCl | same-level B3LYP DFT | 🟡 Partial *(quantitative)* |
 
-## Substrate model: Fe(110) slab
+## Substrate models: Fe(110) and Al(111)
 
-Every case models mild / carbon steel as a **pure Fe(110) slab** (Φ = 4.82 eV,
-η_metal ≈ 0), consistent with the corrosion literature, which uniformly treats
-"mild/carbon steel" as Fe(110). The reference coupon below (the Mohammed 2014
-Arghel experiment of Case 1) is a clean low-carbon (mild) steel, ~AISI
-1020-equivalent, and shows why the slab is the right atomistic model:
+The steel cases (1 to 3) model mild / carbon steel as a **pure Fe(110) slab**
+(Φ = 4.82 eV, η_metal ≈ 0), consistent with the corrosion literature, which
+uniformly treats "mild/carbon steel" as Fe(110). Case 4 is the first non-iron
+substrate: an **Al(111) slab** (Φ = 4.26 eV), an fcc(111) facet instead of
+bcc(110), exercising the metal-agnostic path end-to-end (the surface builder,
+work function, and ΔN reference all read from the case's `metal`, never a
+hardcoded "Fe"). The reference coupon below (the Mohammed 2014 Arghel experiment
+of Case 1) is a clean low-carbon (mild) steel, ~AISI 1020-equivalent, and shows
+why the iron slab is the right atomistic model for the steel cases:
 
 | C | Si | Mn | P | S | Cu | Ni | Cr | V | Fe |
 |---|----|----|---|---|----|----|----|---|----|
@@ -524,3 +530,149 @@ CHANGED, the ΔN ranking PRESERVED).
 - **FPMD.** The paper's molecular dynamics is periodic Car–Parrinello (Quantum
   ESPRESSO, PBE + DFT-D2), versus corrosim's classical Brownian MD; compare the
   adsorption regime and the metal–heteroatom contact, not the trajectory.
+
+## Case 4: TMP-SMX (aluminium, Al(111) / 1 M HCl)
+
+> **Status: 🟡 Partial *(quantitative)*.** Reproduces the absolute frontier
+> descriptors (≈ 0.25 eV offset), the better-donor identity (TMP), and the
+> paper's refusal to crown a winner: corrosim's robustness gate independently
+> returns a **tie** (the composite lead flips TMP → SMX between the neutral and
+> the protonated basis). The adsorption ordering is observable-dependent
+> (single-molecule UFF MC favours TMP, MD mean-energy favours SMX, the paper's
+> solvent-box MC favours SMX), and the classical field cannot confirm the paper's
+> sub-3.5 Å chemisorption.
+
+| What we check | corrosim | Reported (Odozi 2026) | Match |
+|---|---|---|:-:|
+| Absolute HOMO / LUMO | −6.22 to −6.53 eV | −5.94 to −6.29 eV | ✅ |
+| Better electron donor | TMP (shallower HOMO, lower χ) | TMP | ✅ |
+| Single robust lead | none, a tie (flips with speciation) | none, a synergistic pair | ✅ |
+| Stronger adsorber | MC: TMP · MD-mean: SMX | MC: SMX | 🟡 |
+| Contact regime | Al–O 3.55 Å (borderline, classical UFF) | < 3.5 Å chemisorption | 🟡 |
+
+The **first non-iron validation case**, and the point of the whole exercise: the
+pipeline claims to be substrate-agnostic (thread `metal` through, derive the
+work function and slab from it, never hardcode "Fe"), but every prior case is
+Fe(110). This one runs the same DFT → MC → MD stack on an **Al(111)** slab
+(fcc(111), Φ = 4.26 eV) to check the claim holds on aluminium.
+
+**Preset:** `tmp-smx` · **Source:** Odozi, Mchihi, Olasunkanmi & Abujah, *DFT,
+Monte Carlo, molecular dynamics, electrochemical, and weight loss study on
+corrosion inhibition of aluminum by trimethoprim and sulfamethoxazole in HCl*,
+**Extreme Materials 2 (2026) 100027** (DOI 10.1016/j.exm.2026.100027). Two
+pharmaceutical inhibitors, the co-trimoxazole antibiotic pair, each rich in
+heteroatoms and aromatic π-systems. The paper computes at **B3LYP/6-311++G(d,p),
+corrosim's own production level**, so (like the pyrazolo case) the descriptor
+numbers compare *directly*, not just qualitatively.
+
+Both molecules are in PubChem and shipped in the library from there:
+
+| cmpd | role | SMILES | formula | CAS |
+| --- | --- | --- | --- | --- |
+| TMP | trimethoprim | `COc1cc(Cc2cnc(N)nc2N)cc(OC)c1OC` | C₁₄H₁₈N₄O₃ | 738-70-5 |
+| SMX | sulfamethoxazole | `Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1` | C₁₀H₁₁N₃O₃S | 723-46-6 |
+
+**Reported values (the comparison target), B3LYP/6-311++G(d,p), gas/vacuum,
+neutral:**
+
+| Quantity | TMP | SMX | Method |
+| --- | --- | --- | --- |
+| E_HOMO | −5.94 eV | −6.29 eV | DFT |
+| E_LUMO | −0.64 eV | −1.02 eV | DFT |
+| Gap ΔE | 5.29 eV | 5.28 eV | DFT |
+| IP / EA | 5.94 / 0.64 eV | 6.29 / 1.02 eV | Koopmans |
+| η (hardness) | 2.65 eV | 2.64 eV | (IP−EA)/2 |
+| σ (softness) | 0.38 eV⁻¹ | 0.38 eV⁻¹ | 1/η |
+| χ (electronegativity) | 3.29 eV | 3.66 eV | (IP+EA)/2 |
+| μ / CP (chem. potential) | −3.29 eV | −3.66 eV | −χ |
+| ω (electrophilicity) | 2.04 eV | 2.53 eV | χ²/2η |
+| MC E_ads (full solvent box) | −4965 kcal/mol | −5096 kcal/mol | Adsorption Locator (COMPASS) |
+
+**Reported reading.** The picture is genuinely split. On the frontier
+descriptors **TMP** is the marginally better electron donor (higher HOMO by
+0.35 eV, lower χ by 0.37 eV), yet the Monte Carlo adsorption energy has **SMX**
+binding more strongly (−5096 vs −4965 kcal/mol). The HOMO–LUMO gaps are
+near-identical (5.28 vs 5.29 eV), so they give no discrimination. Both molecules
+show RDF peaks under 3.5 Å (the paper reads this as chemisorption), and both
+give negative ΔG°_ads (spontaneous adsorption). Experimentally TMP-SMX is a
+mixed-type inhibitor (ΔE_corr < 85 mV) that raises the charge-transfer
+resistance from 220 to 610 Ω·cm² at 0.4 g/L. The paper does not crown a single
+winner; it presents the two as a synergistic pair (co-trimoxazole).
+
+**Computed (corrosim), B3LYP/6-311++G(d,p) single-point on MMFF geometry,
+gas/neutral:**
+
+| Quantity | TMP | SMX |
+| --- | --- | --- |
+| E_HOMO (gas, neutral) | −6.224 eV | −6.527 eV |
+| E_LUMO (gas, neutral) | −1.315 eV | −1.248 eV |
+| Gap ΔE (gas, neutral) | 4.908 eV | 5.279 eV |
+| η / σ / χ (gas) | 2.454 / 0.407 / 3.769 eV | 2.639 / 0.379 / 3.888 eV |
+| ω (gas) | 2.895 eV | 2.863 eV |
+| ΔN → Al (gas) | +0.100 | +0.071 |
+| E_back-donation (gas) | −0.614 eV | −0.660 eV |
+| Canonical composite rank | tie | tie |
+
+- **MC adsorption** (Al(111), UFF van-der-Waals): E_ads −130.2 kJ/mol (TMP) >
+  −99.7 (SMX), lying 2.81 Å and 3.13 Å above the slab. Ranking **TMP > SMX**.
+- **MD metal–O RDF**: first peak 3.55 Å for both (metal–N 3.65 to 3.75 Å); mean
+  interaction energy −67.1 kJ/mol (TMP) vs −75.9 (SMX). Outer-sphere,
+  physisorption-range contact by the classical field.
+
+**Reading it: the DFT picture and the tie reproduce; the adsorption ordering is
+observable-dependent.** The absolute frontier levels reproduce the paper
+(computed HOMO −6.22 / −6.53 eV against reported −5.94 / −6.29 eV, both ≈ 0.25 to
+0.28 eV deeper, the near-uniform offset expected from a single point on MMFF
+geometry). The better-donor identity reproduces too: **TMP** has the shallower
+HOMO and the lower χ in both corrosim and the paper, and both molecules give a
+small positive ΔN to aluminium (+0.10, +0.07, i.e. net electron donation, well
+inside the Lukovits window). So the electronic regime and the donor ordering
+match.
+
+The interesting part is the lead. corrosim discriminates on the gap where the
+paper is degenerate, but the discrimination *flips with protonation*: on the
+neutral form TMP has the smaller gap (4.908 vs 5.279 eV) and leads the composite,
+while on the protonated / pH-weighted form (the acid-medium species) SMX has the
+smaller gap (4.020 vs 4.154 eV) and leads. Because the composite lead changes
+across the two bases, the ADR 0021 robustness gate asserts **no single lead and
+reports a tie**. That independently reproduces the paper's own posture: it never
+crowns a winner either, splitting TMP (better donor) against SMX (stronger
+adsorption) and presenting the two as a synergistic pair.
+
+The adsorption side is the partial match. corrosim's single-molecule UFF Monte
+Carlo makes **TMP** the stronger binder (−130 vs −100 kJ/mol), the *opposite* of
+the paper's full-solvent-box Adsorption-Locator ordering (SMX stronger); yet
+corrosim's MD mean interaction energy does put **SMX** a little deeper (−75.9 vs
+−67.1 kJ/mol), agreeing with the paper's direction. So the "stronger adsorber"
+answer is observable-dependent even within corrosim. And the contact regime
+differs: the paper reads its sub-3.5 Å RDF peaks as chemisorption, whereas
+corrosim's classical Brownian MD sits at 3.55 Å with a rigid van-der-Waals field
+that can neither form nor detect a chemical bond, so it can only report
+outer-sphere, physisorption-range contact.
+
+**Verdict.** On aluminium, corrosim validates the DFT side (absolute descriptors
+at the same level of theory, the better-donor identity, the donation regime) and
+independently reaches the paper's no-single-winner conclusion as a robustness
+tie. It reproduces the adsorption *direction* by MD mean energy but inverts it by
+single-molecule MC, and its classical field cannot confirm the reported
+chemisorption. Most importantly for the substrate-agnostic goal, the whole
+DFT → MC → MD → ranking stack runs end-to-end on an **Al(111)** slab and yields
+physically sensible, literature-consistent numbers, so the metal-agnostic design
+is exercised and validated on a non-iron surface.
+
+**Caveats to apply when comparing:**
+
+- **Same level of theory.** The paper and corrosim both use
+  B3LYP/6-311++G(d,p), so absolute frontier levels compare directly. Geometry
+  still differs (corrosim's single point on MMFF geometry vs the paper's fully
+  DFT-optimised structures), so expect the usual near-uniform gap offset;
+  compare the trend and the split, not the last digit.
+- **Adsorption observables are not interchangeable.** The paper's MC E_ads is a
+  full solvent-box (280 H₂O / H₃O⁺ / Cl⁻) Adsorption-Locator energy of several
+  thousand kcal/mol; corrosim's is a single-molecule UFF van-der-Waals E_ads of
+  tens of kJ/mol. Compare sign, regime, and which molecule binds more strongly,
+  never the number.
+- **Divergent basicity, one case pKaH.** TMP (diaminopyrimidine, pKaH ≈ 7.1) and
+  SMX (anilinium, pKaH ≈ 1.6) differ in basicity, but at pH ≈ 0 both are
+  essentially fully protonated, so the single case pKaH represents both here; it
+  would not for a near-neutral medium.

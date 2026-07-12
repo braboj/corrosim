@@ -221,6 +221,42 @@ PYRAZOLO_PYRIMIDINE = CaseStudy(
            "DOI 10.1038/s41598-025-19022-6.",
 )
 
+TMP_SMX = CaseStudy(
+    name="tmp-smx",
+    molecules=("trimethoprim", "sulfamethoxazole"),
+
+    # First non-Fe validation case: aluminium, exercising the fcc(111) slab and
+    # the Al work function (4.26 eV) instead of the bcc(110) Fe default.
+    metal="Al(111)",
+    medium="1 M HCl",
+
+    # Trimethoprim's diaminopyrimidine N1 is the pair's strongest basic site;
+    # its pKaH ~7.1 makes it fully protonated in 1 M HCl (pH ~0). SMX is a
+    # weaker base (anilinium pKaH ~1.6) yet at pH 0 it too is ~98% protonated,
+    # so this one case value captures both molecules' cationic regime here; a
+    # per-molecule pKaH would matter only near neutral, not in 1 M HCl.
+    pkah=7.1,
+
+    # The paper's level is corrosim's production level, so the frontier-orbital
+    # descriptors compare directly by the number (a same-level cross-check, like
+    # the pyrazolo-pyrimidine case). Both molecules (~28 to 39 atoms, one
+    # sulfonamide S) converge at the full diffuse basis.
+    basis="6-311++G(d,p)",
+    xc="b3lyp",
+
+    description="Trimethoprim (TMP) and sulfamethoxazole (SMX), the "
+                "co-trimoxazole antibiotic pair, vs aluminium (Al(111)) in "
+                "1 M HCl. The first non-Fe validation case: a same-level "
+                "(B3LYP/6-311++G(d,p)) numeric cross-check that exercises the "
+                "fcc(111) slab and the Al work function.",
+
+    source="Odozi, Mchihi, Olasunkanmi, Abujah, DFT, Monte Carlo, molecular "
+           "dynamics, electrochemical, and weight loss study on corrosion "
+           "inhibition of aluminum by trimethoprim and sulfamethoxazole in "
+           "HCl, Extreme Materials 2 (2026) 100027, "
+           "DOI 10.1016/j.exm.2026.100027.",
+)
+
 CASE_STUDIES: dict[str, CaseStudy] = {
     "arghel": ARGHEL,
     "argel": ARGHEL,
@@ -231,6 +267,10 @@ CASE_STUDIES: dict[str, CaseStudy] = {
     "pyrazolo_pyrimidine": PYRAZOLO_PYRIMIDINE,
     "pyrazolo": PYRAZOLO_PYRIMIDINE,
     "ppp": PYRAZOLO_PYRIMIDINE,
+    "tmp-smx": TMP_SMX,
+    "tmp_smx": TMP_SMX,
+    "tmp-smx-al": TMP_SMX,
+    "tmpsmx": TMP_SMX,
 }
 
 
