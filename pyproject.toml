@@ -48,6 +48,9 @@ dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
 
 [project.scripts]
 corrosim = "corrosim.cli:main"
+# One command for the full multiscale study: orchestrates the runs/* drivers in
+# dependency order (also runnable as `python -m corrosim.runs.run_study`).
+corrosim-run-study = "corrosim.runs.run_study:main"
 # Dev-time library-expand tool. Uses only the stdlib (urllib) to query PubChem,
 # so it needs no extra dependency; runs and CI stay offline by default.
 corrosim-add-inhibitor = "corrosim.fetch:main"

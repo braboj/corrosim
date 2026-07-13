@@ -1931,4 +1931,51 @@ the Fukui/ESP maps the paper reports.
   and Fukui-title fixes, pyrazolyl Fukui/ESP backfill). Other threads unchanged:
   **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
 
+## 2026-07-13 (session 26): driver persistence + Fukui basis fix, then the one-command study runner and the examples/ spike
+
+Three QM-free threads (no DFT/Docker), clearing the post-session-25 driver/report
+backlog and then the onboarding UX.
+
+- **run_dft persist-by-default + Fukui basis provenance (PR #213, merged; closed
+  #209, #210).** `run_dft` now routes an unset `--out-json`/`--out-csv` to the
+  case results dir like every other driver (`dft_descriptors_ff` for force-field
+  geometries, `dft_descriptors_opt` for `--optimize`/`--to-minimum`), so a DFT run
+  is never computed-and-discarded; the xtb smoke engine stays opt-in so it cannot
+  clobber the production descriptors at the shared path. `make_figures` no longer
+  hardcodes the Fukui title basis: `FukuiResult` persists its basis label via
+  `as_json`/`from_json` (backward-compatible with the existing bare-list
+  `*_fukui.json`) and the figure title reads it back, so a def2-SVP halogen case
+  is labelled correctly. +6 tests; PLAYBOOK gotcha updated.
+- **One command for the full multiscale study (ADR 0022; closes #186).** New
+  `runs/run_study` driver + `corrosim-run-study` console script orchestrates
+  `dft -> fukui -> mc -> md -> figures -> report` for a `--case`, calling each
+  existing driver `main()` in dependency order (orchestrate, do not reimplement).
+  One ordered stage table drives a `--plan` dry run, `--only`/`--skip` selection,
+  opt-in enrichments (`--optimize`, `--with-pka`, `--with-cubes`), an idempotent
+  skip keyed on each stage's declared outputs (`--force` to recompute), and
+  stop-on-failure. Runners import their driver lazily so `--plan` pays no
+  QM/matplotlib cost. Default (no flags) = the six core stages on arghel;
+  `--only dft,fukui,mc,md,figures,report` is the byte-identical explicit
+  equivalent. 10 QM-light tests. PLAYBOOK + README collapse to the one command;
+  the per-stage drivers remain the granular path.
+- **examples/ spike decided and seeded (ADR 0023; closes #189).** Decision: keep
+  `examples/` top-level and user-facing with a self-describing `examples/README.md`
+  index; keep the empty-SMILES rows and annotate them (the name-or-SMILES demo)
+  rather than fill; one mixed `molecules.csv`, not per-mode duplicates; runnable
+  offline against the bundled library. Implemented the README (each example =
+  command + reproducible `--plan` excerpt + a Python-API snippet) in the same
+  change rather than deferring to follow-up tickets.
+- **Upstream.** Contributed the orchestrator pattern to `solid-ai-templates#755`
+  (the `base/core/cli.md` proposal, as a comment) and filed the examples/
+  README-index convention as `solid-ai-templates#816`; both distilled into
+  `docs/engineering-know-how.md` (CLI and driver architecture; Documentation and
+  decisions).
+- **Gates.** pytest 257 passed / 1 skipped, ruff + mypy + complexipy clean.
+- **Pending:** #186 + #189 land via the wrap PR (run_study + examples committed
+  with this journal entry); if it is not merged at next session start, ship it
+  first. **#200** non-Fe goal DONE (Al + both Cu); the Fe(110) Tier-2 tail remains
+  (carbonitriles, guar-gum, pyrazolone-sulfonamide, tangerine). **#211** (pyrazolyl
+  Fukui/ESP backfill) still needs the def2-SVP QM run. Other threads unchanged:
+  **#71** (#66/#67/#68 deployment), **#40**, #181 / #180.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

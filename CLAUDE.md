@@ -68,8 +68,9 @@ mypy                                   # type-check (non-strict) — also a CI g
 complexipy                             # cognitive-complexity ratchet vs committed snapshot
 docker compose build qm                # build the QM image once
 docker compose run --rm qm pytest -q   # run anything needing pyscf/tblite
-python -m corrosim.runs.run_dft   --out-csv cases/arghel/results/dft_descriptors_ff.csv
+python -m corrosim.runs.run_dft        # DFT descriptors -> cases/arghel/results/ (persists by default)
 python -m corrosim.runs.make_report    # -> cases/arghel/report/ (report.html + report.docx + figures + tables)
+docker compose run --rm qm corrosim-run-study   # or: the whole study end-to-end in one container run (ADR 0022)
 ```
 
 Long QM jobs (geometry-opt, frequency, MEP cubes) MUST run detached so a shell

@@ -37,6 +37,34 @@ corrosim-add-inhibitor 68-12-2 --name dmf   # override the stored key
 # validates the SMILES with RDKit, appends source: pubchem; then commit the file
 ```
 
+### The full study in one command
+
+`corrosim-run-study` (also `python -m corrosim.runs.run_study`) orchestrates the
+whole pipeline — `dft -> fukui -> mc -> md -> figures -> report` — for a `--case`,
+in dependency order, reusing each driver's per-case output routing so no paths
+are passed (ADR 0022). The `corrosim-qm` image carries both the QM and the
+classical dependencies, so the whole study runs in one container invocation:
+
+```bash
+docker compose run --rm qm corrosim-run-study --case arghel           # the full bundle
+docker compose run --rm qm corrosim-run-study --optimize --with-pka   # + opt geometry + speciation
+corrosim-run-study --case arghel --plan                               # dry run: list the ordered steps
+corrosim-run-study --case arghel --only mc,md,figures,report          # classical stages only (venv)
+```
+
+It skips a stage whose output already exists (`--force` recomputes) and stops at
+the first failure, so a partial run resumes. Enrichments are opt-in
+(`--with-pka`, `--with-cubes`, `--optimize`); `--skip <stage>` drops one. For a
+long run, detach and poll:
+
+```bash
+docker compose run -d --name corrosim_study qm corrosim-run-study --optimize
+docker logs -f corrosim_study     # poll; then: docker rm corrosim_study
+```
+
+The individual drivers below remain for partial runs, debugging, and the
+QM-vs-venv split when you are not using the container.
+
 Run the classical stages (Monte Carlo, molecular dynamics, figures, report) in
 the venv — they need no QM engines.
 
@@ -71,28 +99,32 @@ docker logs -f corrosim_job             # poll; then: docker rm corrosim_job
 
 ### Render a validation case end-to-end
 
-Each case study renders the same bundle as arghel (ADR 0019). Run the QM stages
-in the container (detached, since the ESP cubes are slow), then the classical
-stages and the render in the venv:
+Each case study renders the same bundle as arghel (ADR 0019). The one command
+does the whole thing in the container; redirect it to a logfile under `logs/` and
+poll that, since the background-shell harness does not capture container stdout
+on Windows (`logs/` is a gitignored scratch folder — create it if missing):
 
 ```bash
-# QM (container): descriptors, condensed Fukui, and the isosurface/ESP cubes.
-# Redirect the whole run to a logfile under logs/ and poll that (plus the output
-# files); the background-shell harness does not capture container stdout on
-# Windows. logs/ is a gitignored local scratch folder (create it if missing).
 mkdir -p logs
+docker compose run -d --rm --name qmjob qm sh -c \
+    'corrosim-run-study --case <name> --with-cubes > /work/logs/<name>.log 2>&1'
+tail -f logs/<name>.log          # poll progress; rm the log once the job is done
+cp cases/arghel/report/figures/pipeline/fig0_pipeline.png \
+   cases/<name>/report/figures/pipeline/     # fig0 is shared, not regenerated
+```
+
+For a partial run or to debug one stage, drive the drivers directly — the QM
+stages (detached, since the ESP cubes are slow) then the classical stages and the
+render in the venv:
+
+```bash
 docker compose run -d --rm --name qmjob qm sh -c '{
     python -m corrosim.runs.run_dft    --case <name> &&
     python -m corrosim.runs.run_fukui  --case <name> &&
     python -m corrosim.runs.make_cubes --molecules "<mol1>,<mol2>" --what orbital,esp ;
   } > /work/logs/<name>.log 2>&1'
-tail -f logs/<name>.log          # poll progress; rm the log once the job is done
-
-# classical stages + render (venv)
 python -m corrosim.runs.run_mc       --case <name>
 python -m corrosim.runs.run_md       --case <name>
-cp cases/arghel/report/figures/pipeline/fig0_pipeline.png \
-   cases/<name>/report/figures/pipeline/     # fig0 is shared, not regenerated
 python -m corrosim.runs.make_figures --case <name>
 python -m corrosim.runs.make_report  --case <name>
 ```

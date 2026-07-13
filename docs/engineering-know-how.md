@@ -58,6 +58,18 @@ the contributor guide; decisions in decision records; history in a changelog. A
 rule you apply constantly is one line; if it needs a paragraph, it is a decision
 record with a one-line pointer.
 
+#### A self-describing examples/ folder
+
+Ship an `examples/` directory whose `README.md` indexes each example as an exact
+command paired with the output it produces, so the folder teaches rather than
+just holding sample inputs. Where the real output needs an engine or service the
+reader may not have, show the reproducible dry-run output instead: it conveys the
+shape without computing and runs anywhere. Keep the examples runnable offline
+against data the project already bundles, and do not paste fabricated numbers,
+point to a committed sample. A sample input that looks incomplete (an optional
+column left blank on purpose) gets its intent explained next to the command, not
+left for the reader to reverse-engineer.
+
 ### Quality and design
 
 #### Curated facade: re-export the public surface, list it in `__all__`
@@ -939,6 +951,31 @@ Silent non-persistence of a completed computation is indistinguishable from
 success until something downstream reads the gap. Make the durable artifact the
 default; reserve print-only for an explicit dry run. (Also an upstream candidate
 for the shared CLI conventions.)
+
+#### A thin orchestrator over the stage commands
+
+When a multi-stage pipeline is already exposed as N independent stage commands,
+add one orchestrator command that invokes each stage's existing entry point in
+dependency order rather than reimplementing the flow. It owns order and
+selection; the stage commands stay the single source of each stage's behaviour.
+Build the plan, the skip logic, and stage selection on top of one ordered table
+of stage records.
+
+```python
+STAGES = [Stage("build", run=_run_build, outputs=_out_build), ...]
+
+for st in select(args):                       # --only / --skip filter this list
+    outs = st.outputs(cfg)
+    if outs and all(exists(o) for o in outs) and not args.force:
+        log(f"skip {st.key}: output present"); continue    # idempotent resume
+    if st.run(cfg) != 0:                      # each runner calls the stage main()
+        return fail                           # stop at the first failure
+```
+
+Reuse the `--plan` dry run (above) to print the ordered steps without computing,
+and each stage's own output routing so the orchestrator threads no paths. Each
+runner imports its stage lazily, so the plan pays no heavy import for a stage it
+will not run. (Upstream candidate for the shared CLI conventions.)
 
 ## The shortlist
 
