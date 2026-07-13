@@ -1,0 +1,43 @@
+name: QM image
+
+# The QM engines (pyscf/tblite) run only inside the corrosim-qm image, which is
+# built by hand and not exercised by the main CI. The editable install bakes an
+# absolute package path into the image at build time, so a layout change silently
+# stales the image until someone rebuilds. This job rebuilds and import-smokes the
+# image whenever a Docker/packaging file changes, so the image can't drift from
+# the layout unnoticed. It is path-gated to stay off the hot path of every PR.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - Dockerfile
+      - pyproject.toml
+      - docker-compose.yml
+      - .dockerignore
+      - .github/workflows/qm-image.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - pyproject.toml
+      - docker-compose.yml
+      - .dockerignore
+      - .github/workflows/qm-image.yml
+
+jobs:
+  build:
+    name: Build + import-smoke the QM image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the QM image
+        # The build ends in `RUN python -c "import corrosim, pyscf, tblite"`, so a
+        # stale editable finder or a missing engine fails the build here.
+        run: docker compose build qm
+
+      - name: Import-smoke under the runtime bind mount
+        # docker compose overlays the repo at /work, reproducing the exact runtime
+        # import that broke after the src/ migration; the CMD imports the package
+        # plus both engines.
+        run: docker compose run --rm qm
