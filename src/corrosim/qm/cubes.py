@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .engines import build_rks
+from .engines import build_rks, run_scf
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -25,10 +25,11 @@ def _cube_scf(symbols, coords, basis, xc, charge, solvent=None):
     """Run one cube-grade DFT SCF; return the (mol, kerneled mf).
 
     Delegates to the shared engines.build_rks so the grid + implicit-solvent
-    setup matches the descriptor engines exactly.
+    setup matches the descriptor engines exactly, and converges through the
+    shared run_scf ladder so a diffuse-basis cube SCF is not left unconverged.
     """
     mf = build_rks(symbols, coords, basis, xc, charge, solvent)
-    mf.kernel()
+    mf = run_scf(mf, label=f"{xc}/{basis} cube")
     return mf.mol, mf
 
 

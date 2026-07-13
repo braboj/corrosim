@@ -14,7 +14,9 @@ from __future__ import annotations
 import os
 import subprocess  # nosec B404
 import tempfile
-from collections.abc import Sequence
+import uuid
+import warnings
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -44,6 +46,33 @@ IMAG_FREQ_TOL = 1e-6
 # DFT integration grid (level 4) plus imaginary-mode-displaced restarts. Named
 # once so both drivers' geometry-provenance strings stay in step.
 MIN_RECIPE = "grid 4, imag-mode refined"
+
+# SCF convergence aids applied only when the default DIIS path fails. A static
+# level shift lifts the virtual orbitals to damp the DIIS oscillation that
+# diffuse-basis near-linear-dependence provokes; density damping mixes
+# successive Fock matrices toward the same end; the extra cycles give the aided
+# iteration room to settle.
+SCF_LEVEL_SHIFT_HARTREE = 0.2
+SCF_DAMP_FACTOR = 0.5
+SCF_HARD_MAX_CYCLE = 200
+
+# Memory-budget resolution and the density-fitting guard. The env override lets
+# a caller pin the SCF memory budget; the headroom fraction leaves room for the
+# Python/PySCF working set on top of the detected limit; the floor keeps a tiny
+# cgroup from starving the SCF.
+MEMORY_BUDGET_ENV = "CORROSIM_MAX_MEMORY_MB"
+MEMORY_HEADROOM = 0.8
+MEMORY_FLOOR_MB = 1000
+DEFAULT_MEMORY_MB = 3500
+
+# Density-fitting _cderi sizing. The tensor holds naux x (nao pairs) doubles;
+# naux runs ~3x nao for a typical auxiliary basis. Keep it in RAM only below the
+# in-core fraction of the budget, spill it to disk beyond that, and refuse a
+# basis whose tensor tops the hard ceiling even on disk.
+CDERI_NAUX_RATIO = 3.0
+BYTES_PER_DOUBLE = 8
+CDERI_INCORE_FRACTION = 0.5
+CDERI_CEILING_GB = 50.0
 
 
 @dataclass
@@ -75,14 +104,239 @@ class EngineResult:
 
 # --- Shared PySCF / thermochemistry helpers -------------------------------
 
+class SCFConvergenceError(RuntimeError):
+    """An SCF failed to converge after every robustness fallback was tried."""
+
+
+def _shift_and_damp(mf):
+    """Second attempt: level-shift + damping + a longer cycle budget."""
+    mf.level_shift = SCF_LEVEL_SHIFT_HARTREE
+    mf.damp = SCF_DAMP_FACTOR
+    mf.max_cycle = SCF_HARD_MAX_CYCLE
+    mf.kernel()
+    return mf
+
+
+def _second_order(mf):
+    """Final attempt: a second-order (Newton) restart from the best density."""
+    # SOSCF re-solves the same mean field, seeded from the density reached so
+    # far; far more robust than DIIS once it has a decent guess
+    mf_so = mf.newton()
+    mf_so.kernel(dm0=mf.make_rdm1())
+    return mf_so
+
+
+# Ordered escalation: each fallback runs only if the prior attempt did not
+# converge, cheapest and least intrusive first.
+_SCF_FALLBACKS = (_shift_and_damp, _second_order)
+
+
+def run_scf(mf: Any, label: str | None = None, strict: bool = True) -> Any:
+    """Kernel a mean field, escalating on non-convergence, or fail loud.
+
+    The single home for "converge this SCF or say so". Run the default DIIS
+    kernel, then while it has not converged walk the fallback ladder
+    (level-shift + damping, then a second-order Newton restart). The ladder
+    fires *only* when the cheap path fails, so a normally-converging single
+    point is numerically untouched; it exists to rescue the diffuse-basis SCFs
+    that oscillate or diverge, and to refuse to hand back an unconverged mean
+    field as if it were a real result.
+
+    Args:
+        mf: An unkerneled PySCF mean-field object (from :func:`build_rks`).
+        label: A level-of-theory / molecule label woven into the error, so a
+            failure names what would not converge.
+        strict: Raise on final non-convergence (the default); pass False to
+            warn and return the best-effort mean field instead.
+
+    Returns:
+        The converged (possibly Newton-wrapped) mean field; call sites read
+        ``e_tot`` / ``mo_energy`` / ``mo_occ`` off it.
+
+    Raises:
+        SCFConvergenceError: If ``strict`` and no fallback converged.
+    """
+    mf.kernel()
+    for apply_fallback in _SCF_FALLBACKS:
+        if mf.converged:
+            return mf
+        mf = apply_fallback(mf)
+    if mf.converged:
+        return mf
+    where = f" for {label}" if label else ""
+    if strict:
+        raise SCFConvergenceError(
+            f"SCF did not converge{where} after level-shift/damping and a "
+            "second-order restart; try a less diffuse basis or a finer grid.")
+    warnings.warn(
+        f"SCF did not converge{where}; returning the best-effort mean field.",
+        stacklevel=2)
+    return mf
+
+
+# --- Memory guard: budget resolution + density-fitting _cderi sizing -------
+
+@dataclass(frozen=True)
+class MemoryPlan:
+    """How an SCF fits its memory budget (see :func:`plan_scf_memory`)."""
+
+    # Run with density fitting (RI) at all
+    density_fit: bool
+
+    # Hold the _cderi tensor in RAM (True) vs stream it from disk (False)
+    incore: bool
+
+    # Budget to stamp on ``mol.max_memory`` (MB)
+    max_memory_mb: int
+
+    # Spill the _cderi tensor to the scratch directory on disk
+    cderi_to_disk: bool
+
+
+def estimate_cderi_gb(nao: int, naux_ratio: float = CDERI_NAUX_RATIO) -> float:
+    """Estimate the density-fitting ``_cderi`` tensor size in gigabytes.
+
+    The RI three-index tensor holds ``naux`` x ``nao*(nao+1)/2`` doubles, with
+    the auxiliary-basis size ``naux`` running a few times ``nao``. This is the
+    tensor that OOM-crashes a small container when held in RAM, so its size
+    drives the in-core / disk-spill decision.
+
+    Args:
+        nao: Number of atomic orbitals (basis functions).
+        naux_ratio: Auxiliary-to-orbital basis size ratio (~3 is typical).
+
+    Returns:
+        The estimated tensor size in gigabytes (decimal, 1e9 bytes).
+    """
+    naux = naux_ratio * nao
+    n_pairs = nao * (nao + 1) / 2
+    return naux * n_pairs * BYTES_PER_DOUBLE / 1e9
+
+
+def plan_scf_memory(nao: int, budget_mb: int,
+                    density_fit: bool) -> MemoryPlan:
+    """Decide how a density-fitted SCF fits inside a memory budget.
+
+    Without density fitting there is no ``_cderi`` tensor, so the plan just
+    carries the budget through. With it, keep the tensor in RAM only while it
+    stays under the in-core fraction of the budget, spill it to disk past that,
+    and refuse a basis whose tensor tops the hard ceiling even on disk (better a
+    clear error than an OOM crash mid-run).
+
+    Args:
+        nao: Number of atomic orbitals (basis functions).
+        budget_mb: The resolved SCF memory budget (MB).
+        density_fit: Whether density fitting is requested.
+
+    Returns:
+        The :class:`MemoryPlan` for this SCF.
+
+    Raises:
+        MemoryError: If the ``_cderi`` tensor exceeds the hard ceiling.
+    """
+    if not density_fit:
+        return MemoryPlan(density_fit=False, incore=True,
+                          max_memory_mb=budget_mb, cderi_to_disk=False)
+    cderi_gb = estimate_cderi_gb(nao)
+    if cderi_gb > CDERI_CEILING_GB:
+        raise MemoryError(
+            f"density-fitting tensor ~{cderi_gb:.0f} GB for {nao} basis "
+            f"functions exceeds the {CDERI_CEILING_GB:.0f} GB ceiling; "
+            "use a smaller basis.")
+    # Fits in RAM with headroom -> in-core; otherwise stream it from disk
+    incore = cderi_gb * 1024 <= budget_mb * CDERI_INCORE_FRACTION
+    return MemoryPlan(density_fit=True, incore=incore,
+                      max_memory_mb=budget_mb, cderi_to_disk=not incore)
+
+
+def _cgroup_limit_bytes(read_text) -> int | None:
+    """Container memory limit (bytes) from cgroup v2 then v1, else None."""
+    # cgroup v2 reports 'max' for "no limit"; v1 reports a near-2**63 sentinel
+    for path in ("/sys/fs/cgroup/memory.max",
+                 "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        raw = read_text(path)
+        if raw is None:
+            continue
+        raw = raw.strip()
+        if raw == "max":
+            return None
+        value = int(raw)
+        if value >= 2 ** 62:
+            return None
+        return value
+    return None
+
+
+def _read_text_or_none(path: str) -> str | None:
+    """Read a file's text, or None if it is absent/unreadable."""
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def _physical_ram_bytes() -> int | None:
+    """Physical RAM (bytes) via os.sysconf, or None where unsupported."""
+    # sysconf is POSIX-only; absent on Windows (where the QM engines never run)
+    sysconf = getattr(os, "sysconf", None)
+    if sysconf is None:
+        return None
+    try:
+        return sysconf("SC_PAGE_SIZE") * sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError):
+        return None
+
+
+def resolve_memory_budget_mb(env: Mapping[str, str] | None = None) -> int:
+    """Resolve the SCF memory budget (MB) for this host.
+
+    An explicit env override wins; otherwise take the smaller of the container
+    cgroup limit and physical RAM, scaled by a headroom fraction so PySCF does
+    not size its algorithms for memory the process cannot actually use, and
+    fall back to a conservative default where neither can be detected.
+
+    Args:
+        env: Environment mapping to read the override from (defaults to
+            ``os.environ``).
+
+    Returns:
+        The memory budget in megabytes, at least ``MEMORY_FLOOR_MB``.
+    """
+    env = os.environ if env is None else env
+    override = env.get(MEMORY_BUDGET_ENV)
+    if override:
+        return max(int(override), MEMORY_FLOOR_MB)
+    limits_bytes = [b for b in (_cgroup_limit_bytes(_read_text_or_none),
+                                _physical_ram_bytes()) if b is not None]
+    if not limits_bytes:
+        return DEFAULT_MEMORY_MB
+    usable_mb = int(min(limits_bytes) / (1024 * 1024) * MEMORY_HEADROOM)
+    return max(usable_mb, MEMORY_FLOOR_MB)
+
+
+def _cderi_scratch_path() -> str:
+    """A unique on-disk path for a spilled _cderi tensor in the scratch dir.
+
+    Prefer PySCF's scratch dir so the spill lands on the container's disk mount
+    rather than a RAM-backed /tmp; fall back to the system temp dir.
+    """
+    tmpdir = os.environ.get("PYSCF_TMPDIR") or tempfile.gettempdir()
+    return os.path.join(tmpdir, f"corrosim_cderi_{uuid.uuid4().hex}.h5")
+
+
 def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
               charge: int, solvent: str | None,
-              grid_level: int | None = None) -> Any:
+              grid_level: int | None = None, density_fit: bool = False,
+              max_memory_mb: int | None = None) -> Any:
     """Configure an unkerneled PySCF RKS mean field (grid + ddCOSMO).
 
     The shared home for every PySCF single point in corrosim: run_pyscf /
     optimize_geometry / thermo_correction and the report cube writers all build
     their RKS object here so the grid and implicit-solvent setup stay identical.
+    The memory budget is sized to the host (or ``max_memory_mb``) so PySCF picks
+    the correct in-core / out-of-core path; optional density fitting is guarded
+    so its ``_cderi`` tensor spills to disk rather than OOM-crashing the box.
 
     Args:
         symbols: Element symbols.
@@ -93,6 +347,11 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
         solvent: None for gas phase, or a solvent name to switch on the ddCOSMO
             implicit-solvation model (water dielectric).
         grid_level: Override for the DFT integration grid (PySCF default 3).
+        density_fit: Speed the SCF with density fitting (RI). Off by default:
+            the RI approximation shifts the numbers, so it never touches the
+            production descriptors unless explicitly requested.
+        max_memory_mb: Override the SCF memory budget (MB); auto-detected from
+            the host when unset.
 
     Returns:
         The configured (unkerneled) PySCF RKS mean-field object; call its
@@ -101,11 +360,23 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
     from . import _backend_pyscf as _pyscf
     mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                        basis=basis, charge=charge, verbose=0)
+    # Size the SCF memory budget so PySCF sizes its algorithms for memory the
+    # process can actually use, rather than its ~4 GB default
+    budget = (max_memory_mb if max_memory_mb is not None
+              else resolve_memory_budget_mb())
+    mol.max_memory = budget
     mf = _pyscf.dft.RKS(mol)
     mf.xc = xc
     if grid_level is not None:
         # Set on the base RKS, before any solvent wrap
         mf.grids.level = grid_level
+    if density_fit:
+        # Keep the _cderi tensor in RAM only if it fits; else spill it to disk
+        plan = plan_scf_memory(mol.nao_nr(), budget, density_fit=True)
+        mf = mf.density_fit()
+        mf.with_df.max_memory = budget
+        if plan.cderi_to_disk:
+            mf.with_df._cderi_to_save = _cderi_scratch_path()
     if solvent:
         # _backend_pyscf imported pyscf.solvent at load, registering ddCOSMO
         mf = mf.ddCOSMO()
@@ -173,13 +444,14 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
 def run_pyscf(symbols: Sequence[str], coords: Coords,
               basis: str = "6-311++G(d,p)", xc: str = "b3lyp",
               solvent: str | None = "water",
-              charge: int = 0) -> EngineResult:
+              charge: int = 0, density_fit: bool = False) -> EngineResult:
     """DFT single point with PySCF.
 
     The default level B3LYP/6-311++G(d,p) + ddCOSMO(water) is corrosim's
     adopted production DFT standard, matching the methodology template.
     ('6-311++G(d,p)' is PySCF-equivalent to '6-311++g**'; use '6-31g' for
-    quick checks.)
+    quick checks.) A non-converging SCF is escalated (level-shift/damping, then
+    a second-order restart) and raised loud rather than returned as garbage.
 
     Args:
         symbols: Element symbols.
@@ -190,12 +462,17 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
             ddCOSMO implicit-solvation model (mirrors the PCM/COSMO used in
             the papers).
         charge: Net molecular charge.
+        density_fit: Speed the SCF with density fitting (off by default; the RI
+            approximation shifts the numbers).
 
     Returns:
         The single-point :class:`EngineResult`.
     """
-    mf = build_rks(symbols, coords, basis, xc, charge, solvent)
-    e_total = mf.kernel()
+    level = _level_label(xc, basis, solvent)
+    mf = build_rks(symbols, coords, basis, xc, charge, solvent,
+                   density_fit=density_fit)
+    mf = run_scf(mf, label=level)
+    e_total = mf.e_tot
     occ = mf.mo_occ
     mo = mf.mo_energy
     homo = mo[occ > 0].max()
@@ -207,7 +484,6 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
         charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
     except (IndexError, TypeError, ValueError):
         charges = None
-    level = _level_label(xc, basis, solvent)
     return EngineResult("pyscf", level,
                         float(e_total) * HARTREE_TO_EV,
                         float(homo) * HARTREE_TO_EV,
@@ -291,9 +567,14 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
         ``freq_cm`` / ``norm_mode`` let a caller step off a saddle.
     """
     from . import _backend_pyscf as _pyscf
+    level = _level_label(xc, basis, solvent)
     mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                     grid_level=grid_level)
-    e_elec = mf.kernel()
+    # Converge (or fail loud) before the Hessian: a frequency analysis on an
+    # unconverged SCF is meaningless. The opt-basis SCF here converges on plain
+    # DIIS, so this stays the base mean field the Hessian needs.
+    mf = run_scf(mf, label=level)
+    e_elec = mf.e_tot
     hess = mf.Hessian().kernel()
     ha = _pyscf.thermo.harmonic_analysis(mf.mol, hess)
     fw = np.asarray(ha["freq_wavenumber"])
@@ -302,7 +583,6 @@ def thermo_correction(symbols: Sequence[str], coords: Coords,
     # Total Gibbs (Hartree), incl. E_elec
     g_tot = float(info["G_tot"][0])
     zpe = float(info["ZPE"][0])
-    level = _level_label(xc, basis, solvent)
     return {
         "g_corr_ev": (g_tot - float(e_elec)) * HARTREE_TO_EV,
         "zpe_ev": zpe * HARTREE_TO_EV,
