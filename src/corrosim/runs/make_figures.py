@@ -86,11 +86,18 @@ def _fig_fukui(args: argparse.Namespace, order: list[str], out: _Out) -> None:
     for name in order:
         jf = f"{args.datadir}/{name}_fukui.json"
         if os.path.exists(jf):
+            res = FukuiResult.from_json(read_json(jf))
+            # Read the basis back rather than hardcoding it: a halogen case
+            # runs a different basis (def2-SVP) than the light-element
+            # default. Legacy payloads predate it, so fall back to a bare title.
+            title = f"{name} — condensed Fukui"
+            if res.basis:
+                title += f", {res.basis}"
             figures.plot_fukui(
-                FukuiResult.from_rows(read_json(jf)),
+                res,
                 molecule=build_molecule(name),
                 out=out(f"fig4_{name}_fukui.png"),
-                title=f"{name} — condensed Fukui (B3LYP/6-31G(d))")
+                title=title)
 
 
 def _fig_adsorption(

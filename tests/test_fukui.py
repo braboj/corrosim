@@ -48,6 +48,27 @@ def test_from_rows_round_trips_as_rows():
     assert back.s_minus == pytest.approx(original.s_minus, abs=1e-4)
 
 
+def test_as_json_carries_basis_and_round_trips():
+    # as_json/from_json keep the basis label the bare-row form drops
+    original = FukuiResult.from_populations(
+        ["Br", "C"], [0.4, 0.6], [0.5, 0.5], softness=1.0,
+        basis="def2-SVP (FMO)")
+    payload = original.as_json()
+    assert payload["basis"] == "def2-SVP (FMO)"
+    back = FukuiResult.from_json(payload)
+    assert back.basis == "def2-SVP (FMO)"
+    assert back.f_minus == pytest.approx(original.f_minus, abs=1e-4)
+
+
+def test_from_json_reads_legacy_bare_list_with_empty_basis():
+    # legacy files are a bare row list (no recorded basis) -> basis == ""
+    original = FukuiResult.from_populations(
+        ["O", "H"], [0.2, 0.8], [0.7, 0.3], softness=1.0, basis="6-31G(d)")
+    back = FukuiResult.from_json(original.as_rows())
+    assert back.basis == ""
+    assert back.symbols == ["O", "H"]
+
+
 def test_from_rows_tolerates_unordered_and_missing_softness():
     # rows out of order, and without s_plus/s_minus (older JSON) -> zeros
     rows = [{"idx": 1, "symbol": "H", "f_plus": 0.8, "f_minus": 0.3,
