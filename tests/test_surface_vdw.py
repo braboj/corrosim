@@ -23,6 +23,15 @@ def test_uff_mixing_two_elements_geometric_rule():
     assert np.isclose(D_mix[0, 0], np.sqrt(d_o * d_fe))
 
 
+def test_uff_mixing_covers_the_halogen_series_including_bromine():
+    # the pyrazolylnucleoside case adsorbs F/Cl/Br derivatives on copper, so
+    # every halogen must carry UFF nonbonded parameters (Rappe et al. 1992)
+    for halogen in ("F", "Cl", "Br"):
+        assert halogen in surface.UFF
+        x_mix, D_mix = surface.uff_mixing([halogen], ["Cu"])
+        assert x_mix.shape == (1, 1) and np.all(D_mix > 0)
+
+
 def test_uff_mixing_unknown_element_raises():
     with pytest.raises(ValueError, match="Se"):
         surface.uff_mixing(["Se"], ["Fe"])

@@ -103,6 +103,75 @@ def test_tmp_smx_validation_preset_is_the_first_non_fe_case():
     assert all(build_molecule(n) is not None for n in case.molecule_list())
 
 
+def test_tetrazoles_validation_preset_is_a_copper_case():
+    from corrosim.qm.descriptors import METAL_WORK_FUNCTION
+
+    case = case_study("tetrazoles")
+    # the four tetrazole derivatives, worst-to-best inhibitor
+    assert case.molecules == (
+        "tetrazole",
+        "5-aminotetrazole",
+        "5-phenyltetrazole",
+        "1-phenyl-5-mercaptotetrazole",
+    )
+    # the point of this case: copper, exercising the fcc(111) slab and the Cu
+    # work function rather than the bcc(110) Fe default (a second non-Fe metal)
+    assert case.metal == "Cu(111)" and case.metal_element == "Cu"
+    assert case.metal in METAL_WORK_FUNCTION       # Cu descriptor support is wired
+    # the source states only "acidic medium"; modelled as nitric acid so the
+    # medium parses as acidic with a defined pH for the speciation blend
+    assert case.medium == "1 M HNO3"
+    # tetrazoles are weak bases, so the default very-weak-base pKaH applies
+    assert case.pkah == -1.5
+    # same functional as the source (B3LYP); corrosim's larger production basis
+    assert case.basis == "6-311++G(d,p)" and case.xc == "b3lyp"
+    assert "Surface Science" in case.source
+    assert "10.1016/j.susc.2020.121692" in case.source
+    assert case.results_dir == "cases/tetrazoles/results"
+    # aliases resolve to the same preset (case-insensitive)
+    assert case_study("tz") is case is case_study("Tetrazoles-Cu")
+    # the abbreviations also resolve as library molecules that build offline
+    assert build_molecule("PMTZ").smiles == "Sc1nnnn1-c1ccccc1"
+    assert all(build_molecule(n) is not None for n in case.molecule_list())
+
+
+def test_pyrazolylnucleosides_validation_preset_is_the_fuller_copper_case():
+    from corrosim.qm.descriptors import METAL_WORK_FUNCTION
+
+    case = case_study("pyrazolylnucleosides")
+    # five 5a-e derivatives, differing only in the para-phenyl substituent
+    assert case.molecules == (
+        "pyrazolylnucleoside methyl",
+        "pyrazolylnucleoside methoxy",
+        "pyrazolylnucleoside fluoro",
+        "pyrazolylnucleoside chloro",
+        "pyrazolylnucleoside bromo",
+    )
+    # copper, the second non-Fe substrate; the fuller DFT + MC + MD stack
+    assert case.metal == "Cu(111)" and case.metal_element == "Cu"
+    assert case.metal in METAL_WORK_FUNCTION       # Cu descriptor support is wired
+    # the source's MC/MD box carries hydronium + chloride (HCl)
+    assert case.medium == "1 M HCl"
+    # the pyrazole ring nitrogen is the basic site (parent pyrazole pKaH ~2.5)
+    assert case.pkah == 2.5
+    # DMol3/M-11L source, qualitative compare; the set spans F/Cl/Br and the
+    # Pople sets lack bromine, so the basis is def2-SVP (B3LYP functional kept)
+    assert case.basis == "def2-SVP" and case.xc == "b3lyp"
+    assert "Scientific Reports" in case.source
+    assert "10.1038/s41598-021-82927-5" in case.source
+    assert case.results_dir == "cases/pyrazolylnucleosides/results"
+    # aliases resolve; the 5a-e library keys build offline
+    assert case_study("pyn") is case is case_study("Pyrazolylnucleoside")
+    # 5e is the bromo derivative (the reported strongest adsorber)
+    from rdkit import Chem
+    from rdkit.Chem import rdMolDescriptors
+
+    formula = rdMolDescriptors.CalcMolFormula(
+        Chem.MolFromSmiles(build_molecule("5e").smiles))
+    assert formula == "C16H16BrN3O3"
+    assert all(build_molecule(n) is not None for n in case.molecule_list())
+
+
 def test_case_study_carries_the_dft_level():
     # the level of theory is a per-case field of the single source of truth, so
     # a preset that converges only at a smaller basis stays self-reproducing

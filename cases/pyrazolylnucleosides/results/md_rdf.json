@@ -1,0 +1,42 @@
+[
+  {
+    "name": "pyrazolylnucleoside methyl",
+    "metal": "Cu",
+    "surface": "Cu(111)",
+    "e_mean_kjmol": -1.28,
+    "metal_O_peak_A": 3.55,
+    "metal_N_peak_A": 3.95
+  },
+  {
+    "name": "pyrazolylnucleoside methoxy",
+    "metal": "Cu",
+    "surface": "Cu(111)",
+    "e_mean_kjmol": -1.72,
+    "metal_O_peak_A": 3.3500000000000005,
+    "metal_N_peak_A": 3.45
+  },
+  {
+    "name": "pyrazolylnucleoside fluoro",
+    "metal": "Cu",
+    "surface": "Cu(111)",
+    "e_mean_kjmol": -1.16,
+    "metal_O_peak_A": 3.6500000000000004,
+    "metal_N_peak_A": 3.6500000000000004
+  },
+  {
+    "name": "pyrazolylnucleoside chloro",
+    "metal": "Cu",
+    "surface": "Cu(111)",
+    "e_mean_kjmol": -1.85,
+    "metal_O_peak_A": 3.45,
+    "metal_N_peak_A": 3.95
+  },
+  {
+    "name": "pyrazolylnucleoside bromo",
+    "metal": "Cu",
+    "surface": "Cu(111)",
+    "e_mean_kjmol": -0.94,
+    "metal_O_peak_A": 3.75,
+    "metal_N_peak_A": 3.95
+  }
+]
