@@ -100,9 +100,17 @@ quercetin
 | Produces | one-page HTML + ranking | `cases/<case>/report/` bundle with figures |
 | Speed | seconds | minutes to hours |
 
-`corrosim --plan` lists the steps a screen will run without computing them. On
-Windows the engines (`xtb`, `pyscf`) run in the `corrosim-qm` container; the venv
-does everything else. Full pipeline commands: [`docs/PLAYBOOK.md`](docs/PLAYBOOK.md).
+The full multiscale report is one command too:
+`docker compose run --rm qm corrosim-run-study --case arghel` orchestrates the
+whole pipeline (`dft → fukui → mc → md → figures → report`) into the
+`cases/<case>/report/` bundle; `--plan` lists the ordered steps without computing
+them, and `--optimize` / `--with-pka` / `--with-cubes` add the heavier
+enrichments (ADR 0022).
+
+`corrosim --plan` likewise lists the steps a screen will run without computing
+them. On Windows the engines (`xtb`, `pyscf`) run in the `corrosim-qm` container;
+the venv does everything else. Full pipeline commands and the per-stage drivers:
+[`docs/PLAYBOOK.md`](docs/PLAYBOOK.md).
 
 ## Project structure
 
@@ -113,11 +121,11 @@ does everything else. Full pipeline commands: [`docs/PLAYBOOK.md`](docs/PLAYBOOK
 | `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
 | `src/corrosim/report/` | `report`, `ranking` (canonical basis + robustness gate), `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them). |
 | `src/corrosim/data/` | `inhibitors.json`: the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
-| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry` (+ `_cli`: shared CLI plumbing). |
+| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry`; `run_study` orchestrates them end-to-end (+ `_cli`: shared CLI plumbing). |
 | `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |
 | `cases/<case>/results/` | Tracked pipeline data: descriptors, Fukui, MC/MD, pKa. |
 | `cases/<case>/report/` | Report bundle (`make_report`): `report.html` + `report.docx` + `figures/<stage>/` + `tables/<stage>/`. |
-| `examples/` | Sample batch CSV. |
+| `examples/` | Runnable CLI + Python-API examples with commands and expected output ([`examples/README.md`](examples/README.md)); `molecules.csv` is the batch-input sample. |
 | `tests/` | pytest suite (QM-light, no DFT, fast). |
 | `docs/` | `pipeline.md`, `validation.md`, `ONBOARDING.md`, `PLAYBOOK.md`, `dev-journal.md`, `decisions/` (ADRs), `diagrams/` (.drawio sources). |
 | `Dockerfile`, `docker-compose.yml` | The `corrosim-qm` QM environment (PySCF + tblite). |
