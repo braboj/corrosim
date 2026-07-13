@@ -7,11 +7,53 @@ every row and tag the geometry provenance, and that plain ``--optimize`` is unch
 """
 from __future__ import annotations
 
+import argparse
+
 import numpy as np
 
 import corrosim
 from corrosim.molecules import Molecule
 from corrosim.runs import run_dft
+
+
+def _out_args(engine: str = "pyscf") -> argparse.Namespace:
+    return argparse.Namespace(engine=engine, out_json=None, out_csv=None)
+
+
+def test_default_descriptor_outputs_routes_ff_to_case_results():
+    # a force-field run persists to dft_descriptors_ff in the case results dir
+    args = _out_args()
+    run_dft._default_descriptor_outputs(args, "cases/arghel/results",
+                                        optimize=False)
+    assert args.out_json == "cases/arghel/results/dft_descriptors_ff.json"
+    assert args.out_csv == "cases/arghel/results/dft_descriptors_ff.csv"
+
+
+def test_default_descriptor_outputs_routes_opt_when_optimized():
+    # a DFT-relaxed run persists to the distinct dft_descriptors_opt stem
+    args = _out_args()
+    run_dft._default_descriptor_outputs(args, "cases/arghel/results",
+                                        optimize=True)
+    assert args.out_json == "cases/arghel/results/dft_descriptors_opt.json"
+    assert args.out_csv == "cases/arghel/results/dft_descriptors_opt.csv"
+
+
+def test_default_descriptor_outputs_respects_explicit_flags():
+    # an explicit --out always wins over the case default
+    args = argparse.Namespace(engine="pyscf", out_json="custom.json",
+                              out_csv=None)
+    run_dft._default_descriptor_outputs(args, "cases/arghel/results",
+                                        optimize=False)
+    assert args.out_json == "custom.json"
+    assert args.out_csv == "cases/arghel/results/dft_descriptors_ff.csv"
+
+
+def test_default_descriptor_outputs_skips_xtb_smoke_engine():
+    # the xtb smoke numbers must not clobber the tracked production descriptors
+    args = _out_args(engine="xtb")
+    run_dft._default_descriptor_outputs(args, "cases/arghel/results",
+                                        optimize=False)
+    assert args.out_json is None and args.out_csv is None
 
 
 def _fake_mol(name: str = "kaempferol", charge: int = 0) -> Molecule:

@@ -11,13 +11,14 @@ For each molecule the protonation site is chosen as the lowest-energy conjugate
 acid (fast screening engine), then the reported descriptors come from DFT.
 Results are cached to JSON and printed as a table.
 
-Local use (needs rdkit + pyscf — long jobs are expected); the persisted
-geometries follow --out-csv/--out-json, else the case's results dir:
+Local use (needs rdkit + pyscf — long jobs are expected). Like every other
+driver, an unset --out-json/--out-csv persists to the --case results dir by
+default (dft_descriptors_ff for force-field geometries, dft_descriptors_opt for
+DFT-relaxed ones), so a DFT run is never computed-and-discarded:
 
     python -m corrosim.runs.run_dft \
-        --molecules kaempferol,quercetin,isorhamnetin --engine pyscf \
-        --out-json cases/arghel/results/dft_descriptors_ff.json \
-        --out-csv cases/arghel/results/dft_descriptors_ff.csv
+        --molecules kaempferol,quercetin,isorhamnetin --engine pyscf
+        # -> cases/arghel/results/dft_descriptors_ff.{json,csv}
 
 Quick smoke (xtb, seconds — NOT for reported numbers; xTB ΔN/χ are unreliable):
 
@@ -64,6 +65,7 @@ from corrosim.qm.protonation import best_protonation_site
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
+    default_output,
     parse_molecules,
     print_table,
     resolve_case,
@@ -370,9 +372,12 @@ def _build_parser() -> argparse.ArgumentParser:
                         "Defaults to the --out-csv/--out-json directory, else "
                         "'results'.")
     p.add_argument("--out-json", default=None,
-                   help="Cache rows to this JSON file.")
+                   help="Cache rows to this JSON file; unset persists to the "
+                        "case's results dir (dft_descriptors_ff/opt.json). The "
+                        "xtb smoke engine is exempt and writes only when set.")
     p.add_argument("--out-csv", default=None,
-                   help="Also write the table to CSV.")
+                   help="Also write the table to CSV; unset persists to the "
+                        "case's results dir (dft_descriptors_ff/opt.csv).")
     return p
 
 
@@ -426,6 +431,33 @@ def _opt_geom_dir(
     return None
 
 
+def _default_descriptor_outputs(
+    args: argparse.Namespace,
+    results_dir: str,
+    optimize: bool,
+) -> None:
+    """Route an unset --out-json/--out-csv to the case's own results dir.
+
+    Persists the descriptor matrix by default, like every other driver, so a
+    DFT run is never computed-and-discarded. The force-field vs DFT-optimised
+    geometry selects the filename stem the report consumers read back
+    (``dft_descriptors_ff`` / ``dft_descriptors_opt``). The xtb smoke engine is
+    exempt: its numbers are not reportable and would clobber the tracked
+    production descriptors at the shared path, so it persists only with an
+    explicit flag.
+
+    Args:
+        args: Parsed CLI arguments (mutated in place).
+        results_dir: The case's results directory.
+        optimize: Whether the run used a DFT-relaxed geometry.
+    """
+    if args.engine == "xtb":
+        return
+    stem = "dft_descriptors_opt" if optimize else "dft_descriptors_ff"
+    default_output(args, "out_json", f"{results_dir}/{stem}.json")
+    default_output(args, "out_csv", f"{results_dir}/{stem}.csv")
+
+
 def _write_outputs(rows: list[dict], args: argparse.Namespace) -> None:
     """Cache rows to JSON/CSV and print the descriptor summary table.
 
@@ -433,6 +465,11 @@ def _write_outputs(rows: list[dict], args: argparse.Namespace) -> None:
         rows: The descriptor rows from :func:`analyse_matrix`.
         args: Parsed CLI arguments (for the output paths).
     """
+    # Ensure the target dir exists so a first run into a fresh case persists
+    # rather than raising after the whole (expensive) matrix has finished.
+    for path in (args.out_json, args.out_csv):
+        if path:
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     if args.out_json:
         write_json(args.out_json, rows)
         print(f"JSON: {args.out_json}", file=sys.stderr)
@@ -472,6 +509,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     optimize = args.optimize or check_minimum or to_minimum
 
     _warn_medium_mismatch(forms, args.medium)
+    _default_descriptor_outputs(args, case.results_dir, optimize)
     opt_geom_dir = _opt_geom_dir(args, to_minimum, case.results_dir)
 
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,

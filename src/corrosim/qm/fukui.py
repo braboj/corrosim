@@ -90,6 +90,29 @@ class FukuiResult:
         )
 
     @classmethod
+    def from_json(cls, obj: Sequence[dict] | dict) -> FukuiResult:
+        """Reconstruct from a persisted ``*_fukui.json`` payload.
+
+        Accepts both the current object form (``{"basis": ..., "atoms":
+        [...]}``, which carries the basis label) and the legacy bare-list form
+        (per-atom rows only, predating the recorded basis). A legacy payload
+        reconstructs with an empty ``basis``.
+
+        Args:
+            obj: The decoded JSON — either the ``{"basis", "atoms"}`` object or
+                a bare list of per-atom rows.
+
+        Returns:
+            The reconstructed result, with ``basis`` set from the payload when
+            present.
+        """
+        if isinstance(obj, dict):
+            res = cls.from_rows(obj["atoms"])
+            res.basis = obj.get("basis", "")
+            return res
+        return cls.from_rows(obj)
+
+    @classmethod
     def from_rows(cls, rows: Sequence[dict]) -> FukuiResult:
         """Reconstruct from :meth:`as_rows` output (the round-trip inverse).
 
@@ -132,6 +155,19 @@ class FukuiResult:
                 for i, (s, fp, fm, d, sp, sm) in enumerate(zip(
                     self.symbols, self.f_plus, self.f_minus, self.dual,
                     self.s_plus, self.s_minus))]
+
+    def as_json(self) -> dict:
+        """Full persisted payload: the basis label plus the per-atom rows.
+
+        Unlike :meth:`as_rows` (per-atom only), this keeps the basis-set label
+        so a figure title can state the level the Fukui were computed at rather
+        than hardcoding one — a halogen case runs a different basis (def2-SVP)
+        than the light-element default.
+
+        Returns:
+            ``{"basis": <label>, "atoms": [<row>, ...]}``.
+        """
+        return {"basis": self.basis, "atoms": self.as_rows()}
 
     def top_donor_sites(self, n: int = 5) -> list[dict]:
         """Heavy atoms with the largest f- (surface-binding / donor centres).
