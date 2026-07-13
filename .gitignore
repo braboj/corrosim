@@ -33,6 +33,10 @@ env/
 results.csv
 !examples/*.csv
 
+# zip exports of a case bundle are a redundant artifact (the report/ tree is
+# already tracked); keep the multi-MB archive out of git
+cases/**/*.zip
+
 # QC scratch dirs
 orca_*/
 g16_*/

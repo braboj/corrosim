@@ -185,6 +185,58 @@ FACTORS = {"ms": 1e-3, "us": 1e-6}          # keyed by the axis
 factor = FACTORS.get(unit, 1.0)             # with a sane default
 ```
 
+#### Verify convergence — escalate, then fail loud
+
+An iterative numerical routine (a fixed-point solver, an optimizer) exposes a
+convergence flag but does not force the caller to read it. Kernel it and read the
+result without checking, and a run that silently failed to converge feeds a
+plausible-looking but wrong answer downstream. Route every such call through one
+helper that checks the flag and, on failure, escalates through progressively
+stronger (and slower) stabilization strategies — cheapest first — before raising
+a descriptive error. The ladder fires ONLY on non-convergence, so the fast path
+that already converges is byte-for-byte untouched; it exists to rescue the hard
+cases and to refuse to hand back an unconverged result as if it were valid.
+
+```python
+def solve(state, label=None):
+    state.run()
+    for stabilize in (add_damping, second_order):   # cheapest aid first
+        if state.converged:
+            return state
+        state = stabilize(state)                     # runs only on failure
+        state.run()
+    if state.converged:
+        return state
+    raise ConvergenceError(f"did not converge for {label}")   # never silent
+```
+
+Keep the ladder itself unit-testable without the heavy engine: make each
+stabilization step a small function and the driver pure orchestration, then
+exercise it with a stub whose convergence is scripted per attempt. A
+converged-but-slower answer strictly beats a fast wrong one — and because the
+escalation only changes results that were already garbage, the shipped fast-path
+numbers cannot regress.
+
+#### An output-changing approximation stays opt-in and off by default
+
+A speed knob that shifts the numbers (a lower-rank approximation, a coarser grid)
+must default off, so the canonical output is never silently perturbed by an
+optimization someone flipped for throughput. Make it a per-run field the caller
+sets deliberately — and carried in the same single source of truth as the rest
+of the run's parameters, so a run that needs it is self-reproducing — not a
+global default.
+
+#### Size the budget to the box; spill big intermediates to disk or refuse
+
+A memory-heavy step should detect its real budget — an env override, else the
+container cgroup limit, else physical RAM, scaled for headroom — instead of
+assuming a fixed library default, so it sizes its algorithm to memory the process
+can actually use. Estimate a large intermediate's footprint up front: keep it in
+RAM only while it fits a fraction of the budget, stream it to a disk scratch path
+beyond that, and refuse with a clear error past a hard ceiling. A diagnosable
+"too large for this budget" beats an OOM crash mid-run — and the scratch path
+must land on real disk, not a RAM-backed tmpfs, or the spill defeats itself.
+
 Two recurring design criteria worth internalizing:
 
 - **Restraint over speculation.** Abstract only where duplication or a second
@@ -715,6 +767,45 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install -e ".[accel,dev]"
+```
+
+#### An editable install in a bind-mounted image should import by an explicit path
+
+Installing the project editable inside an image (`pip install -e`) bakes an
+absolute finder path at build time. If you then bind-mount the repo over the
+workdir at runtime and later move the package (a flat -> `src/` migration), the
+baked path points at a directory that no longer exists, so `import pkg` fails
+even though the live code is present under the mount, and every run needs a
+`PYTHONPATH` override to paper over it. Resolve the package by an explicit source
+path so the runtime import tracks the live bind-mounted location instead of the
+frozen finder, and fail the build if the import is broken.
+
+```dockerfile
+RUN pip install -e ".[accel,dev]"       # deps + console scripts
+# resolve by the live location, not the build-time-baked finder path
+ENV PYTHONPATH=/app/src
+# fail the build (not runtime) if the package or a heavy engine cannot import
+RUN python -c "import pkg, heavy_dep"
+```
+
+#### Rebuild a hand-built image in CI on any packaging change
+
+An image the main test suite never builds (its heavy deps only exist in the
+container) drifts from the layout silently: nothing forces a rebuild when the
+package moves. Add a CI job, gated to the files that define the image contract
+(the Dockerfile, the dependency manifest, the compose file), that rebuilds and
+import-smokes it. Path-gating keeps it off the hot path of every PR while still
+catching structural drift before merge.
+
+```yaml
+on:
+  pull_request:
+    paths: [Dockerfile, pyproject.toml, docker-compose.yml, .dockerignore]
+jobs:
+  build:
+    steps:
+      - run: docker compose build img      # the build-time import check gates this
+      - run: docker compose run --rm img    # import-smoke under the runtime bind mount
 ```
 
 ## Security

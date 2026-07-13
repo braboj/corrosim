@@ -1978,4 +1978,93 @@ backlog and then the onboarding UX.
   Fukui/ESP backfill) still needs the def2-SVP QM run. Other threads unchanged:
   **#71** (#66/#67/#68 deployment), **#40**, #181 / #180.
 
+## 2026-07-13 (session 27): QM image drift guard, and pruning the validation backlog
+
+Two QM-free threads: hardening the container against layout drift, then closing
+out the validation suite's scope.
+
+- **QM image drift guard (PR #215, merged; closed #180).** The `corrosim-qm`
+  image installs the package editable and bind-mounts the repo at `/work`, so the
+  editable finder's build-time-baked path went stale after the `src/` migration
+  and every run needed a `-e PYTHONPATH=/work/src` (plus `MSYS_NO_PATHCONV=1`)
+  override. Closed the drift on two layers: the Dockerfile now sets
+  `ENV PYTHONPATH=/work/src` so the runtime import resolves by the live
+  bind-mounted location instead of the frozen finder, and a build-time
+  `RUN python -c "import corrosim, pyscf, tblite"` fails a broken build instead of
+  shipping it. A new path-gated `qm-image.yml` CI workflow rebuilds and
+  import-smokes the image on any change to `Dockerfile`/`pyproject.toml`/
+  `docker-compose.yml`/`.dockerignore`, so it can't drift unnoticed again.
+  Verified by a real local rebuild (`corrosim.__file__ = /work/src/corrosim/...`,
+  no workaround) and the PR's own `QM image` CI run went green. **ADR 0024**;
+  upstream `solid-ai-templates#817` (base/infra containers + cicd). The job is not
+  yet a required check; making it a merge gate needs a branch-protection toggle.
+- **cli argparse spacing (PR #216, merged).** A stray working-tree edit had added
+  blank lines between the `build_parser` arguments with trailing whitespace (12x
+  W293). Kept the readability blanks, stripped the trailing whitespace so
+  `ruff check` stays clean, and landed it.
+- **#200 closed as done.** Its headline goal (validate the substrate-agnostic
+  design on non-Fe metals) was already met: Al(111)/tmp-smx + both Cu(111) cases
+  shipped in sessions 24-25, so the suite spans all three supported metals across
+  six cases and the full rigor spectrum. The Fe(110) Tier-2 tail (carbonitriles,
+  guar-gum, pyrazolone-sulfonamide, tangerine) is deferred as optional
+  corroboration, not a validation gap (all Fe(110), the metal already anchored by
+  the experiment-validated Arghel case); recorded in the close comment rather than
+  spun into a new issue. If one is ever wanted, `tangerine` (the Arghel flavonoid
+  analog) is the highest-signal single add.
+- **Know-how.** Added two generic Container patterns to
+  `docs/engineering-know-how.md` (editable-install-in-a-bind-mounted-image imports
+  by an explicit path; rebuild a hand-built image in CI on any packaging change),
+  the genericized form of ADR 0024 / issue #817.
+- **Gates.** ruff + mypy clean, pytest exit 0 (1 skipped).
+- **Pending:** next task is the deployment epic **#71** (recommended **#67**
+  release-on-tag GHCR+PyPI, which unblocks #68 Pages showcase and #66 Colab); the
+  pick was paused mid-decision. Also open: **#211** (needs the def2-SVP QM run),
+  **#181**, **#40**. Optional: add `qm-image.yml` to branch protection to make it a
+  required gate.
+
+## 2026-07-13 (session 28): SCF robustness ladder + density-fitting memory guard (#181 closed)
+
+Took the remaining two sub-tasks of #181 (sub-task 1, per-case `basis`/`xc`,
+shipped last in #184). The production DFT level was intractable for large,
+diffuse-sensitive inhibitors on two fronts, both fixed here.
+
+- **SCF robustness ladder + fail-loud (PR #217, merged; closed #181).** The
+  shared single point kerneled the SCF and never checked `mf.converged`, so a
+  diverged SCF (what the diffuse `++` basis provokes on a folded, oxygen-dense
+  molecule via near-linear-dependence) fed garbage frontier orbitals into the
+  descriptors, silently. New `engines.run_scf` runs the default DIIS kernel and,
+  only on non-convergence, escalates through level-shift + damping then a
+  second-order Newton restart, raising `SCFConvergenceError` (naming molecule +
+  level) if the whole ladder fails. It fires only on non-convergence, so every
+  currently-converging descriptor is byte-identical. Routed through all four
+  explicit-kernel sites (descriptor single point, frequency job, cube writers,
+  and `fukui._scf`, whose hand-rolled Newton fallback is removed).
+- **Density-fitting memory guard.** `mol.max_memory` is sized to the host (env
+  override → cgroup limit → physical RAM, scaled), so PySCF picks the right
+  in-core / out-of-core path. Density fitting is opt-in and off by default (the
+  RI approximation shifts the numbers): its `_cderi` tensor is kept in RAM only
+  if it fits the budget, spilled to a disk scratch path beyond that, refused past
+  a hard ceiling. Threaded through as `CaseStudy.density_fit` + `run_dft
+  --density-fit` / `--max-memory-mb`, backfilled from the case like `--basis`.
+- **ADR 0025**; upstream `solid-ai-templates#818` (base/core/quality.md — the
+  verify-convergence-and-fail-loud / opt-in-approximation / size-budget-or-refuse
+  cluster, sibling to the persist-or-fail-loud #815). Three generic patterns
+  distilled into `docs/engineering-know-how.md`.
+- **Verified in the corrosim-qm image:** a production-basis single point
+  reproduces the shipped `cases/arghel` descriptors bit-for-bit (run_scf is a
+  no-op on convergence); the level-shift/damp and Newton stages engage and
+  converge on real PySCF; and a phytic-acid `--density-fit` run spilled a 17 GB
+  `_cderi` to disk with RAM steady at ~3.5 GiB (no OOM). 19 QM-light tests;
+  pytest 276 passed / 1 skipped; ruff + mypy + complexipy clean.
+- **Housekeeping.** Committed the overdue session-27 wrap (journal entry, ADR
+  0024, two Container know-how patterns) alongside this one; gitignored redundant
+  `cases/**/*.zip` bundle exports (an 8.9 MB `arghel.zip` had appeared untracked).
+- **Pending:** deployment epic **#71** is the recommended next thread (**#67**
+  release-on-tag GHCR+PyPI → unblocks #68 Pages / #66 Colab); the pick was paused
+  mid-decision. Still open: **#211** (needs the def2-SVP QM run), **#40**.
+  Optional: the phytic-acid production-basis convergence *outcome* (does the
+  ladder rescue it or fail loud?) was left running in the background at wrap — a
+  bonus scientific check, not a gate. Optional: add `qm-image.yml` to branch
+  protection.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
