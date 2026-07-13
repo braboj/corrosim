@@ -79,6 +79,7 @@ and then fail loud rather than hand back an unconverged answer as if it were
 real*; and *an opt-in approximation that changes results stays off by default*;
 and *a memory-heavy step should size its budget to the container (cgroup/RAM,
 not a fixed default) and spill to disk or refuse with a clear error rather than
-OOM-crash*. Candidate against `base/core/quality.md`; recorded in
-`docs/engineering-know-how.md` and to be filed in the end-of-session upstream
-audit.
+OOM-crash*. Recorded in `docs/engineering-know-how.md` and filed upstream
+against `base/core/quality.md` as `solid-ai-templates#818` (sibling to the
+persist-or-fail-loud CLI convention, the same fail-loud-not-silent principle
+applied to numerical convergence and resource limits).
