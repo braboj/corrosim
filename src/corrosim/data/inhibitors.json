@@ -93,5 +93,87 @@
     "source": "pubchem",
     "cas": "723-46-6",
     "notes": "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzenesulfonamide (C10H11N3O3S). PubChem CID 5329. Validation target for the tmp-smx case study (Odozi 2026, Al(111) / 1 M HCl)."
+  },
+  "tetrazole": {
+    "smiles": "C1=NNN=N1",
+    "aliases": [
+      "TZ",
+      "1H-tetrazole"
+    ],
+    "source": "pubchem",
+    "cas": "288-94-8",
+    "notes": "1H-tetrazole (CH2N4). PubChem CID 67519. Validation target for the tetrazoles case study (Bourzi/El Issami 2020, Cu(111) / acidic HNO3); the bare parent, weakest inhibitor."
+  },
+  "5-aminotetrazole": {
+    "smiles": "C1(=NNN=N1)N",
+    "aliases": [
+      "ATZ"
+    ],
+    "source": "pubchem",
+    "cas": "4418-61-5",
+    "notes": "5-amino-1H-tetrazole (CH3N5). PubChem CID 20467. Validation target for the tetrazoles case study (Bourzi/El Issami 2020, Cu(111) / acidic HNO3)."
+  },
+  "5-phenyltetrazole": {
+    "smiles": "C1=CC=C(C=C1)C2=NNN=N2",
+    "aliases": [
+      "PTZ"
+    ],
+    "source": "pubchem",
+    "cas": "18039-42-4",
+    "notes": "5-phenyl-1H-tetrazole (C7H6N4). PubChem CID 87425. Validation target for the tetrazoles case study (Bourzi/El Issami 2020, Cu(111) / acidic HNO3); phenyl on C5 per the source figure (the abstract's '1-phenyl' is a naming slip)."
+  },
+  "1-phenyl-5-mercaptotetrazole": {
+    "smiles": "Sc1nnnn1-c1ccccc1",
+    "aliases": [
+      "PMTZ"
+    ],
+    "source": "pubchem",
+    "cas": "86-93-1",
+    "notes": "1-phenyl-1H-tetrazole-5-thiol (C7H6N4S), thiol tautomer as drawn in the source figure. PubChem CID 690730 (canonicalised there as the 5-thione). Validation target for the tetrazoles case study (Bourzi/El Issami 2020, Cu(111) / acidic HNO3); the mercapto S makes it the reported strongest inhibitor."
+  },
+  "pyrazolylnucleoside methyl": {
+    "smiles": "OCC1OC(n2nc(CC#N)cc2-c2ccc(C)cc2)CC1O",
+    "aliases": [
+      "5a"
+    ],
+    "source": "paper",
+    "cas": "",
+    "notes": "2-[1-(2-deoxyribofuranosyl)-5-(4-methylphenyl)-1H-pyrazol-3-yl]acetonitrile (C17H19N3O3). Novel pyrazolylnucleoside 5a (para-CH3) from Oukhrib et al., Sci. Rep. 11:3771 (2021); SMILES read from the source Figure 1. Validation target for the pyrazolylnucleosides case study (Cu(111) / acidic). Flat (non-stereo) sugar SMILES for the frontier-orbital screen."
+  },
+  "pyrazolylnucleoside methoxy": {
+    "smiles": "OCC1OC(n2nc(CC#N)cc2-c2ccc(OC)cc2)CC1O",
+    "aliases": [
+      "5b"
+    ],
+    "source": "paper",
+    "cas": "",
+    "notes": "2-[1-(2-deoxyribofuranosyl)-5-(4-methoxyphenyl)-1H-pyrazol-3-yl]acetonitrile (C17H19N3O4). Novel pyrazolylnucleoside 5b (para-OCH3) from Oukhrib et al., Sci. Rep. 11:3771 (2021); SMILES read from the source Figure 1. Validation target for the pyrazolylnucleosides case study (Cu(111) / acidic)."
+  },
+  "pyrazolylnucleoside fluoro": {
+    "smiles": "OCC1OC(n2nc(CC#N)cc2-c2ccc(F)cc2)CC1O",
+    "aliases": [
+      "5c"
+    ],
+    "source": "paper",
+    "cas": "",
+    "notes": "2-[1-(2-deoxyribofuranosyl)-5-(4-fluorophenyl)-1H-pyrazol-3-yl]acetonitrile (C16H16FN3O3). Novel pyrazolylnucleoside 5c (para-F) from Oukhrib et al., Sci. Rep. 11:3771 (2021); SMILES read from the source Figure 1. Validation target for the pyrazolylnucleosides case study (Cu(111) / acidic)."
+  },
+  "pyrazolylnucleoside chloro": {
+    "smiles": "OCC1OC(n2nc(CC#N)cc2-c2ccc(Cl)cc2)CC1O",
+    "aliases": [
+      "5d"
+    ],
+    "source": "paper",
+    "cas": "",
+    "notes": "2-[1-(2-deoxyribofuranosyl)-5-(4-chlorophenyl)-1H-pyrazol-3-yl]acetonitrile (C16H16ClN3O3). Novel pyrazolylnucleoside 5d (para-Cl) from Oukhrib et al., Sci. Rep. 11:3771 (2021); SMILES read from the source Figure 1. Validation target for the pyrazolylnucleosides case study (Cu(111) / acidic)."
+  },
+  "pyrazolylnucleoside bromo": {
+    "smiles": "OCC1OC(n2nc(CC#N)cc2-c2ccc(Br)cc2)CC1O",
+    "aliases": [
+      "5e"
+    ],
+    "source": "paper",
+    "cas": "",
+    "notes": "2-[1-(2-deoxyribofuranosyl)-5-(4-bromophenyl)-1H-pyrazol-3-yl]acetonitrile (C16H16BrN3O3). Novel pyrazolylnucleoside 5e (para-Br) from Oukhrib et al., Sci. Rep. 11:3771 (2021); SMILES read from the source Figure 1. Validation target for the pyrazolylnucleosides case study (Cu(111) / acidic); the reported strongest adsorber."
   }
 }

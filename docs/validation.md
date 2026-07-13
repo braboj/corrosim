@@ -24,11 +24,14 @@ agreement only at the level the methods allow:
 
 Each reproduced paper ships as a **validation preset** (`presets.CASE_STUDIES`,
 one `CaseStudy` per study, each with a `source` citation); its outputs live under
-`cases/<case>/` and it renders its own report bundle (ADR 0019). The four cases
+`cases/<case>/` and it renders its own report bundle (ADR 0019). The six cases
 below span that rigor spectrum: an experiment-anchored study (Arghel), a
 qualitative AM1 anchor (phytic acid), a same-level DFT numeric cross-check on
-iron (pyrazolo-pyrimidine), and the first non-iron substrate, a same-level
-cross-check on aluminium (TMP-SMX).
+iron (pyrazolo-pyrimidine), the first non-iron substrate (aluminium, a same-level
+cross-check, TMP-SMX), and two copper studies (tetrazoles, an ordering
+cross-check whose reactivity trend tracks the measured inhibition efficiencies;
+and pyrazolylnucleosides, the fuller DFT + MC + MD stack with a metal-heteroatom
+RDF on copper).
 
 The pipeline produces four things; each is checked against a published quantity,
 and *how* it is read depends on the method gap:
@@ -69,8 +72,10 @@ same-level numeric comparison.
 | **2 · Phytic acid** | Q235 / 0.5 M H₂SO₄ | AM1 semi-empirical | ✅ Validated *(qualitative)* |
 | **3 · Pyrazolo-pyrimidine** | carbon steel / HCl | same-level B3LYP DFT | 🟡 Partial *(quantitative)* |
 | **4 · TMP-SMX** | aluminium / 1 M HCl | same-level B3LYP DFT | 🟡 Partial *(quantitative)* |
+| **5 · Tetrazoles** | copper / acidic (HNO₃) | B3LYP DFT + MC (COMPASS) | ✅ Validated *(qualitative)* |
+| **6 · Pyrazolylnucleosides** | copper / 1 M HCl | DMol³ DFT + MC + MD | 🟡 Partial *(qualitative)* |
 
-## Substrate models: Fe(110) and Al(111)
+## Substrate models: Fe(110), Al(111), and Cu(111)
 
 The steel cases (1 to 3) model mild / carbon steel as a **pure Fe(110) slab**
 (Φ = 4.82 eV, η_metal ≈ 0), consistent with the corrosion literature, which
@@ -78,7 +83,9 @@ uniformly treats "mild/carbon steel" as Fe(110). Case 4 is the first non-iron
 substrate: an **Al(111) slab** (Φ = 4.26 eV), an fcc(111) facet instead of
 bcc(110), exercising the metal-agnostic path end-to-end (the surface builder,
 work function, and ΔN reference all read from the case's `metal`, never a
-hardcoded "Fe"). The reference coupon below (the Mohammed 2014 Arghel experiment
+hardcoded "Fe"). Cases 5 and 6 add a second non-iron substrate, a **Cu(111)
+slab** (Φ = 4.94 eV, also fcc(111)), so the metal-agnostic path is now exercised
+on all three metals the surface builder supports. The reference coupon below (the Mohammed 2014 Arghel experiment
 of Case 1) is a clean low-carbon (mild) steel, ~AISI 1020-equivalent, and shows
 why the iron slab is the right atomistic model for the steel cases:
 
@@ -687,3 +694,281 @@ is exercised and validated on a non-iron surface.
   SMX (anilinium, pKaH ≈ 1.6) differ in basicity, but at pH ≈ 0 both are
   essentially fully protonated, so the single case pKaH represents both here; it
   would not for a near-neutral medium.
+
+## Case 5: Tetrazoles (copper, Cu(111) / acidic medium)
+
+> **Status: ✅ Validated *(qualitative)*.** corrosim reproduces the paper's
+> complete inhibition ordering, PMTZ > PTZ > ATZ > TZ, on all three pipeline
+> stages at once (the DFT gap/hardness/softness composite, the Monte Carlo
+> adsorption energy, and the MD mean interaction energy), and that ordering is
+> the measured one: the experimental inhibition efficiencies rise 6 / 32 / 42.5 /
+> 94.5 % in exactly this sequence. The robustness gate asserts a robust PMTZ lead
+> (both speciation bases agree). The comparison is of the ordering and its
+> correlation with the efficiencies, not the absolute descriptors: the paper's
+> frontier levels sit on an anomalously shallow scale (HOMO near -2 eV) whereas
+> corrosim's are physical (-6.8 to -8.8 eV).
+
+| What we check | corrosim | Reported (Bourzi 2020) | Match |
+|---|---|---|:-:|
+| Inhibition ordering (DFT composite) | PMTZ > PTZ > ATZ > TZ | PMTZ > PTZ > ATZ > TZ | ✅ |
+| Ordering vs experimental IE % | PMTZ > PTZ > ATZ > TZ | 94.5 > 42.5 > 32 > 6 % | ✅ |
+| Strongest / weakest inhibitor | PMTZ / TZ | PMTZ / TZ | ✅ |
+| MC adsorption ordering on Cu(111) | PMTZ > PTZ > ATZ > TZ | PMTZ > PTZ > ATZ > TZ | ✅ |
+| Absolute frontier levels | HOMO -6.8 to -8.8 eV (physical) | HOMO -1.8 to -2.0 eV (anomalous) | 🟡 |
+
+The **second non-iron validation case** (after aluminium), and the one that
+closes the substrate-agnostic exercise on all three metals the surface builder
+supports. Four tetrazole derivatives adsorb on a **Cu(111)** slab (fcc(111),
+Φ = 4.94 eV): the bare ring (TZ), plus an amino (ATZ), a phenyl (PTZ), and a
+1-phenyl-5-mercapto (PMTZ) substituent, a series that grows the donor set worst
+to best. Unlike the earlier cases the target here is not one paper's descriptor
+numbers but a **ranking that is independently anchored to experiment**: the paper
+reports the measured inhibition efficiencies for the same four molecules, so a
+screen that recovers their order recovers a fact, not just another calculation.
+
+**Preset:** `tetrazoles` · **Source:** Bourzi, Oukhrib, El Ibrahimi, Abou Oualid,
+Abdellaoui, Balkard, Hilali & El Issami, *Understanding of anti-corrosive
+behavior of some tetrazole derivatives in acidic medium: adsorption on Cu(111)
+surface using quantum chemical calculations and Monte Carlo simulations*,
+**Surface Science 702 (2020) 121692** (DOI 10.1016/j.susc.2020.121692). The paper
+computes at B3LYP (among HF / MP2 / B3LYP with 6-31+G(2d,p)); corrosim uses the
+same functional at its larger production basis.
+
+Both the molecules and their abbreviations ship in the library:
+
+| cmpd | role | SMILES | formula | CAS |
+| --- | --- | --- | --- | --- |
+| TZ | 1H-tetrazole | `c1nnn[nH]1` | CH₂N₄ | 288-94-8 |
+| ATZ | 5-amino-1H-tetrazole | `Nc1nnn[nH]1` | CH₃N₅ | 4418-61-5 |
+| PTZ | 5-phenyl-1H-tetrazole | `c1ccc(-c2nnn[nH]2)cc1` | C₇H₆N₄ | 18039-42-4 |
+| PMTZ | 1-phenyl-1H-tetrazole-5-thiol | `Sc1nnnn1-c1ccccc1` | C₇H₆N₄S | 86-93-1 |
+
+The source figure draws PTZ with the phenyl on C5 (the abstract's "1-phenyl" is a
+naming slip) and PMTZ as the thiol tautomer; both are followed here.
+
+**Reported values (the comparison target), B3LYP/6-31+G(2d,p), aqueous, neutral,
+plus the measured inhibition efficiencies:**
+
+| Quantity | TZ | ATZ | PTZ | PMTZ |
+| --- | --- | --- | --- | --- |
+| E_HOMO | -2.021 eV | -1.915 eV | -1.851 eV | -1.801 eV |
+| E_LUMO | 0.909 eV | 0.894 eV | 0.862 eV | 0.842 eV |
+| Gap ΔE | 2.930 eV | 2.809 eV | 2.714 eV | 2.644 eV |
+| η (hardness) | 1.465 eV | 1.404 eV | 1.357 eV | 1.322 eV |
+| χ | 0.556 eV | 0.511 eV | 0.494 eV | 0.479 eV |
+| ΔN | 1.339 | 1.413 | 1.469 | 1.513 |
+| E_ads on Cu(111) (COMPASS) | -43.1 | -51.7 | -65.8 | -67.1 kcal/mol |
+| **Experimental IE %** | **6** | **32** | **42.5** | **94.5** |
+
+**Reported reading.** Every descriptor moves monotonically along TZ -> ATZ -> PTZ
+-> PMTZ (shallower HOMO, smaller gap, lower hardness, higher ΔN), the adsorption
+energy deepens in the same order, and so does the measured inhibition efficiency
+(6 -> 94.5 %). The paper's whole argument is that this one ordering is consistent
+across theory and experiment, with PMTZ (the mercapto / phenyl member) the clear
+best and bare TZ the worst. The absolute frontier values are anomalous, though:
+an E_HOMO near -2 eV is far shallower than a tetrazole's true ionisation level,
+so only the ordering is usable.
+
+**Computed (corrosim), B3LYP/6-311++G(d,p) single-point on MMFF geometry,
+aqueous, neutral:**
+
+| Quantity | TZ | ATZ | PTZ | PMTZ |
+| --- | --- | --- | --- | --- |
+| E_HOMO | -8.755 eV | -6.784 eV | -6.977 eV | -7.026 eV |
+| E_LUMO | -1.572 eV | -1.329 eV | -1.683 eV | -1.918 eV |
+| Gap ΔE | 7.183 eV | 5.455 eV | 5.294 eV | 5.108 eV |
+| η / softness | 3.591 / 0.278 | 2.728 / 0.367 | 2.647 / 0.378 | 2.554 / 0.392 |
+| χ | 5.164 eV | 4.056 eV | 4.330 eV | 4.472 eV |
+| ΔN → Cu | -0.031 | +0.162 | +0.115 | +0.092 |
+| Composite score | -1.71 | +0.35 | +0.58 | +0.79 |
+
+- **MC adsorption** (Cu(111), UFF van-der-Waals): E_ads -3.8 (TZ), -4.5 (ATZ),
+  -9.1 (PTZ), -10.3 (PMTZ) kJ/mol, lying 2.9 to 3.1 Å above the slab. Ranking
+  **PMTZ > PTZ > ATZ > TZ**.
+- **MD metal-heteroatom RDF**: no oxygen in these rings, so the contact is
+  metal-N at 3.35 to 3.95 Å (physisorption range); mean interaction energy -0.7
+  (TZ) to -2.2 (PMTZ) kJ/mol, deepening in the same order.
+- **Local reactivity (Fukui / ESP)**: the f- donor density and the electron-rich
+  ESP lobe localise on the ring nitrogens and, for PMTZ, the mercapto sulfur (its
+  extra soft-donor site), consistent with the paper's reactive-site analysis.
+
+**Reading it: the ordering reproduces on every stage, and it is the measured
+ordering.** corrosim's composite ranking (smaller gap, lower hardness, higher
+softness) puts the four molecules in the order PMTZ > PTZ > ATZ > TZ, PMTZ well
+clear (composite +0.79 against -1.71 for TZ). The Monte Carlo adsorption energy on
+copper and the MD mean interaction energy independently give the same order. All
+three therefore agree with the paper's descriptor and adsorption orderings, and
+all three agree with the experimental inhibition efficiencies (6 / 32 / 42.5 /
+94.5 %). Because the medium is only weakly ionising for these tetrazoles (they are
+weak bases), the neutral and pH-weighted bases name the same lead, so the ADR
+0021 robustness gate reports a **robust PMTZ lead** rather than a tie.
+
+Two honest mismatches sit under the clean ranking. First, the absolute frontier
+levels do not compare: corrosim's HOMO (-6.8 to -8.8 eV) is physical while the
+paper's (-1.8 to -2.0 eV) is not, so only the ordering is meaningful. Second,
+corrosim's ΔN does not track the efficiency the way the paper's does: its largest
+value falls on ATZ, not PMTZ, and TZ even comes out slightly negative. But ΔN is
+not a component of the composite, and the gap / hardness / softness that are do
+recover the order. The physical driver is intact: PMTZ carries the polarisable
+mercapto sulfur and the conjugating phenyl, giving it the smallest gap and the
+softest electron cloud, which is why it leads on both the DFT screen and the
+van-der-Waals adsorption.
+
+**Verdict.** On copper, corrosim reproduces the full inhibition ordering of four
+tetrazoles across DFT, MC and MD simultaneously, and that ordering is the one
+measured experimentally, so the screen recovers an experimentally anchored fact
+rather than a single paper's numbers. Combined with the aluminium case, the
+metal-agnostic pipeline is now validated on all three substrates it supports
+(Fe(110), Al(111), Cu(111)). The comparison is qualitative by necessity (the
+paper's absolute descriptors are anomalous and its adsorption energies use a
+different force field), but the ranking, the thing a screen exists to produce, is
+correct.
+
+**Caveats to apply when comparing:**
+
+- **Ordering, not absolute values.** The paper's frontier energies are on an
+  anomalously shallow scale (HOMO near -2 eV); corrosim's are physical. Only the
+  descriptor *ordering* and its correlation with the measured efficiencies are
+  compared, never the numbers.
+- **Different basis, same functional.** Both use B3LYP; the paper's 6-31+G(2d,p)
+  is smaller than corrosim's 6-311++G(d,p), a further reason to read the trend,
+  not the digit.
+- **Adsorption observables are not interchangeable.** The paper's E_ads is a
+  COMPASS force-field energy in kcal/mol; corrosim's is a single-molecule UFF
+  van-der-Waals E_ads in kJ/mol. Compare the ordering and sign, never the value.
+- **No reported MD/RDF.** The paper runs DFT + Monte Carlo only; corrosim's MD
+  metal-N RDF is its own output, with no published distance to check against.
+- **Medium modelled as nitric acid.** The paper states only "acidic medium" and
+  correlates against the group's prior experiments on these tetrazolic compounds
+  in nitric acid; it is modelled here as 1 M HNO₃. Tetrazoles are weak bases, so
+  the exact pH barely moves the ranking.
+
+## Case 6: Pyrazolylnucleosides (copper, Cu(111) / 1 M HCl)
+
+> **Status: 🟡 Partial *(qualitative)*.** corrosim's Monte Carlo reproduces the
+> paper's strongest adsorber (5e, the bromo derivative), and all five molecules
+> adsorb spontaneously on copper, but the full five-molecule order is below the
+> method's resolution: the derivatives differ only in a distal para substituent
+> (CH₃ / OCH₃ / F / Cl / Br), a perturbation smaller than the UFF and def2-SVP
+> screens resolve. The DFT composite ties (5d neutral vs 5b pH-weighted) rather
+> than crowning 5e, MD is observable-dependent, and the classical field gives
+> physisorption distances where the paper reads chemisorption. This is the
+> **fuller non-iron case** (DFT + MC + MD with a metal-heteroatom RDF), so it
+> exercises the MD/RDF path on copper even where the fine ordering is noise.
+
+| What we check | corrosim | Reported (Oukhrib 2021) | Match |
+|---|---|---|:-:|
+| Strongest adsorber (MC on Cu) | 5e (bromo) | 5e (bromo) | ✅ |
+| All five adsorb spontaneously | yes (all E_ads < 0) | yes | ✅ |
+| Full inhibition order | noise-limited | 5e > 5b > 5a > 5c > 5d | 🟡 |
+| Single robust DFT lead | none, a tie (5d ↔ 5b) | 5e | 🟡 |
+| Contact regime | Cu–O 3.35 to 3.75 Å (physisorption) | < 3.5 Å chemisorption | 🟡 |
+
+The **fuller of the two copper cases** (the tetrazoles case is DFT + MC only).
+Five novel pyrazolylnucleosides adsorb on a **Cu(111)** slab: a common
+2-deoxyribofuranosyl pyrazole carrying a cyanomethyl arm and a 4-X-phenyl group,
+where the only difference across 5a to 5e is the para substituent X = CH₃ / OCH₃
+/ F / Cl / Br. The source ran the whole DFT + Monte Carlo + molecular dynamics
+stack with a clean metal-heteroatom RDF, so this case is the one that exercises
+corrosim's MD/RDF path on copper end-to-end.
+
+**Preset:** `pyrazolylnucleosides` · **Source:** Oukhrib, Abdellaoui, Berisha,
+Abou Oualid, Halili, Jusufi, Ait El Had, Bourzi, El Issami, Asmary, Parmar & Len,
+*DFT, Monte Carlo and molecular dynamics simulations for the prediction of
+corrosion inhibition efficiency of novel pyrazolylnucleosides on Cu(111) surface
+in acidic media*, **Scientific Reports 11 (2021) 3771**
+(DOI 10.1038/s41598-021-82927-5). The paper computes with **DMol³ (M-11L / DND /
+COSMO)**, a different functional and basis family from corrosim, so the descriptor
+comparison is qualitative. The SMILES were read from the source Figure 1; the
+sugar is treated without stereochemistry for the screen.
+
+The five derivatives (para substituent in bold):
+
+| tag | X (para) | formula |
+| --- | --- | --- |
+| 5a | **CH₃** | C₁₇H₁₉N₃O₃ |
+| 5b | **OCH₃** | C₁₇H₁₉N₃O₄ |
+| 5c | **F** | C₁₆H₁₆FN₃O₃ |
+| 5d | **Cl** | C₁₆H₁₆ClN₃O₃ |
+| 5e | **Br** | C₁₆H₁₆BrN₃O₃ |
+
+**Reported reading.** The paper ranks the five by their Monte Carlo adsorption
+and desorption energies and reports **5e > 5b > 5a > 5c > 5d**, with the bromo
+derivative 5e the strongest adsorber (the lowest desorption energy, −438.8 versus
+roughly −140 for the others) and all five binding spontaneously and lying flat on
+the copper surface. The RDF puts the Cu–O contact at 2.85 to 3.36 Å and Cu–N at
+3.16 to 3.40 Å, both under 3.5 Å, which the paper reads as chemisorption. The
+frontier orbitals and ESP concentrate on the ring N and the sugar/nitrile O, the
+adsorption centres.
+
+**Computed (corrosim), B3LYP/def2-SVP single-point on MMFF geometry, aqueous,
+neutral:**
+
+| Quantity | 5a | 5b | 5c | 5d | 5e |
+| --- | --- | --- | --- | --- | --- |
+| E_HOMO (eV) | -6.709 | -6.331 | -6.626 | -6.600 | -6.638 |
+| Gap ΔE (eV) | 6.171 | 5.635 | 5.738 | 5.528 | 5.541 |
+| η (eV) | 3.085 | 2.818 | 2.869 | 2.764 | 2.771 |
+| ΔN → Cu | 0.213 | 0.253 | 0.206 | 0.200 | 0.194 |
+| Composite score (pH-weighted) | 0.50 | 1.53 | -1.47 | -0.50 | -0.08 |
+| MC E_ads (kJ/mol) | -7.7 | -9.1 | -9.2 | -9.2 | **-10.5** |
+| MD ⟨E⟩ (kJ/mol) | -1.28 | -1.72 | -1.16 | -1.85 | -0.94 |
+
+- **MC adsorption** (Cu(111), UFF): 5e binds strongest at −10.5 kJ/mol, then a
+  near-degenerate cluster 5c ≈ 5d ≈ 5b (−9.2 to −9.1) and 5a weakest (−7.7),
+  lying 2.0 to 2.4 Å above the slab. Ranking **5e > (5c ≈ 5d ≈ 5b) > 5a**.
+- **MD metal-heteroatom RDF**: Cu–O first peak 3.35 to 3.75 Å, Cu–N 3.45 to
+  3.95 Å (physisorption range); mean interaction energy −0.9 (5e) to −1.9 (5d)
+  kJ/mol.
+
+**Reading it: the lead adsorber reproduces, the fine order does not.** The one
+firm agreement is the most important observable: the paper ranks by adsorption,
+and corrosim's Monte Carlo independently makes **5e (bromo) the strongest
+binder**, matching the paper's number-one. All five give negative E_ads and lie
+flat, also as reported. Past the lead, though, the comparison dissolves into
+noise. The five molecules differ only in a distal para substituent, so their
+adsorption energies cluster within about 1 kJ/mol (the middle three within 0.1),
+below what the UFF screen resolves, and corrosim's order after 5e (5c ≈ 5d ≈ 5b,
+then 5a) does not match the paper's (5b > 5a > 5c > 5d). The DFT-descriptor
+composite is worse still: it does not single out 5e at all but flips its lead with
+speciation (5d on the neutral basis, 5b on the pH-weighted one), so the ADR 0021
+robustness gate reports a **tie** rather than a lead, and it puts the methyl 5a
+last where the paper puts it mid-pack. The MD mean energy inverts the MC result
+(5e comes out shallowest), the same observable-dependence seen on aluminium, and
+the classical RDF sits at 3.35 to 3.75 Å, physisorption range, where the paper's
+sub-3.5 Å peaks are read as chemisorption.
+
+**Verdict.** On copper, corrosim reproduces the paper's strongest adsorber and
+the spontaneous, flat physisorption of all five pyrazolylnucleosides, but not the
+full para-substituent ordering, which is finer than either the UFF or the
+def2-SVP screen resolves, nor the reported chemisorption contact, which the
+rigid classical field cannot form. It is a **partial** reproduction of the kind
+expected when a screen is asked to order molecules that differ only in a distal
+substituent. Its value here is completing the substrate-agnostic exercise: this
+is the case that drives the full DFT + MC + MD + RDF stack on a copper surface,
+and it does so end-to-end and produces physically sensible numbers.
+
+**Caveats to apply when comparing:**
+
+- **Level of theory gap.** The paper uses DMol³ (M-11L / DND / COSMO), corrosim
+  B3LYP / def2-SVP; different functional and basis family, so only the picture
+  and ordering are comparable, never the numbers.
+- **Basis chosen for halogen coverage.** The set spans F / Cl / Br, and the
+  engine's Pople sets (6-31G(d), 6-311++G(d,p)) carry no bromine, so this case
+  uses def2-SVP (all-electron, whole-periodic-table) rather than the usual
+  production basis.
+- **A distal-substituent ranking is intrinsically hard.** The five molecules
+  share a scaffold and differ only in a para group on a phenyl remote from the
+  binding N/O sites; both methods are being asked to resolve a sub-kJ/mol,
+  sub-0.1 eV spread, so read the lead, not the full order.
+- **Neutral screen vs protonated source.** corrosim's MC/MD run the neutral
+  molecule; the paper protonates the pyrazole ring in acid. The DFT matrix does
+  include the protonated cation (and drives the pH-weighted composite basis).
+- **Adsorption observables are not interchangeable.** The paper's COMPASS E_ads
+  is a full solvent-box energy of order 10⁴ kcal/mol; corrosim's is a
+  single-molecule UFF van-der-Waals E_ads of tens of kJ/mol. Compare the
+  strongest-binder identity and sign, never the value.
+- **Fukui / ESP not rendered.** The QM Fukui and cube stages were not run for
+  this bundle (the engine's default Fukui/cube basis lacks bromine), so it ships
+  the DFT + MC + MD figures only; the paper's ESP and Mulliken maps have no
+  corrosim counterpart here yet.

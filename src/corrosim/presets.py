@@ -257,6 +257,100 @@ TMP_SMX = CaseStudy(
            "DOI 10.1016/j.exm.2026.100027.",
 )
 
+TETRAZOLES = CaseStudy(
+    name="tetrazoles",
+    molecules=(
+        "tetrazole",
+        "5-aminotetrazole",
+        "5-phenyltetrazole",
+        "1-phenyl-5-mercaptotetrazole",
+    ),
+
+    # Second non-Fe substrate (after Al(111)): copper, exercising the fcc(111)
+    # slab and the Cu work function (4.94 eV). The scaffold grows worst-to-best
+    # inhibitor across the set, the paper's reported order.
+    metal="Cu(111)",
+
+    # The source states only "acidic medium" and correlates against the group's
+    # prior experimental inhibition efficiencies for these tetrazolic compounds
+    # on copper/brass in nitric acid; modelled here as 1 M HNO3 (a
+    # representative strong-acid pH so the speciation blend is defined).
+    medium="1 M HNO3",
+
+    # Tetrazoles are weak bases (ring-N conjugate-acid pKaH well below zero), so
+    # even at pH 0 they stay essentially all-neutral: the default very-weak-base
+    # pKaH applies and the pH-weighted basis tracks the neutral one.
+    pkah=-1.5,
+
+    # Same functional as the source (B3LYP) but corrosim's larger production
+    # basis; the source's absolute frontier levels are on an anomalously
+    # shallow scale (HOMO around -2 eV), so the comparison is the descriptor
+    # ordering and its correlation with the experimental efficiencies, not the
+    # absolute number.
+    basis="6-311++G(d,p)",
+    xc="b3lyp",
+
+    description="Four tetrazole derivatives (1H-tetrazole, 5-amino, 5-phenyl, "
+                "1-phenyl-5-mercapto) vs copper (Cu(111)) in acidic medium. A "
+                "second non-Fe validation case: the mercapto / phenyl "
+                "substituent series whose reactivity ordering tracks the "
+                "measured inhibition efficiencies, exercising the fcc(111) "
+                "slab and the Cu work function.",
+
+    source="Bourzi, Oukhrib, El Ibrahimi, Abou Oualid, Abdellaoui, Balkard, "
+           "Hilali, El Issami, Understanding of anti-corrosive behavior of "
+           "some tetrazole derivatives in acidic medium: adsorption on Cu(111) "
+           "surface using quantum chemical calculations and Monte Carlo "
+           "simulations, Surface Science 702 (2020) 121692, "
+           "DOI 10.1016/j.susc.2020.121692.",
+)
+
+PYRAZOLYLNUCLEOSIDES = CaseStudy(
+    name="pyrazolylnucleosides",
+    molecules=(
+        "pyrazolylnucleoside methyl",
+        "pyrazolylnucleoside methoxy",
+        "pyrazolylnucleoside fluoro",
+        "pyrazolylnucleoside chloro",
+        "pyrazolylnucleoside bromo",
+    ),
+
+    # Copper again (as the tetrazoles case), but the fuller stack: this study
+    # runs DFT + Monte Carlo + molecular dynamics with a clean metal-heteroatom
+    # RDF, so it exercises the MD/RDF path on Cu(111), not just the descriptors.
+    metal="Cu(111)",
+
+    # The source protonates the pyrazole ring in acidic media and its MC/MD box
+    # carries hydronium + chloride, i.e. hydrochloric acid; modelled as 1 M HCl.
+    medium="1 M HCl",
+
+    # The basic site is the pyrazole ring nitrogen (parent pyrazole pKaH ~2.5);
+    # at low pH these nucleosides are largely protonated, the species the source
+    # itself models.
+    pkah=2.5,
+
+    # The source computes with DMol3 (M-11L / DND / COSMO), a different level,
+    # so the descriptor comparison is qualitative. The set spans F / Cl / Br,
+    # and the engine's Pople sets (6-31G(d), 6-311++G(d,p)) carry no bromine, so
+    # the basis is def2-SVP: all-electron, whole-periodic-table coverage at
+    # double-zeta cost, treating the halogen series consistently.
+    basis="def2-SVP",
+    xc="b3lyp",
+
+    description="Five novel pyrazolylnucleosides (a 2-deoxyribofuranosyl "
+                "pyrazole with a cyanomethyl arm and a 4-X-phenyl group, "
+                "X = CH3 / OCH3 / F / Cl / Br) vs copper (Cu(111)) in acidic "
+                "medium. The fuller non-Fe case: DFT + MC + MD with a clean "
+                "metal-heteroatom RDF, exercising the MD/RDF path on copper.",
+
+    source="Oukhrib, Abdellaoui, Berisha, Abou Oualid, Halili, Jusufi, Ait El "
+           "Had, Bourzi, El Issami, Asmary, Parmar, Len, DFT, Monte Carlo and "
+           "molecular dynamics simulations for the prediction of corrosion "
+           "inhibition efficiency of novel pyrazolylnucleosides on Cu(111) "
+           "surface in acidic media, Scientific Reports 11 (2021) 3771, "
+           "DOI 10.1038/s41598-021-82927-5.",
+)
+
 CASE_STUDIES: dict[str, CaseStudy] = {
     "arghel": ARGHEL,
     "argel": ARGHEL,
@@ -271,6 +365,13 @@ CASE_STUDIES: dict[str, CaseStudy] = {
     "tmp_smx": TMP_SMX,
     "tmp-smx-al": TMP_SMX,
     "tmpsmx": TMP_SMX,
+    "tetrazoles": TETRAZOLES,
+    "tetrazole": TETRAZOLES,
+    "tetrazoles-cu": TETRAZOLES,
+    "tz": TETRAZOLES,
+    "pyrazolylnucleosides": PYRAZOLYLNUCLEOSIDES,
+    "pyrazolylnucleoside": PYRAZOLYLNUCLEOSIDES,
+    "pyn": PYRAZOLYLNUCLEOSIDES,
 }
 
 
