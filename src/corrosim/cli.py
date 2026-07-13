@@ -127,32 +127,44 @@ def build_parser() -> argparse.ArgumentParser:
         prog="corrosim",
         description="Automated corrosion-inhibitor screening "
                     "(free/open-source).")
+
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--input", metavar="CSV",
                      help="CSV of molecules (columns: name[,smiles]).")
+
     src.add_argument("--inhibitors", metavar="LIST",
                      help="Comma-separated names or SMILES.")
+
     p.add_argument("--metal", default="Fe(110)",
                    help="Substrate: Fe(110) | Cu(111) | Al(111). Default "
                         "Fe(110).")
+
     p.add_argument("--medium", default="1 M HCl",
                    help="Label for the report header.")
+
     p.add_argument("--engine", default="xtb",
                    choices=["xtb", "pyscf", "orca", "gaussian"],
                    help="Quantum engine. Default xtb (fast).")
+
     p.add_argument("--basis", default="6-311++G(d,p)",
                    help="PySCF basis set. Default = the production DFT level; "
                         "use 6-31g for a quick check.")
+
     p.add_argument("--xc", default="b3lyp",
                    help="PySCF exchange-correlation functional.")
+
     p.add_argument("--solvent", default="water",
                    help="Implicit solvent ('none' for gas phase).")
+
     p.add_argument("--adsorption", action="store_true",
                    help="Add the UFF vdW physisorption estimate.")
+
     p.add_argument("--out", metavar="HTML", default="corrosion_report.html",
                    help="HTML report path. Default corrosion_report.html.")
+
     p.add_argument("--csv", metavar="CSV", default=None,
                    help="Also write the results table to this CSV.")
+
     p.add_argument("--plan", action="store_true",
                    help="Print the steps this screen would run (for the given "
                         "options) and exit, without computing anything.")
