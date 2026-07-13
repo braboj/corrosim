@@ -141,6 +141,21 @@ A gotcha when adding a new case: if any molecule contains a heavier element
 sets (`6-31G(d)`, `6-311++G(d,p)`) carry no bromine, and `run_fukui` /
 `make_cubes` at their `6-31G(d)` default will also fail on it.
 
+A large, compact, oxygen-dense molecule can make the diffuse production basis
+diverge (near-linear-dependence). The SCF now escalates on non-convergence
+(level-shift + damping, then a second-order restart) before giving up, and a
+run that still cannot converge **fails loud** — `SCFConvergenceError` naming the
+molecule and level — rather than feeding garbage frontier orbitals into the
+descriptors; the batch stops at that molecule. Respond by relaxing the geometry
+first (`--optimize`) or dropping the preset to a less diffuse `basis`. To speed
+(not fix) an intractable exact-integral SCF, opt into density fitting
+(`--density-fit`, or the preset `density_fit` field): its `_cderi` tensor is
+kept in RAM only while it fits the memory budget and otherwise spills to disk,
+so point `PYSCF_TMPDIR` at the container's disk mount (not a RAM-backed `/tmp`)
+and pin the budget with `--max-memory-mb` if auto-detection is off. Density
+fitting shifts the numbers (RI approximation), so it stays off for the
+production descriptors.
+
 Every driver, `run_dft` included, now persists an unset output to
 `cases/<name>/results/` by default (`run_dft` writes `dft_descriptors_ff` for
 force-field geometries, `dft_descriptors_opt` for `--optimize`/`--to-minimum`

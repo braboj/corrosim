@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from .engines import resolve_memory_budget_mb, run_scf
+
 if TYPE_CHECKING:
     from corrosim.molecules import Molecule
 
@@ -199,7 +201,12 @@ def _atom_pop(mol, mo_coeff, S):
 
 
 def _scf(symbols, coords, charge, spin, basis, xc):
-    """Run one (U/R)KS SCF, with a second-order fallback if unconverged.
+    """Run one (U/R)KS SCF through the shared convergence ladder.
+
+    Builds the open- or closed-shell mean field (UKS for the finite-difference
+    anion, RKS otherwise), sizes its memory budget, and converges it via the
+    shared run_scf ladder — so a non-converging anion fails loud rather than
+    feeding an unconverged density into the finite-difference Fukui.
 
     Args:
         symbols: Element symbols.
@@ -215,13 +222,10 @@ def _scf(symbols, coords, charge, spin, basis, xc):
     from . import _backend_pyscf as _pyscf
     mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
                        basis=basis, charge=charge, spin=spin, verbose=0)
+    mol.max_memory = resolve_memory_budget_mb()
     mf = (_pyscf.dft.RKS(mol) if spin == 0 else _pyscf.dft.UKS(mol))
     mf.xc = xc
-    mf.kernel()
-    if not mf.converged:
-        # Second-order fallback
-        mf = mf.newton()
-        mf.kernel()
+    mf = run_scf(mf, label=f"{xc}/{basis} (spin {spin})")
     return mol, mf
 
 

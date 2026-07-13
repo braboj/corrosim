@@ -60,11 +60,12 @@ def resolve_case(args: argparse.Namespace, metal: str = "label") -> CaseStudy:
     """Resolve ``--case`` and backfill unset case-derived arguments.
 
     Reads ``args.case`` and fills ``args.molecules``, ``args.metal``,
-    ``args.medium`` and the DFT level (``args.basis`` / ``args.xc``) from that
-    case study wherever the driver left them unset, so an explicit flag always
-    overrides the case default. Each backfill is guarded by ``hasattr`` and a
-    ``None`` check, so only drivers that expose the flag with a ``None`` default
-    opt in (a driver whose ``--basis`` carries its own small default keeps it).
+    ``args.medium`` and the DFT level (``args.basis`` / ``args.xc`` /
+    ``args.density_fit``) from that case study wherever the driver left them
+    unset, so an explicit flag always overrides the case default. Each backfill
+    is guarded by ``hasattr`` and a ``None`` check, so only drivers that expose
+    the flag with a ``None`` default opt in (a driver whose ``--basis`` carries
+    its own small default keeps it).
 
     Args:
         args: The parsed argument namespace (mutated in place).
@@ -86,6 +87,8 @@ def resolve_case(args: argparse.Namespace, metal: str = "label") -> CaseStudy:
         args.basis = case.basis
     if hasattr(args, "xc") and args.xc is None:
         args.xc = case.xc
+    if hasattr(args, "density_fit") and args.density_fit is None:
+        args.density_fit = case.density_fit
     return case
 
 

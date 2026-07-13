@@ -75,6 +75,11 @@ class CaseStudy:
     basis: str = "6-311++G(d,p)"
     xc: str = "b3lyp"
 
+    # Speed the production SCF with density fitting (RI). Off by default: the RI
+    # approximation shifts the descriptors, so it stays a deliberate per-case
+    # opt-in for a large molecule whose exact-integral SCF is intractable.
+    density_fit: bool = False
+
     @property
     def metal_element(self) -> str:
         """Bare element symbol for the slab/RDF code.

@@ -55,6 +55,7 @@ from corrosim.molecules import (
     write_xyz,
 )
 from corrosim.qm.engines import (
+    MEMORY_BUDGET_ENV,
     MIN_RECIPE,
     min_check_fields,
     optimize_geometry,
@@ -214,6 +215,7 @@ def _single_points(
     basis: str,
     xc: str,
     metal: str,
+    density_fit: bool = False,
 ) -> list[dict]:
     """Production single points for one species in gas and aqueous phase.
 
@@ -226,6 +228,7 @@ def _single_points(
         basis: Production AO basis (pyscf only).
         xc: Exchange-correlation functional (pyscf only).
         metal: Substrate label for ΔN.
+        density_fit: Speed the SCF with density fitting (pyscf only).
 
     Returns:
         One descriptor row per phase (gas, aqueous).
@@ -233,8 +236,9 @@ def _single_points(
     rows = []
     for phase, solvent in (("gas", None), ("aqueous", "water")):
         print(f"  DFT {form}/{phase} ...", file=sys.stderr)
-        kw: dict[str, Any] = (dict(basis=basis, xc=xc, solvent=solvent)
-                              if engine == "pyscf" else {})
+        kw: dict[str, Any] = (
+            dict(basis=basis, xc=xc, solvent=solvent, density_fit=density_fit)
+            if engine == "pyscf" else {})
         row = corrosim.analyse_molecule(mol, metal=metal, engine=engine, **kw)
         row.update(form=form, phase=phase, geometry=geom_tag, **min_prov)
         rows.append(row)
@@ -257,6 +261,7 @@ def analyse_matrix(
     opt_geom_dir: str | None = None,
     check_minimum: bool = False,
     to_minimum: bool = False,
+    density_fit: bool = False,
 ) -> list[dict]:
     """Run the {neutral, protonated} x {gas, aqueous} DFT matrix.
 
@@ -285,6 +290,7 @@ def analyse_matrix(
         opt_geom_dir: Directory to persist ``<molecule>_opt.xyz``, if any.
         check_minimum: Run a frequency check and record the provenance.
         to_minimum: Drive each geometry to a verified true minimum.
+        density_fit: Speed the production single point with density fitting.
 
     Returns:
         One row dict per (molecule, form, phase).
@@ -304,7 +310,8 @@ def analyse_matrix(
                     mol, form, opt_basis, opt_xc, opt_solvent, opt_maxsteps,
                     to_minimum, check_minimum, opt_geom_dir)
             rows.extend(_single_points(mol, form, geom_tag, min_prov, engine,
-                                       basis, xc, metal))
+                                       basis, xc, metal,
+                                       density_fit=density_fit))
     return rows
 
 
@@ -332,6 +339,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--xc", default=None,
                    help="PySCF XC functional; unset uses the --case study's "
                         "functional (default b3lyp).")
+    p.add_argument("--density-fit", action="store_true", default=None,
+                   help="Speed the SCF with density fitting (RI); unset uses "
+                        "the --case study's setting (default off). The RI "
+                        "approximation shifts the descriptors, so enable it "
+                        "only for a large molecule whose exact-integral SCF is "
+                        "intractable.")
+    p.add_argument("--max-memory-mb", type=int, default=None,
+                   help="SCF memory budget (MB); unset auto-detects from the "
+                        "host / container memory limit.")
     p.add_argument("--forms", default="both",
                    choices=["both", "neutral", "protonated"],
                    help="Which species to run (default both). 'protonated' "
@@ -512,6 +528,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     _default_descriptor_outputs(args, case.results_dir, optimize)
     opt_geom_dir = _opt_geom_dir(args, to_minimum, case.results_dir)
 
+    # Pin the SCF memory budget for every engine call this run makes (single
+    # points, optimisation, frequencies) via the env budget lever build_rks
+    # reads back.
+    if args.max_memory_mb:
+        os.environ[MEMORY_BUDGET_ENV] = str(args.max_memory_mb)
+
     rows = analyse_matrix(molecules, engine=args.engine, metal=args.metal,
                           basis=args.basis, xc=args.xc,
                           forms=forms,
@@ -520,7 +542,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                           opt_xc=args.opt_xc, opt_solvent=args.opt_solvent,
                           opt_maxsteps=args.opt_maxsteps,
                           opt_geom_dir=opt_geom_dir,
-                          check_minimum=check_minimum, to_minimum=to_minimum)
+                          check_minimum=check_minimum, to_minimum=to_minimum,
+                          density_fit=bool(args.density_fit))
 
     _write_outputs(rows, args)
     return 0
