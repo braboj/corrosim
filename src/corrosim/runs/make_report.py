@@ -25,6 +25,7 @@ import pandas as pd
 from corrosim import report
 from corrosim.medium import MediumSpec, parse_medium
 from corrosim.presets import CaseStudy
+from corrosim.qm.fukui import FukuiResult
 from corrosim.qm.speciation import analyse_speciation, protonation_fraction
 from corrosim.report.report_layout import table_path
 from corrosim.runs._cli import (
@@ -39,6 +40,25 @@ from corrosim.runs._cli import stderr_log as log
 
 def _load_json(path: str):
     return read_json(path, [])
+
+
+def _fukui_rows(path: str) -> list[dict]:
+    """Per-atom Fukui rows from a ``*_fukui.json``, in either persisted format.
+
+    Normalises through the FukuiResult round-trip so both the current
+    ``{"basis", "atoms"}`` object and the legacy bare-list payload yield the
+    same per-atom rows the report consumes; an absent file yields no rows.
+
+    Args:
+        path: Path to a ``<molecule>_fukui.json`` file.
+
+    Returns:
+        The per-atom Fukui rows, or an empty list when the file is absent.
+    """
+    obj = _load_json(path)
+    if not obj:
+        return []
+    return FukuiResult.from_json(obj).as_rows()
 
 
 def _rank_blend(blend_rows: list[dict]) -> list[dict]:
@@ -346,7 +366,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     mc_rows = _load_json(args.mc)
     md_rows = _load_json(args.md)
-    fukui_by_name = {n: _load_json(f"{args.datadir}/{n}_fukui.json")
+    fukui_by_name = {n: _fukui_rows(f"{args.datadir}/{n}_fukui.json")
                      for n in present}
 
     log(f"DFT rows: {len(rows)} | MC: {len(mc_rows)} | MD: {len(md_rows)} | "

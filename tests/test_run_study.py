@@ -109,3 +109,27 @@ def test_idempotent_stages_skip_when_outputs_exist(monkeypatch):
     assert rc == 0
     # the compute stages are skipped; only the always-render stages run
     assert calls == ["make_figures", "make_report"]
+
+
+def test_fukui_stage_passes_the_case_def2_basis_for_a_heavy_element_case(
+        monkeypatch):
+    # a def2 case (bromine) must reach run_fukui as --basis, not its light
+    # Pople default which carries no bromine
+    argvs: list[list[str]] = []
+    monkeypatch.setattr("corrosim.runs.run_fukui.main",
+                        lambda argv: argvs.append(argv) or 0)
+    rc = run_study.main(["--case", "pyrazolylnucleosides", "--only", "fukui",
+                         "--force"])
+    assert rc == 0
+    assert argvs == [["--case", "pyrazolylnucleosides",
+                      "--basis", "def2-SVP"]]
+
+
+def test_fukui_stage_omits_basis_for_a_pople_case(monkeypatch):
+    # a Pople-basis case keeps run_fukui's own light default (no override)
+    argvs: list[list[str]] = []
+    monkeypatch.setattr("corrosim.runs.run_fukui.main",
+                        lambda argv: argvs.append(argv) or 0)
+    rc = run_study.main(["--case", "arghel", "--only", "fukui", "--force"])
+    assert rc == 0
+    assert argvs == [["--case", "arghel"]]

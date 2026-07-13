@@ -83,6 +83,28 @@ def test_make_report_threads_case_pkah_into_speciation():
     assert summary["speciation"].pkah == 2.0
 
 
+def test_make_report_fukui_rows_reads_both_persisted_formats(tmp_path):
+    # regression: make_report must accept both the current as_json object form
+    # {"basis", "atoms"} (a def2 halogen case) and the legacy bare-list form,
+    # normalising both to the same per-atom rows; a missing file yields none
+    import json
+
+    from corrosim.qm.fukui import FukuiResult
+    from corrosim.runs import make_report
+
+    fr = FukuiResult.from_populations(["O", "C", "H"], [0.4, 0.3, 0.1],
+                                      [0.5, 0.2, 0.1], softness=None,
+                                      basis="def2-SVP")
+    obj_path = tmp_path / "mol_obj_fukui.json"
+    obj_path.write_text(json.dumps(fr.as_json()))     # {"basis", "atoms"}
+    list_path = tmp_path / "mol_list_fukui.json"
+    list_path.write_text(json.dumps(fr.as_rows()))    # legacy bare list
+
+    assert make_report._fukui_rows(str(obj_path)) == fr.as_rows()
+    assert make_report._fukui_rows(str(list_path)) == fr.as_rows()
+    assert make_report._fukui_rows(str(tmp_path / "absent_fukui.json")) == []
+
+
 def test_compare_geometry_writes_csv_and_figure(tmp_path):
     from corrosim.runs import compare_geometry
 

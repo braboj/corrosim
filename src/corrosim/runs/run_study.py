@@ -111,7 +111,14 @@ def _run_fukui(case: CaseStudy, args: argparse.Namespace) -> int:
     """
     from corrosim.runs import run_fukui
 
-    return run_fukui.main(["--case", args.case])
+    argv = ["--case", args.case]
+    # run_fukui defaults to a light Pople set (diffuse sets break the
+    # Mulliken-condensed Fukui), but that set has no bromine; a heavier-element
+    # case declares a non-diffuse def2 basis, so pass it through for full
+    # periodic-table coverage, mirroring the cube stage.
+    if case.basis.lower().startswith("def2"):
+        argv += ["--basis", case.basis]
+    return run_fukui.main(argv)
 
 
 def _run_pka(case: CaseStudy, args: argparse.Namespace) -> int:

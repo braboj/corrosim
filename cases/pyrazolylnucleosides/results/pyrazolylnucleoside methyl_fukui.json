@@ -1,0 +1,383 @@
+{
+  "basis": "def2-SVP (FMO)",
+  "atoms": [
+    {
+      "idx": 0,
+      "symbol": "O",
+      "f_plus": -0.0001,
+      "f_minus": 0.0007,
+      "dual": -0.0008,
+      "s_plus": -0.0001,
+      "s_minus": 0.0007
+    },
+    {
+      "idx": 1,
+      "symbol": "C",
+      "f_plus": 0.0009,
+      "f_minus": 0.0004,
+      "dual": 0.0005,
+      "s_plus": 0.0009,
+      "s_minus": 0.0004
+    },
+    {
+      "idx": 2,
+      "symbol": "C",
+      "f_plus": 0.0014,
+      "f_minus": 0.0024,
+      "dual": -0.001,
+      "s_plus": 0.0014,
+      "s_minus": 0.0024
+    },
+    {
+      "idx": 3,
+      "symbol": "O",
+      "f_plus": 0.0009,
+      "f_minus": 0.0392,
+      "dual": -0.0383,
+      "s_plus": 0.0009,
+      "s_minus": 0.0392
+    },
+    {
+      "idx": 4,
+      "symbol": "C",
+      "f_plus": 0.0024,
+      "f_minus": 0.0013,
+      "dual": 0.0012,
+      "s_plus": 0.0024,
+      "s_minus": 0.0013
+    },
+    {
+      "idx": 5,
+      "symbol": "N",
+      "f_plus": 0.0113,
+      "f_minus": 0.0197,
+      "dual": -0.0085,
+      "s_plus": 0.0113,
+      "s_minus": 0.0197
+    },
+    {
+      "idx": 6,
+      "symbol": "N",
+      "f_plus": 0.0111,
+      "f_minus": 0.1765,
+      "dual": -0.1654,
+      "s_plus": 0.0111,
+      "s_minus": 0.1765
+    },
+    {
+      "idx": 7,
+      "symbol": "C",
+      "f_plus": 0.0044,
+      "f_minus": 0.0448,
+      "dual": -0.0404,
+      "s_plus": 0.0044,
+      "s_minus": 0.0448
+    },
+    {
+      "idx": 8,
+      "symbol": "C",
+      "f_plus": 0.001,
+      "f_minus": 0.004,
+      "dual": -0.0029,
+      "s_plus": 0.001,
+      "s_minus": 0.004
+    },
+    {
+      "idx": 9,
+      "symbol": "C",
+      "f_plus": 0.0006,
+      "f_minus": 0.0003,
+      "dual": 0.0003,
+      "s_plus": 0.0006,
+      "s_minus": 0.0003
+    },
+    {
+      "idx": 10,
+      "symbol": "N",
+      "f_plus": 0.0009,
+      "f_minus": 0.0007,
+      "dual": 0.0002,
+      "s_plus": 0.0009,
+      "s_minus": 0.0007
+    },
+    {
+      "idx": 11,
+      "symbol": "C",
+      "f_plus": 0.0102,
+      "f_minus": 0.0729,
+      "dual": -0.0626,
+      "s_plus": 0.0102,
+      "s_minus": 0.0729
+    },
+    {
+      "idx": 12,
+      "symbol": "C",
+      "f_plus": 0.0212,
+      "f_minus": 0.153,
+      "dual": -0.1317,
+      "s_plus": 0.0212,
+      "s_minus": 0.153
+    },
+    {
+      "idx": 13,
+      "symbol": "C",
+      "f_plus": 0.2445,
+      "f_minus": 0.1352,
+      "dual": 0.1093,
+      "s_plus": 0.2445,
+      "s_minus": 0.1352
+    },
+    {
+      "idx": 14,
+      "symbol": "C",
+      "f_plus": 0.1836,
+      "f_minus": 0.0278,
+      "dual": 0.1558,
+      "s_plus": 0.1836,
+      "s_minus": 0.0278
+    },
+    {
+      "idx": 15,
+      "symbol": "C",
+      "f_plus": 0.0136,
+      "f_minus": 0.0657,
+      "dual": -0.0521,
+      "s_plus": 0.0136,
+      "s_minus": 0.0657
+    },
+    {
+      "idx": 16,
+      "symbol": "C",
+      "f_plus": 0.2569,
+      "f_minus": 0.1232,
+      "dual": 0.1337,
+      "s_plus": 0.2569,
+      "s_minus": 0.1232
+    },
+    {
+      "idx": 17,
+      "symbol": "C",
+      "f_plus": 0.0054,
+      "f_minus": 0.0077,
+      "dual": -0.0023,
+      "s_plus": 0.0054,
+      "s_minus": 0.0077
+    },
+    {
+      "idx": 18,
+      "symbol": "C",
+      "f_plus": 0.1487,
+      "f_minus": 0.0182,
+      "dual": 0.1305,
+      "s_plus": 0.1487,
+      "s_minus": 0.0182
+    },
+    {
+      "idx": 19,
+      "symbol": "C",
+      "f_plus": 0.0246,
+      "f_minus": 0.0625,
+      "dual": -0.038,
+      "s_plus": 0.0246,
+      "s_minus": 0.0625
+    },
+    {
+      "idx": 20,
+      "symbol": "C",
+      "f_plus": 0.0003,
+      "f_minus": 0.0014,
+      "dual": -0.001,
+      "s_plus": 0.0003,
+      "s_minus": 0.0014
+    },
+    {
+      "idx": 21,
+      "symbol": "C",
+      "f_plus": 0.0023,
+      "f_minus": 0.0014,
+      "dual": 0.0009,
+      "s_plus": 0.0023,
+      "s_minus": 0.0014
+    },
+    {
+      "idx": 22,
+      "symbol": "O",
+      "f_plus": -0.0,
+      "f_minus": 0.0019,
+      "dual": -0.002,
+      "s_plus": -0.0,
+      "s_minus": 0.0019
+    },
+    {
+      "idx": 23,
+      "symbol": "H",
+      "f_plus": 0.0004,
+      "f_minus": 0.0,
+      "dual": 0.0003,
+      "s_plus": 0.0004,
+      "s_minus": 0.0
+    },
+    {
+      "idx": 24,
+      "symbol": "H",
+      "f_plus": 0.0041,
+      "f_minus": 0.0009,
+      "dual": 0.0032,
+      "s_plus": 0.0041,
+      "s_minus": 0.0009
+    },
+    {
+      "idx": 25,
+      "symbol": "H",
+      "f_plus": 0.0004,
+      "f_minus": 0.0001,
+      "dual": 0.0003,
+      "s_plus": 0.0004,
+      "s_minus": 0.0001
+    },
+    {
+      "idx": 26,
+      "symbol": "H",
+      "f_plus": 0.0002,
+      "f_minus": 0.0045,
+      "dual": -0.0044,
+      "s_plus": 0.0002,
+      "s_minus": 0.0045
+    },
+    {
+      "idx": 27,
+      "symbol": "H",
+      "f_plus": 0.0,
+      "f_minus": 0.0065,
+      "dual": -0.0065,
+      "s_plus": 0.0,
+      "s_minus": 0.0065
+    },
+    {
+      "idx": 28,
+      "symbol": "H",
+      "f_plus": 0.0001,
+      "f_minus": 0.0029,
+      "dual": -0.0027,
+      "s_plus": 0.0001,
+      "s_minus": 0.0029
+    },
+    {
+      "idx": 29,
+      "symbol": "H",
+      "f_plus": 0.0009,
+      "f_minus": 0.0006,
+      "dual": 0.0004,
+      "s_plus": 0.0009,
+      "s_minus": 0.0006
+    },
+    {
+      "idx": 30,
+      "symbol": "H",
+      "f_plus": 0.0002,
+      "f_minus": 0.0006,
+      "dual": -0.0005,
+      "s_plus": 0.0002,
+      "s_minus": 0.0006
+    },
+    {
+      "idx": 31,
+      "symbol": "H",
+      "f_plus": 0.0021,
+      "f_minus": 0.0009,
+      "dual": 0.0013,
+      "s_plus": 0.0021,
+      "s_minus": 0.0009
+    },
+    {
+      "idx": 32,
+      "symbol": "H",
+      "f_plus": 0.0003,
+      "f_minus": 0.0009,
+      "dual": -0.0007,
+      "s_plus": 0.0003,
+      "s_minus": 0.0009
+    },
+    {
+      "idx": 33,
+      "symbol": "H",
+      "f_plus": 0.0227,
+      "f_minus": 0.0127,
+      "dual": 0.01,
+      "s_plus": 0.0227,
+      "s_minus": 0.0127
+    },
+    {
+      "idx": 34,
+      "symbol": "H",
+      "f_plus": 0.0036,
+      "f_minus": 0.0025,
+      "dual": 0.0011,
+      "s_plus": 0.0036,
+      "s_minus": 0.0025
+    },
+    {
+      "idx": 35,
+      "symbol": "H",
+      "f_plus": 0.0088,
+      "f_minus": 0.0035,
+      "dual": 0.0052,
+      "s_plus": 0.0088,
+      "s_minus": 0.0035
+    },
+    {
+      "idx": 36,
+      "symbol": "H",
+      "f_plus": 0.0018,
+      "f_minus": 0.0008,
+      "dual": 0.001,
+      "s_plus": 0.0018,
+      "s_minus": 0.0008
+    },
+    {
+      "idx": 37,
+      "symbol": "H",
+      "f_plus": 0.0002,
+      "f_minus": 0.0008,
+      "dual": -0.0006,
+      "s_plus": 0.0002,
+      "s_minus": 0.0008
+    },
+    {
+      "idx": 38,
+      "symbol": "H",
+      "f_plus": 0.0038,
+      "f_minus": 0.0,
+      "dual": 0.0038,
+      "s_plus": 0.0038,
+      "s_minus": 0.0
+    },
+    {
+      "idx": 39,
+      "symbol": "H",
+      "f_plus": 0.0002,
+      "f_minus": 0.0,
+      "dual": 0.0002,
+      "s_plus": 0.0002,
+      "s_minus": 0.0
+    },
+    {
+      "idx": 40,
+      "symbol": "H",
+      "f_plus": 0.003,
+      "f_minus": 0.0007,
+      "dual": 0.0023,
+      "s_plus": 0.003,
+      "s_minus": 0.0007
+    },
+    {
+      "idx": 41,
+      "symbol": "H",
+      "f_plus": 0.0009,
+      "f_minus": 0.0001,
+      "dual": 0.0008,
+      "s_plus": 0.0009,
+      "s_minus": 0.0001
+    }
+  ]
+}
