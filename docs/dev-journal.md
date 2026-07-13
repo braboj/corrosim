@@ -1866,4 +1866,69 @@ production level (a direct numeric cross-check) and carries experimental data.
   has both) since the QM Fukui/cube stages were not run. Other threads unchanged:
   **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
 
+## 2026-07-13 (session 25): copper validation cases (tetrazoles + pyrazolylnucleosides)
+
+Picked up the Cu(111) half of #200 (the non-Fe tail left after Al(111)/tmp-smx),
+first closing a loose end from session 24: the tmp-smx bundle had shipped without
+the Fukui/ESP maps the paper reports.
+
+- **tmp-smx Fukui/ESP backfill (PR #207).** Ran the skipped QM stages, condensed
+  Fukui (fmo, 6-31G(d)) and the ESP + HOMO/LUMO cubes, for TMP + SMX; rendered
+  fig4/fig7/fig2b into the bundle and added a local-reactivity note to
+  validation.md Case 4 (donor sites: SMX sulfonamide/isoxazole N, TMP
+  trimethoxybenzyl oxygens). Kept qualitative (the paper's Fukui/ESP are maps, not
+  tables).
+- **Two copper validation cases (PR #208), the non-Fe goal of #200.** Both Cu(111)
+  candidate papers shipped end-to-end:
+  - **tetrazoles** (Bourzi 2020, Cu(111) / acidic HNO3), DFT + MC + MD:
+    Validated (qualitative). Four derivatives (TZ/ATZ/PTZ/PMTZ) whose reactivity
+    spans a real electronic range. Every corrosim observable (the DFT
+    gap/hardness/softness composite, the MC adsorption energy, the MD mean energy)
+    independently reproduces the order PMTZ > PTZ > ATZ > TZ, and that order is the
+    measured one (experimental IE% 94.5/42.5/32/6). The ADR-0021 gate returns a
+    robust PMTZ lead. Absolute descriptors do not compare (the paper's HOMO around
+    -2 eV is anomalous; corrosim's -6.8 to -8.8 eV are physical), so it is an
+    ordering validation, one anchored to experiment rather than to a single paper.
+  - **pyrazolylnucleosides** (Oukhrib 2021, Cu(111) / HCl), the fuller DFT + MC +
+    MD stack with an RDF: Partial (qualitative). Five 5a-e derivatives differing
+    only in a distal para substituent (CH3/OCH3/F/Cl/Br). corrosim's MC reproduces
+    the paper's strongest adsorber (5e, bromo) and all five physisorb
+    spontaneously, but the full para-halogen order is below the method's resolution
+    (the middle three cluster within 0.1 kJ/mol), the DFT composite ties (5d
+    neutral vs 5b pH-weighted), and the RDF sits at physisorption range where the
+    paper reads chemisorption. A live instance of "do not order finer than the
+    estimator resolves": the screen recovers the lead but not the tail. SMILES were
+    read off the source Figure 1 (rendered from the PDF with PyMuPDF, since the
+    compounds are novel and not in PubChem).
+- **Two engine gaps the bromine molecule exposed, both fixed.** PySCF's Pople
+  basis sets, including the production 6-311++G(d,p), carry no bromine, so the
+  pyrazolyl preset uses def2-SVP (all-electron, whole-periodic-table). And the UFF
+  vdW table had no Br entry, so MC/MD raised on 5e; added the Rappe 1992 Br
+  parameter (x=4.189 A, D=0.251 kcal/mol) with a test.
+- **Library + presets.** 4 tetrazoles (PubChem; PMTZ set to the thiol tautomer the
+  figure draws) + 5 pyrazolylnucleosides (source: paper); presets tetrazoles
+  (1 M HNO3, pkah -1.5 weak base) and pyrazolylnucleosides (1 M HCl, pkah 2.5
+  pyrazole, def2-SVP) with tests. validation.md gains Cases 5 and 6, the scorecard,
+  and a three-metal (Fe/Al/Cu) substrate section.
+- **Issues filed.** #209 (run_dft should persist to the case results dir by
+  default; it computes-and-prints but writes nothing without explicit --out,
+  unlike every other driver, which cost a full DFT re-run), #210 (make_figures
+  hardcodes the Fukui title basis), #211 (pyrazolyl Fukui/ESP backfill, blocked on
+  #210).
+- **No new ADR.** The cases reuse existing machinery (ADR 0018/0019 bundles, 0021
+  gate, the phytic-style basis override); no new directory or cross-document move.
+- **Know-how + upstream.** Distilled one new pattern into engineering-know-how
+  (CLI and driver architecture): a step with a durable output persists it by
+  default or fails loud, never compute-print-discard. Filed it upstream as
+  solid-ai-templates#815. The pyrazolyl tie is a live instance of the existing
+  "do not order finer than the estimator resolves" entry, not a new pattern.
+  PLAYBOOK gained the two case-adding gotchas (run_dft --out; def2 basis for
+  Br/I).
+- **Gates.** pytest 241 passed / 1 skipped, ruff + mypy clean.
+- **Pending:** **#200 stays open**, non-Fe goal DONE (Al + both Cu cases);
+  remaining the Fe(110) Tier-2 tail (carbonitriles, guar-gum,
+  pyrazolone-sulfonamide, tangerine). Also #209 / #210 / #211 (driver-persistence
+  and Fukui-title fixes, pyrazolyl Fukui/ESP backfill). Other threads unchanged:
+  **#71** (#66/#67/#68), **#40**, #189 / #186 / #181 / #180.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
