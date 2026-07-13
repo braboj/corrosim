@@ -27,6 +27,17 @@ COPY src ./src
 RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -e ".[qm,dev]"
 
+# Resolve the package by its src/ location instead of the editable finder's
+# build-time-baked absolute path, which goes stale when the layout moves (the
+# src/ migration pointed the baked path at a now-nonexistent dir and every run
+# needed a PYTHONPATH override). The repo is bind-mounted at /work, so /work/src
+# is always the live package and the runtime import stays immune to that drift.
+ENV PYTHONPATH=/work/src
+
+# Fail the build loudly if the package or the engines do not import, so a broken
+# image can never ship silently.
+RUN python -c "import corrosim, pyscf, tblite"
+
 # Default: confirm the quantum engines import.
 CMD ["python", "-c", "import pyscf, tblite, corrosim; \
 print('corrosim QM env OK | pyscf', pyscf.__version__, '| tblite ok')"]
