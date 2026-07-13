@@ -82,7 +82,9 @@ stages and the render in the venv:
 # Windows. logs/ is a gitignored local scratch folder (create it if missing).
 mkdir -p logs
 docker compose run -d --rm --name qmjob qm sh -c '{
-    python -m corrosim.runs.run_dft    --case <name> &&
+    python -m corrosim.runs.run_dft    --case <name> \
+        --out-json cases/<name>/results/dft_descriptors_ff.json \
+        --out-csv  cases/<name>/results/dft_descriptors_ff.csv &&
     python -m corrosim.runs.run_fukui  --case <name> &&
     python -m corrosim.runs.make_cubes --molecules "<mol1>,<mol2>" --what orbital,esp ;
   } > /work/logs/<name>.log 2>&1'
@@ -103,6 +105,17 @@ basis-insensitive). On a large, charge-dense molecule where the MEP integral
 runs slow or low on memory, drop the grid (`--nx 60`) or skip ESP (`--what
 orbital`). A render with no cubes/Fukui still succeeds: those figure sections
 degrade gracefully to nothing rather than erroring.
+
+Two gotchas when adding a new case:
+
+- `run_dft` persists only when `--out-json` / `--out-csv` are given: without
+  them it prints the table and writes nothing (unlike `run_mc` / `run_md` /
+  `run_fukui`, which auto-route to `cases/<name>/results/`). Pass the flags as
+  above until issue #209 defaults them.
+- If any molecule contains a heavier element (Br, I), set the preset `basis` to
+  a def2 set (`def2-SVP`): the engine's Pople sets (`6-31G(d)`,
+  `6-311++G(d,p)`) carry no bromine, and `run_fukui` / `make_cubes` at their
+  `6-31G(d)` default will also fail on it.
 
 After any change to input data, regenerate the dependent artifacts in the same
 change (see 4, Maintenance) and spot-check the diff, not just the file size.

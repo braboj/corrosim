@@ -914,6 +914,32 @@ import mypkg                     # the heavy import happens only past here
 This pattern has no core-convention home yet, so it is a candidate to propose
 upstream into the shared conventions.
 
+#### A step with a durable output persists it by default, or fails loud
+
+A command that runs an expensive computation and prints its result must also
+write it, by default, to a path resolved from the run's own config. A driver
+that persists only when an explicit `--out` flag is passed will, the first time
+the flag is forgotten, run the whole computation and silently discard it: the
+operator sees the printed table, assumes it was saved, and finds an empty output
+dir only when the next step reads nothing. Default the output path from the same
+config the input came from, so a plain `run --case X` writes to `X`'s results
+dir like every sibling command; let `--out` override *where*, not *whether*.
+
+```python
+# footgun: computes, prints, persists nothing unless a flag is remembered
+if args.out_csv:
+    df.to_csv(args.out_csv)        # forget the flag -> the expensive run is lost
+
+# safer: default the path from config, so a bare run always persists
+default_output(args, "out_csv", f"{cfg.results_dir}/descriptors.csv")
+df.to_csv(args.out_csv)           # always written; the flag only redirects it
+```
+
+Silent non-persistence of a completed computation is indistinguishable from
+success until something downstream reads the gap. Make the durable artifact the
+default; reserve print-only for an explicit dry run. (Also an upstream candidate
+for the shared CLI conventions.)
+
 ## The shortlist
 
 If you take five things:
