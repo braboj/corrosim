@@ -2109,4 +2109,66 @@ Cu(111) case and fixed two driver gaps the backfill exposed.
   periodic-DFT chemisorption E_ads). Optional: add `qm-image.yml` to branch
   protection.
 
+## 2026-07-14 (session 30): deployment epic — study-as-data, GHCR release, Pages gallery
+
+A long build session that took the deployment epic (#71) from "planned" to
+"one `git tag` away", plus the usability feature that makes the shipped tool
+actually run a user's own screen.
+
+- **#221 study-as-data (PR #222, ADR 0026).** A study (molecules + metal +
+  medium + DFT level) was a `CaseStudy` object in `presets.py`, so a user could
+  only screen their own inhibitors by editing source. Promoted it to data:
+  `CaseStudy.to_dict`/`from_dict`, `case_study()` grows one branch (a value that
+  ends `.json` or carries a path separator loads a study file, a bare word is
+  the registry, byte-identical), and `run_study` gains ad-hoc
+  `--name/--molecules/--metal/--medium` (+ `--pkah/--basis/--xc`). The flags
+  path *materialises `cases/<name>/study.json` and delegates*, so both front
+  doors share one construction/validation path and leave a reproducible
+  artifact. Fail-fast envelope check at the door (metal in Fe/Cu/Al, atoms in the
+  UFF set, filesystem-safe name). Ships `examples/study.template.json` + docs; 17
+  QM-light tests. Upstream `solid-ai-templates#819` (config.md).
+- **#67 release-on-tag → GHCR (PR #223, ADR 0027).** Product decision this
+  session: ship corrosim as a downloadable **tool** only. **Dropped PyPI**
+  (Part B of #67) and **closed #66 Colab won't-do**. `release.yml` on a `v*` tag
+  builds the image, **smoke-runs it standalone (no bind mount)** — the path the
+  dev/CI bind-mount smoke never exercises — pushes `ghcr.io/braboj/corrosim` +
+  `:latest`, and cuts a Release. Image name `corrosim` (local compose stays
+  `corrosim-qm`). README gained a Docker download-and-run section. Upstream
+  comment on `#817`. Verified the standalone no-mount run against the local
+  image; the actual publish awaits the first tag.
+- **#225 clean CLI errors (PR #226).** Found while writing the journeys doc: the
+  quick screen tracebacked on a bad molecule where run_study / add-inhibitor
+  print a clean `error:`. Wrapped the screen path in a try/except (ImportError →
+  engine hint; ValueError/OSError → `error:`), exit 1. 3 QM-light tests.
+- **User-journeys doc (PR #224).** New `docs/user-journeys.md`: seven actor-level
+  journeys (evaluate → quick screen → full study → reproduce a case → run in
+  Docker → add an inhibitor → script it), each with actor/goal/preconditions/
+  steps/result plus **success signal**, **error states**, and **next step**, all
+  from the tool's real output. Registered in the CLAUDE.md doc map.
+- **#68 Pages validation gallery (PR #227 + refine #228, ADR 0028).** The
+  "see it" front door, now **live at https://braboj.me/corrosim/**
+  (`braboj.github.io/corrosim/` redirects there). `report/gallery.py` reads
+  `presets.CASE_STUDIES` and emits a static index linking each case's tracked
+  self-contained report; `runs/make_pages.py` is the driver; `pages.yml` is a
+  path-gated build+deploy. Design: white canvas, each card accented by its
+  substrate metal (steel-blue Fe, copper Cu, aluminium Al), green/amber status
+  badges, and a **"Validated against"** block naming the published study in full
+  (the review made the corrosim-result-vs-published-study relationship explicit).
+  6 QM-light tests. Deployed and verified live twice.
+- **Know-how** distilled: "a registered config object also loads from a user
+  file through one resolver" (config), "publish on tag and smoke the standalone
+  config the user runs" (container/cicd), "serve self-contained artifacts on a
+  static host from a generated index" (cicd). Upstream: `#819` filed, `#817`
+  commented (twice).
+- **Gates.** pytest 304 passed / 1 skipped (from 279: +17 study-as-data, +3 cli,
+  +6 gallery, minus overlaps); ruff + mypy + complexipy clean throughout. All
+  work shipped via squash-auto-merge (PRs #222-228).
+- **Pending:** the deployment epic **#71** is one action from done, and it is
+  **yours, not the agent's**: cut the first release with `git tag v0.1.0 &&
+  git push origin v0.1.0` (fires `release.yml`), then one-time set the
+  `ghcr.io/braboj/corrosim` GHCR package **Public** (the token pushes but cannot
+  flip visibility); that closes **#67**. Pages (#68) is already live. Remaining
+  open work: **#40** (LAMMPS / periodic-DFT chemisorption E_ads, the standalone
+  research item) and the optional `qm-image.yml` branch-protection toggle.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
