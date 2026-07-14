@@ -789,6 +789,32 @@ steps:
       cache: pip                      # built-in dependency cache
 ```
 
+#### Serve self-contained artifacts on a static host from a generated index
+
+When the deliverables are already self-contained (a single file with assets
+inlined) and tracked, "publishing" them is a copy plus an index, not a rebuild.
+Generate the index from the same registry that defines the artifacts (the single
+source of truth), so a new artifact appears automatically, and skip any whose
+file is not present so the index never links a missing target. Path-gate the
+deploy to the artifacts, the generator, and the registry, so unrelated commits
+do not redeploy.
+
+```yaml
+on:
+  push:
+    paths: [outputs/**/final.html, tools/gen_index.py, config/registry.py]
+concurrency: { group: pages, cancel-in-progress: true }   # newer push wins
+steps:
+  - run: python tools/gen_index.py --out _site   # copies finals + writes index
+  - uses: actions/upload-pages-artifact@v3
+    with: { path: _site }
+```
+
+Keep presentational metadata the registry does not own (a status verdict, a
+display title) in a small explicit map next to the generator, not forced onto the
+config object, whose job is inputs, not results. One manual step usually remains:
+the host has to be switched on once (the deploy token cannot enable it).
+
 ### Containers
 
 #### Split execution: native path in a container, everything else native

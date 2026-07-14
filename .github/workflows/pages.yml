@@ -1,0 +1,63 @@
+name: Pages
+
+# Publish the case-report gallery to GitHub Pages. The reports are tracked,
+# self-contained HTML, so this only copies them and generates the index from
+# presets - no QM, no regeneration. Path-gated so unrelated commits don't
+# redeploy.
+#
+# One-time setup: enable Pages with Settings -> Pages -> Source = GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cases/**/report/report.html"
+      - "src/corrosim/report/gallery.py"
+      - "src/corrosim/runs/make_pages.py"
+      - "src/corrosim/presets.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer push supersedes an in-flight build.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the gallery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (no QM engines needed)
+        # make_pages only reads presets and copies the tracked reports, so the
+        # base install is enough; the qm extra is not pulled.
+        run: pip install -e .
+
+      - name: Build the gallery site
+        run: python -m corrosim.runs.make_pages --out _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

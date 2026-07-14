@@ -153,8 +153,10 @@ max-complexity = 15
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# report.py embeds long single-line CSS rules inside HTML string literals.
+# report.py and gallery.py embed long single-line CSS rules and HTML content
+# inside string literals (including an unbreakable web-font URL).
 "src/corrosim/report/report.py" = ["E501"]
+"src/corrosim/report/gallery.py" = ["E501"]
 # Tests are not public API — docstrings (D), line length and complexity there
 # are not held to the package standard.
 "tests/**" = ["D", "E501", "C901"]
