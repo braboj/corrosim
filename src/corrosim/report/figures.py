@@ -42,8 +42,8 @@ BOND_CUTOFF_ANG = 1.75
 # Shared element -> colour palette. One map drives the ball-and-stick atoms in
 # render_orbital and the adsorption pose, so a single "Color code" legend reads
 # the same across every 3D figure. Metals cover the validated substrates.
-_ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
-               "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000",
+_ELEM_COLOR = {"C": "#404040", "H": "#ffd400", "O": "#d00000", "N": "#1060d0",
+               "S": "#b8860b", "F": "#30a030", "Cl": "#30a030", "P": "#d08000",
                "Br": "#a52a2a", "I": "#7a1fa2",
                "Fe": "#b45a2b", "Cu": "#c8813c", "Al": "#9aa0b4"}
 
@@ -561,9 +561,9 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
         verts, faces, _, _ = measure.marching_cubes(data, level=lvl,
                                                     spacing=tuple(spacing))
         verts = (verts + origin - centroid) @ rot.T
-        # A translucent shell (low alpha) so the ball-and-stick skeleton stays
+        # A faint translucent shell so the ball-and-stick skeleton stays clearly
         # legible through the lobe instead of being buried under it.
-        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.22,
+        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.14,
                                              facecolor=color, edgecolor="none"))
     positions = (atoms.get_positions() - centroid) @ rot.T
     # Bonds first, then the atoms on top — both after the lobes so the skeleton
