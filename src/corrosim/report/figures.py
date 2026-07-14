@@ -18,6 +18,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from ase.io.cube import read_cube
+from matplotlib.lines import Line2D
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -28,9 +29,63 @@ if TYPE_CHECKING:
 # --- consistent publication palette ---------------------------------------
 C_HOMO, C_LUMO, C_BAR, C_METAL = "#2b6cb0", "#dd6b20", "#319795", "#c53030"
 
+# Orbital-phase lobe colours for render_orbital: positive lobe blue, negative
+# lobe red — the common blue/red wavefunction-sign convention. Kept separate
+# from the C_HOMO/C_LUMO series colours, which distinguish HOMO from LUMO in the
+# energy diagram and bar charts, not the two phases of one orbital.
+C_LOBE_POS, C_LOBE_NEG = "#2b6cb0", "#d62728"
+
 # Covalent-bond cutoff for the ball-and-stick skeleton in the 3D renderers: a
 # pair closer than this (H-H excepted) is drawn as a bond.
 BOND_CUTOFF_ANG = 1.75
+
+# Shared element -> colour palette. One map drives the ball-and-stick atoms in
+# render_orbital and the adsorption pose, so a single "Color code" legend reads
+# the same across every 3D figure. Metals cover the validated substrates.
+_ELEM_COLOR = {"C": "#404040", "H": "#ffd400", "O": "#d00000", "N": "#1060d0",
+               "S": "#b8860b", "F": "#30a030", "Cl": "#30a030", "P": "#d08000",
+               "Br": "#a52a2a", "I": "#7a1fa2",
+               "Fe": "#b45a2b", "Cu": "#c8813c", "Al": "#9aa0b4"}
+
+# Scatter marker sizes for the ball-and-stick atoms in render_orbital, sized so
+# the skeleton stays legible through the translucent orbital lobes.
+_ELEM_SIZE = {"C": 95, "H": 34, "O": 130, "N": 120, "S": 150, "P": 150,
+              "F": 110, "Cl": 150, "Br": 170, "I": 200,
+              "Fe": 160, "Cu": 160, "Al": 150}
+
+# Legend ordering: substrate metal first, then the common organics; anything
+# unlisted is appended.
+_LEGEND_ORDER = ["Fe", "Cu", "Al", "C", "H", "N", "O", "S", "P",
+                 "F", "Cl", "Br", "I"]
+
+
+def _atom_color_legend(fig: Any, symbols: Sequence[str],
+                       extra: Sequence[str] = (), y: float = 0.0) -> None:
+    """Draw a bottom 'Color code' legend of the elements present.
+
+    One shared palette drives every 3D figure, so the atom-colour key reads the
+    same across the report — the element-describing legend the manuscript
+    figures carry. Elements sort substrate-metal-first, then the common
+    organics; anything unlisted is appended. ``y`` is the legend's vertical
+    anchor in figure fraction (drop it below zero to clear a low-hanging axes
+    element, e.g. the pose's side-view cell box).
+    """
+    # Distinct elements, in a stable order (metal, then organics, then the rest)
+    present = list(dict.fromkeys(list(symbols) + list(extra)))
+    rank = {e: i for i, e in enumerate(_LEGEND_ORDER)}
+    present.sort(key=lambda e: rank.get(e, len(rank)))
+
+    # One proxy marker per element, coloured from the shared palette
+    handles = [
+        Line2D([0], [0], marker="o", linestyle="none", label=e,
+               markerfacecolor=_ELEM_COLOR.get(e, "#888888"),
+               markeredgecolor="k", markeredgewidth=0.4, markersize=9)
+        for e in present
+    ]
+    fig.legend(handles=handles, title="Color code", loc="lower center",
+               ncol=len(handles), frameon=False, fontsize=8,
+               title_fontsize=8, bbox_to_anchor=(0.5, y),
+               handletextpad=0.3, columnspacing=1.1)
 
 
 def _save(fig, out, dpi=150):
@@ -50,6 +105,27 @@ def _read_cube_grid(path):
     cell = np.asarray(atoms.cell)
     spacing = np.array([cell[i, i] / data.shape[i] for i in range(3)])
     return data, atoms, origin, spacing
+
+
+def _principal_frame(positions):
+    """Centroid + rotation aligning a molecule's principal axes to x, y, z.
+
+    The largest-spread axis maps to x and the smallest (the plane normal of a
+    roughly planar molecule) to z, so applying it lays the molecule flat in the
+    xy-plane and presents it face-on regardless of how the cube happened to be
+    oriented. Returns (centroid, R) with R a right-handed rotation whose rows
+    are the principal axes; transform points as ``(p - centroid) @ R.T``.
+    """
+    centroid = positions.mean(axis=0)
+    centred = positions - centroid
+    # Principal axes: eigenvectors of the covariance, ordered by descending
+    # spread so the long molecular axis leads.
+    _, evecs = np.linalg.eigh(centred.T @ centred)
+    rot = evecs[:, ::-1].T
+    # Keep it a proper rotation (no mirror), else chirality would flip.
+    if np.linalg.det(rot) < 0:
+        rot[2] = -rot[2]
+    return centroid, rot
 
 
 def _draw_bonds(ax, positions, symbols, **line_kw):
@@ -95,14 +171,14 @@ def plot_structures(names: Sequence[str], mols_per_row: int = 3,
     from rdkit import Chem
     from rdkit.Chem import AllChem, Draw
 
-    from ..molecules import resolve_smiles
+    from ..molecules import display_name, resolve_smiles
     mols, legends = [], []
     for n in names:
         nm, smi = resolve_smiles(n)
         m = Chem.MolFromSmiles(smi)
         AllChem.Compute2DCoords(m)
         mols.append(m)
-        legends.append(nm)
+        legends.append(display_name(nm))
     img = Draw.MolsToGridImage(mols, legends=legends,
                                molsPerRow=min(mols_per_row, len(mols)),
                                subImgSize=(330, 270))
@@ -124,6 +200,7 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import METAL_WORK_FUNCTION
     phi = METAL_WORK_FUNCTION.get(metal)
     n = len(rows)
@@ -145,7 +222,8 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
         ax.text(n - 0.5, -phi + 0.08, f"−Φ({metal}) = −{phi:.2f} eV",
                 color=C_METAL, va="bottom", ha="right", fontsize=8)
     ax.set_xticks(range(n))
-    ax.set_xticklabels([r["name"] for r in rows], rotation=12, ha="right")
+    ax.set_xticklabels([display_name(r["name"]) for r in rows], rotation=12,
+                       ha="right")
     ax.set_ylabel("Energy vs. vacuum (eV)")
     ax.set_title("Frontier molecular-orbital energies")
     ax.plot([], [], color=C_HOMO, lw=2.5, label="HOMO")
@@ -169,10 +247,11 @@ def plot_descriptor_comparison(rows: list[dict],
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import DESCRIPTOR_META
     keys = keys or ["gap_ev", "hardness_ev", "softness_inv_ev",
                     "electrophilicity_ev", "delta_n"]
-    names = [r["name"] for r in rows]
+    names = [display_name(r["name"]) for r in rows]
     fig, axes = plt.subplots(1, len(keys), figsize=(2.5 * len(keys), 3.6))
     axes = np.atleast_1d(axes)
     for ax, k in zip(axes, keys):
@@ -203,6 +282,7 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
                            (axes[1], "delta_n", "ΔN (electrons transferred)")):
@@ -216,7 +296,7 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
         ax.bar(x - 0.2, neu, 0.4, label="neutral", color=C_BAR)
         ax.bar(x + 0.2, pro, 0.4, label="protonated", color=C_LUMO)
         ax.set_xticks(x)
-        ax.set_xticklabels(order, rotation=15)
+        ax.set_xticklabels([display_name(m) for m in order], rotation=15)
         ax.set_title(title, fontsize=10)
         ax.axhline(0, color="grey", lw=0.6)
         ax.legend(fontsize=8)
@@ -246,6 +326,7 @@ def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import DESCRIPTOR_META
 
     def col(df, name, key):
@@ -262,7 +343,8 @@ def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
         ax.bar(x - 0.2, ff, 0.4, label="FF geom", color=C_BAR)
         ax.bar(x + 0.2, op, 0.4, label="DFT-opt geom", color=C_METAL)
         ax.set_xticks(x)
-        ax.set_xticklabels(order, rotation=18, ha="right")
+        ax.set_xticklabels([display_name(n) for n in order], rotation=18,
+                           ha="right")
         ax.set_title(DESCRIPTOR_META.get(k, (k, ""))[0], fontsize=10)
         ax.axhline(0, color="grey", lw=0.6)
     axes[0].legend(fontsize=8)
@@ -285,14 +367,26 @@ def plot_adsorption_pose(system: Any, out: str | None = None) -> object:
         The rendered figure (saved to ``out`` when given).
     """
     from ase.visualize.plot import plot_atoms
-    fig, axes = plt.subplots(1, 2, figsize=(9, 4.2))
-    plot_atoms(system.combined, axes[0], rotation="0x,0y,0z")
-    plot_atoms(system.combined, axes[1], rotation="-90x,0y,0z")
+    combined = system.combined
+    syms = combined.get_chemical_symbols()
+
+    # Colour every atom from the shared palette so the "Color code" legend
+    # below is truthful — ASE would otherwise fall back to its own CPK colours,
+    # which the legend key would then misdescribe.
+    colors = np.array([mpl.colors.to_rgb(_ELEM_COLOR.get(s, "#888888"))
+                       for s in syms])
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4.6))
+    plot_atoms(combined, axes[0], rotation="0x,0y,0z", colors=colors)
+    plot_atoms(combined, axes[1], rotation="-90x,0y,0z", colors=colors)
     axes[0].set_title(f"{system.metal}{system.surface} — top")
     axes[1].set_title("side")
     for a in axes:
         a.set_axis_off()
     fig.tight_layout()
+    # Drop the legend below the axes so it clears the side view's low-hanging
+    # simulation-cell box.
+    _atom_color_legend(fig, syms, y=-0.08)
     return _save(fig, out) or fig
 
 
@@ -432,14 +526,9 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
 
 
 # --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
-_ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
-               "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000"}
-_ELEM_SIZE = {"C": 45, "H": 16, "O": 65, "N": 58, "S": 80, "P": 80}
-
-
 def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
-                   title: str | None = None, elev: int = 16,
-                   azim: int = -64) -> object:
+                   title: str | None = None, elev: int = 68,
+                   azim: int = -90) -> object:
     """Render an orbital .cube as +/- isosurface lobes over the skeleton.
 
     Args:
@@ -457,36 +546,45 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from skimage import measure
     data, atoms, origin, spacing = _read_cube_grid(cubefile)
+    syms = atoms.get_chemical_symbols()
+
+    # Lay the molecule flat in the xy-plane (principal-axis frame) so it shows
+    # face-on; the same transform applies to the atoms and the isosurface verts.
+    centroid, rot = _principal_frame(atoms.get_positions())
 
     fig = plt.figure(figsize=(5.2, 5.2))
     ax = fig.add_subplot(111, projection="3d")
     level = iso * float(np.abs(data).max()) if abs(iso) < 1 else iso
-    for lvl, color in ((level, C_HOMO), (-level, C_LUMO)):
+    for lvl, color in ((level, C_LOBE_POS), (-level, C_LOBE_NEG)):
         if not (data.min() < lvl < data.max()):
             continue
         verts, faces, _, _ = measure.marching_cubes(data, level=lvl,
                                                     spacing=tuple(spacing))
-        verts = verts + origin
-        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.45,
+        verts = (verts + origin - centroid) @ rot.T
+        # A faint translucent shell so the ball-and-stick skeleton stays clearly
+        # legible through the lobe instead of being buried under it.
+        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.14,
                                              facecolor=color, edgecolor="none"))
-    positions = atoms.get_positions()
-    syms = atoms.get_chemical_symbols()
+    positions = (atoms.get_positions() - centroid) @ rot.T
+    # Bonds first, then the atoms on top — both after the lobes so the skeleton
+    # reads clearly; depthshade off keeps the element colours saturated.
+    _draw_bonds(ax, positions, syms, color="#202020", lw=2.4)
     for s, p in zip(syms, positions):
-        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888"),
-                   s=_ELEM_SIZE.get(s, 40), depthshade=True, edgecolors="k",
-                   linewidths=0.3)
-    _draw_bonds(ax, positions, syms, color="#666", lw=1.2)
+        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888888"),
+                   s=_ELEM_SIZE.get(s, 95), depthshade=False, edgecolors="k",
+                   linewidths=0.5)
     _style_3d_axes(ax, positions, margin=1.5, elev=elev, azim=azim)
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
+    _atom_color_legend(fig, syms)
     return _save(fig, out) or fig
 
 
 def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
                iso: float = 0.002, title: str | None = None,
-               clip_pct: float = 2.0, elev: int = 16,
-               azim: int = -64) -> object:
+               clip_pct: float = 2.0, elev: int = 68,
+               azim: int = -90) -> object:
     """Render a molecular electrostatic-potential (ESP/MEP) map.
 
     The electron-density isosurface (default 0.002 e/bohr³) is coloured by the
@@ -523,8 +621,10 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     # Marching cubes in *index* space so we can sample the ESP grid directly
     verts_idx, faces, _, _ = measure.marching_cubes(rho, level=iso)
     pot_at_vert = map_coordinates(pot, verts_idx.T, order=1, mode="nearest")
-    # Physical coords (Å)
-    verts = verts_idx * spacing + origin
+    # Physical coords (Å), then laid flat in the principal-axis frame so the
+    # molecule presents face-on (the same transform applies to the atoms below).
+    centroid, rot = _principal_frame(atoms.get_positions())
+    verts = (verts_idx * spacing + origin - centroid) @ rot.T
 
     face_pot = pot_at_vert[faces].mean(axis=1)
     vmax = (np.percentile(np.abs(pot_at_vert), 100 - clip_pct)
@@ -534,21 +634,33 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     cmap = plt.get_cmap("RdBu")
     facecolors = cmap(norm(face_pot))
 
-    fig = plt.figure(figsize=(6.0, 5.2))
+    fig = plt.figure(figsize=(6.4, 5.6))
     ax = fig.add_subplot(111, projection="3d")
+    # A translucent potential-coloured shell so the ball-and-stick skeleton
+    # inside stays visible — the potential is read on the near face, the atoms
+    # show through, matching the orbital map's look.
     surf = Poly3DCollection(verts[faces], facecolors=facecolors,
-                            edgecolor="none", alpha=0.97)
+                            edgecolor="none", alpha=0.5)
     ax.add_collection3d(surf)
 
-    positions = atoms.get_positions()
+    positions = (atoms.get_positions() - centroid) @ rot.T
     syms = atoms.get_chemical_symbols()
-    _draw_bonds(ax, positions, syms, color="#444", lw=1.0, alpha=0.6)
+    # Bonds then atoms, drawn after the shell so the skeleton reads through it
+    _draw_bonds(ax, positions, syms, color="#202020", lw=2.0)
+    for s, p in zip(syms, positions):
+        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888888"),
+                   s=_ELEM_SIZE.get(s, 95), depthshade=False, edgecolors="k",
+                   linewidths=0.5)
     _style_3d_axes(ax, positions, margin=1.8, elev=elev, azim=azim)
+
+    # Two keys: the potential colour scale (surface) and the atom colour code
     cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
                       shrink=0.6, pad=0.02)
-    cb.set_label("electrostatic potential (a.u.)", fontsize=9)
+    cb.set_label("electrostatic potential (a.u.)\nred = electron-rich, "
+                 "blue = electron-poor", fontsize=8)
     cb.ax.tick_params(labelsize=7)
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
+    _atom_color_legend(fig, syms)
     return _save(fig, out) or fig

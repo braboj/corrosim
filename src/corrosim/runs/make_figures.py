@@ -25,6 +25,7 @@ import pandas as pd
 from corrosim import build_molecule
 from corrosim.adsorption.mc import run_mc
 from corrosim.adsorption.md import run_md
+from corrosim.molecules import display_name
 from corrosim.qm.fukui import FukuiResult
 from corrosim.report import figures
 from corrosim.report.report_layout import figure_path
@@ -90,7 +91,7 @@ def _fig_fukui(args: argparse.Namespace, order: list[str], out: _Out) -> None:
             # Read the basis back rather than hardcoding it: a halogen case
             # runs a different basis (def2-SVP) than the light-element
             # default. Legacy payloads predate it, so fall back to a bare title.
-            title = f"{name} — condensed Fukui"
+            title = f"{display_name(name)} — condensed Fukui"
             if res.basis:
                 title += f", {res.basis}"
             figures.plot_fukui(
@@ -128,7 +129,7 @@ def _fig_orbitals(args: argparse.Namespace, order: list[str],
             if os.path.exists(cube):
                 figures.render_orbital(
                     cube, out=out(f"fig2b_{name}_{which}.png"),
-                    title=f"{name} {which.upper()}")
+                    title=f"{display_name(name)} {which.upper()}")
 
 
 def _fig_esp(args: argparse.Namespace, order: list[str], out: _Out) -> None:
@@ -139,7 +140,8 @@ def _fig_esp(args: argparse.Namespace, order: list[str], out: _Out) -> None:
         esp = f"{args.cubedir}/{name}_esp.cube"
         if os.path.exists(dens) and os.path.exists(esp):
             figures.render_esp(dens, esp, out=out(f"fig7_{name}_esp.png"),
-                               title=f"{name} — ESP on density isosurface")
+                               title=f"{display_name(name)} — ESP on density "
+                                     "isosurface")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

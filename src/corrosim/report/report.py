@@ -16,6 +16,7 @@ from typing import Any, NamedTuple
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from ..molecules import display_name
 from ..presets import metal_element
 from ..qm.descriptors import DESCRIPTOR_META
 from . import report_content as _content
@@ -292,7 +293,8 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
     """
     if not computed_pkah:
         return []
-    head = "<th></th>" + "".join(f"<th>{r['name']}</th>" for r in computed_pkah)
+    head = "<th></th>" + "".join(
+        f"<th>{display_name(r['name'])}</th>" for r in computed_pkah)
     row_pkah = "<th>computed pKaH</th>" + "".join(
         f"<td>{r['pkah']:.1f}</td>" for r in computed_pkah)
     row_prot = "<th>% protonated @ this pH</th>" + "".join(
@@ -395,7 +397,7 @@ def _matrix(
         ``(headers, rows)`` with ``headers = [corner, *names]`` and one
         ``[label, *cell strings]`` per remaining column; NaN renders as "".
     """
-    names = [str(n) for n in df[name_col]]
+    names = [display_name(str(n)) for n in df[name_col]]
     headers = [corner, *names]
     rows = []
     for col in df.columns:
@@ -488,7 +490,7 @@ def ranking_matrix(
         that wins metric row ``i``, or None when the metric has no defined
         better direction.
     """
-    names = [str(n) for n in df[name_col]]
+    names = [display_name(str(n)) for n in df[name_col]]
     headers = ["", *names]
     rows: list[list[str]] = []
     winners: list[int | None] = []
@@ -663,7 +665,7 @@ class PreparedReport(NamedTuple):
                 continue
             tops = top_donor_sites_of_element(rows, "O", 3)
             sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
-            fukui_items.append((name, sites))
+            fukui_items.append((display_name(name), sites))
         return cls(df, full, level, m_elem, fukui_items)
 
 
@@ -831,7 +833,7 @@ def _lead_by_basis_block(ensemble: RankingEnsemble) -> list[str]:
     v = ensemble.verdict
     if v.n_bases < 2:
         return []
-    body = "".join(f"<tr><th>{lbl}</th><td>{lead}</td></tr>"
+    body = "".join(f"<tr><th>{lbl}</th><td>{display_name(lead)}</td></tr>"
                    for lbl, lead in ensemble.lead_by_basis())
     note = _content.robustness_note(v.robust, v.n_bases)
     return [

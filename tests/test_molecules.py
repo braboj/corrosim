@@ -6,9 +6,28 @@ from corrosim.cli import read_input_csv
 from corrosim.molecules import (
     Molecule,
     build_molecule,
+    display_name,
     resolve_smiles,
     write_xyz,
 )
+
+
+def test_display_name_capitalises_first_letter():
+    assert display_name("quercetin") == "Quercetin"
+    assert display_name("phytic acid") == "Phytic acid"
+
+
+def test_display_name_capitalises_first_letter_after_a_locant():
+    # a leading number/locant is preserved; the first *letter* is upper-cased
+    assert display_name("5-phenyltetrazole") == "5-Phenyltetrazole"
+    assert display_name("1-phenyl-5-mercaptotetrazole") == (
+        "1-Phenyl-5-mercaptotetrazole")
+
+
+def test_display_name_leaves_interior_casing_untouched():
+    # only the first letter changes — no title-casing of later words
+    assert display_name("pyrazolopyrimidine ethyl ester") == (
+        "Pyrazolopyrimidine ethyl ester")
 
 
 def test_build_from_library_name():

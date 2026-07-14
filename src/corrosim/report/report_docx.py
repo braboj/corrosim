@@ -24,6 +24,7 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
+from ..molecules import display_name
 from . import report_content as _content
 from .report import (
     canonical_summary,
@@ -226,7 +227,8 @@ def _lead_by_basis(d: _Doc, ensemble: RankingEnsemble) -> None:
         return
     d.content_table({
         "columns": ["Ranking basis", "Top candidate"],
-        "rows": [[label, lead] for label, lead in ensemble.lead_by_basis()],
+        "rows": [[label, display_name(lead)]
+                 for label, lead in ensemble.lead_by_basis()],
     })
     d.para(_content.robustness_note(v.robust, v.n_bases), muted=True, size=9)
 
