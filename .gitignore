@@ -66,3 +66,6 @@ cubes/
 
 # Detached job logs: local monitoring scratch, never tracked
 logs/
+
+# Generated Pages gallery: built in CI (make_pages) from the tracked reports
+_site/

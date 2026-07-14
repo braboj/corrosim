@@ -226,6 +226,8 @@ The screening run is configured through CLI options (`corrosim --help`):
 
 ## Links
 
+- [Validation gallery](https://braboj.github.io/corrosim/): browse the case
+  reports in the browser, no install
 - [Pipeline: scientific basis](docs/pipeline.md)
 - [Validation: computational and experimental](docs/validation.md)
 - [Architecture decisions (ADRs)](docs/decisions/)
