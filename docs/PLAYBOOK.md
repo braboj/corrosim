@@ -312,11 +312,36 @@ refactor epic), zero dead-code findings at ≥80% confidence.
 
 ## 5. Release and deploy
 
-corrosim is an MIT-licensed library and CLI. There is currently no automated
-release or PyPI publish; the version lives in `pyproject.toml` and the tracked
-per-case `cases/<case>/report/` bundle plus `cases/<case>/results/` are the shipped
-artifacts. When a release process
-is added, it should publish to PyPI from CI on a version tag, built with the
-standard `build` backend.
+corrosim ships as a downloadable **tool**, not a PyPI library or a notebook
+(ADR 0027); PyPI and Colab were dropped deliberately. Two automated channels:
+
+### Publish the image (release-on-tag)
+
+`.github/workflows/release.yml` fires on a `v*` tag: it builds the `Dockerfile`,
+smoke-runs it standalone (no bind mount), pushes
+`ghcr.io/braboj/corrosim:<version>` + `:latest`, and cuts a GitHub Release with
+the `docker run` instructions. To cut a release:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+One-time after the first release: set the GHCR package **Public** in its package
+settings (the token pushes the image but cannot flip visibility).
+
+### The validation gallery (GitHub Pages)
+
+`.github/workflows/pages.yml` deploys the case-report gallery on push to `main`
+(path-gated to the report bundles + `report/gallery.py` + `runs/make_pages.py` +
+`presets.py`). The reports are tracked, self-contained HTML, so it only copies
+them and generates the index (ADR 0028). Build it locally to preview:
+
+```bash
+python -m corrosim.runs.make_pages --out _site   # then open _site/index.html
+```
+
+Live at `https://braboj.me/corrosim/` (the `braboj.github.io/corrosim/` URL
+redirects there). One-time: enable Pages with Settings -> Pages -> Source =
+GitHub Actions.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

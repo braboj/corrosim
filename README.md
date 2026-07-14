@@ -143,9 +143,9 @@ the venv does everything else. Full pipeline commands and the per-stage drivers:
 | `src/corrosim/` | Core package facade: `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
 | `src/corrosim/qm/` | `engines`, `descriptors`, `fukui`, `pka`, `speciation`, `protonation`, `cubes`; `_backend_pyscf`/`_tblite` hold the deferred pyscf/tblite imports (ADR 0015). |
 | `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
-| `src/corrosim/report/` | `report`, `ranking` (canonical basis + robustness gate), `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them). |
+| `src/corrosim/report/` | `report`, `ranking` (canonical basis + robustness gate), `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them), `gallery` (the Pages showcase index). |
 | `src/corrosim/data/` | `inhibitors.json`: the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
-| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `compare_geometry`; `run_study` orchestrates them end-to-end (+ `_cli`: shared CLI plumbing). |
+| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `make_pages` (Pages gallery), `compare_geometry`; `run_study` orchestrates them end-to-end (+ `_cli`: shared CLI plumbing). |
 | `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |
 | `cases/<case>/results/` | Tracked pipeline data: descriptors, Fukui, MC/MD, pKa. |
 | `cases/<case>/report/` | Report bundle (`make_report`): `report.html` + `report.docx` + `figures/<stage>/` + `tables/<stage>/`. |
