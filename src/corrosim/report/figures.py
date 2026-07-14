@@ -47,8 +47,11 @@ _ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
                "Br": "#a52a2a", "I": "#7a1fa2",
                "Fe": "#b45a2b", "Cu": "#c8813c", "Al": "#9aa0b4"}
 
-# Scatter marker sizes for the ball-and-stick atoms in render_orbital.
-_ELEM_SIZE = {"C": 45, "H": 16, "O": 65, "N": 58, "S": 80, "P": 80}
+# Scatter marker sizes for the ball-and-stick atoms in render_orbital, sized so
+# the skeleton stays legible through the translucent orbital lobes.
+_ELEM_SIZE = {"C": 95, "H": 34, "O": 130, "N": 120, "S": 150, "P": 150,
+              "F": 110, "Cl": 150, "Br": 170, "I": 200,
+              "Fe": 160, "Cu": 160, "Al": 150}
 
 # Legend ordering: substrate metal first, then the common organics; anything
 # unlisted is appended.
@@ -57,13 +60,15 @@ _LEGEND_ORDER = ["Fe", "Cu", "Al", "C", "H", "N", "O", "S", "P",
 
 
 def _atom_color_legend(fig: Any, symbols: Sequence[str],
-                       extra: Sequence[str] = ()) -> None:
+                       extra: Sequence[str] = (), y: float = 0.0) -> None:
     """Draw a bottom 'Color code' legend of the elements present.
 
     One shared palette drives every 3D figure, so the atom-colour key reads the
     same across the report — the element-describing legend the manuscript
     figures carry. Elements sort substrate-metal-first, then the common
-    organics; anything unlisted is appended.
+    organics; anything unlisted is appended. ``y`` is the legend's vertical
+    anchor in figure fraction (drop it below zero to clear a low-hanging axes
+    element, e.g. the pose's side-view cell box).
     """
     # Distinct elements, in a stable order (metal, then organics, then the rest)
     present = list(dict.fromkeys(list(symbols) + list(extra)))
@@ -79,7 +84,7 @@ def _atom_color_legend(fig: Any, symbols: Sequence[str],
     ]
     fig.legend(handles=handles, title="Color code", loc="lower center",
                ncol=len(handles), frameon=False, fontsize=8,
-               title_fontsize=8, bbox_to_anchor=(0.5, 0.0),
+               title_fontsize=8, bbox_to_anchor=(0.5, y),
                handletextpad=0.3, columnspacing=1.1)
 
 
@@ -352,7 +357,9 @@ def plot_adsorption_pose(system: Any, out: str | None = None) -> object:
     for a in axes:
         a.set_axis_off()
     fig.tight_layout()
-    _atom_color_legend(fig, syms)
+    # Drop the legend below the axes so it clears the side view's low-hanging
+    # simulation-cell box.
+    _atom_color_legend(fig, syms, y=-0.08)
     return _save(fig, out) or fig
 
 
@@ -522,15 +529,19 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
         verts, faces, _, _ = measure.marching_cubes(data, level=lvl,
                                                     spacing=tuple(spacing))
         verts = verts + origin
-        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.45,
+        # A translucent shell (low alpha) so the ball-and-stick skeleton stays
+        # legible through the lobe instead of being buried under it.
+        ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.22,
                                              facecolor=color, edgecolor="none"))
     positions = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
+    # Bonds first, then the atoms on top — both after the lobes so the skeleton
+    # reads clearly; depthshade off keeps the element colours saturated.
+    _draw_bonds(ax, positions, syms, color="#202020", lw=2.4)
     for s, p in zip(syms, positions):
-        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888"),
-                   s=_ELEM_SIZE.get(s, 40), depthshade=True, edgecolors="k",
-                   linewidths=0.3)
-    _draw_bonds(ax, positions, syms, color="#666", lw=1.2)
+        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888888"),
+                   s=_ELEM_SIZE.get(s, 95), depthshade=False, edgecolors="k",
+                   linewidths=0.5)
     _style_3d_axes(ax, positions, margin=1.5, elev=elev, azim=azim)
     if title:
         ax.set_title(title, fontsize=11)
@@ -590,21 +601,33 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     cmap = plt.get_cmap("RdBu")
     facecolors = cmap(norm(face_pot))
 
-    fig = plt.figure(figsize=(6.0, 5.2))
+    fig = plt.figure(figsize=(6.4, 5.6))
     ax = fig.add_subplot(111, projection="3d")
+    # A translucent potential-coloured shell so the ball-and-stick skeleton
+    # inside stays visible — the potential is read on the near face, the atoms
+    # show through, matching the orbital map's look.
     surf = Poly3DCollection(verts[faces], facecolors=facecolors,
-                            edgecolor="none", alpha=0.97)
+                            edgecolor="none", alpha=0.5)
     ax.add_collection3d(surf)
 
     positions = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
-    _draw_bonds(ax, positions, syms, color="#444", lw=1.0, alpha=0.6)
+    # Bonds then atoms, drawn after the shell so the skeleton reads through it
+    _draw_bonds(ax, positions, syms, color="#202020", lw=2.0)
+    for s, p in zip(syms, positions):
+        ax.scatter(*p, color=_ELEM_COLOR.get(s, "#888888"),
+                   s=_ELEM_SIZE.get(s, 95), depthshade=False, edgecolors="k",
+                   linewidths=0.5)
     _style_3d_axes(ax, positions, margin=1.8, elev=elev, azim=azim)
+
+    # Two keys: the potential colour scale (surface) and the atom colour code
     cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
                       shrink=0.6, pad=0.02)
-    cb.set_label("electrostatic potential (a.u.)", fontsize=9)
+    cb.set_label("electrostatic potential (a.u.)\nred = electron-rich, "
+                 "blue = electron-poor", fontsize=8)
     cb.ax.tick_params(labelsize=7)
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
+    _atom_color_legend(fig, syms)
     return _save(fig, out) or fig
