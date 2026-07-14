@@ -117,7 +117,49 @@ Plan - full multiscale study of 3 molecule(s) on Fe(110), medium '1 M HCl':
 Full-pipeline operations (detached runs, per-stage drivers) live in
 [`docs/PLAYBOOK.md`](../docs/PLAYBOOK.md).
 
-## 5. From Python
+## 5. Your own study (bring-your-own inhibitors, metal, medium)
+
+The built-in `--case` names screen the shipped validation studies. To screen
+*your own* set, declare a study as data and hand it to the same one-command
+runner, with no source edit and no rebuild. Copy
+[`study.template.json`](study.template.json) and edit it:
+
+```json
+{
+  "name": "my-study",
+  "molecules": ["quercetin", "benzotriazole", "CCO"],
+  "metal": "Fe(110)",
+  "medium": "1 M HCl",
+  "pkah": -1.5,
+  "basis": "6-311++G(d,p)",
+  "xc": "b3lyp"
+}
+```
+
+`name` and `molecules` are required; the rest fall back to the defaults shown.
+Molecules are library names or SMILES, so a novel compound needs no library
+edit. Run the full pipeline against the file:
+
+```bash
+docker compose run --rm qm corrosim-run-study --case ./my-study.json
+```
+
+Prefer flags for a one-off? Giving `--molecules` builds the study inline and
+writes `cases/<name>/study.json` as a reproducible side effect, so the two forms
+are interchangeable:
+
+```bash
+corrosim-run-study --name my-study --molecules "quercetin,benzotriazole,CCO" \
+    --metal Fe(110) --medium "1 M HCl" --plan
+```
+
+The supported envelope is checked up front, so an out-of-range study fails
+immediately with a clear message rather than three stages deep: the metal must be
+one the slab builder knows (`Fe`, `Cu`, `Al`) and every atom must have a UFF
+parameter (`H, C, N, O, S, F, Cl, Br, P`). For a bromine-containing set, declare
+`"basis": "def2-SVP"` (the Pople sets lack bromine).
+
+## 6. From Python
 
 corrosim is a library as well as a CLI. The same quick screen from a script:
 

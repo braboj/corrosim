@@ -20,7 +20,12 @@ studies the drivers can screen with `--case`.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+import os
+import re
+from collections.abc import Mapping
+from dataclasses import dataclass, fields
+from typing import Any
 
 
 def metal_element(metal: str) -> str:
@@ -137,6 +142,65 @@ class CaseStudy:
             or extend it without mutating the frozen preset.
         """
         return list(self.molecules)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise the study to a JSON-friendly mapping.
+
+        Returns:
+            Every field keyed by name, with ``molecules`` as a list so the
+            result round-trips through JSON.
+        """
+        data = {f.name: getattr(self, f.name) for f in fields(self)}
+        data["molecules"] = list(self.molecules)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> CaseStudy:
+        """Build a study from a plain mapping (e.g. decoded JSON), validated.
+
+        Structural validation only: the presence and type of the fields. The
+        substrate/element *envelope* (which metals and elements the pipeline
+        supports) is checked separately by :func:`validate_study`, so a caller
+        can deserialise without pulling the heavy slab/RDKit imports.
+
+        Args:
+            data: A mapping keyed by ``CaseStudy`` field name; ``name`` and
+                ``molecules`` are required, the rest fall back to the field
+                defaults.
+
+        Returns:
+            The constructed frozen ``CaseStudy``.
+
+        Raises:
+            ValueError: If a required key is missing, an unknown key is
+                present, or ``molecules`` is not a non-empty list of strings.
+        """
+        # reject unknown keys so a typo ('metals', 'smiles') fails loud
+        allowed = {f.name for f in fields(cls)}
+        unknown = set(data) - allowed
+        if unknown:
+            raise ValueError(
+                f"unknown study field(s): {', '.join(sorted(unknown))}; "
+                f"allowed: {', '.join(sorted(allowed))}.")
+
+        # required identity
+        name = data.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(
+                "study 'name' is required and must be a non-empty string.")
+
+        # required molecule set (library names or SMILES)
+        mols = data.get("molecules")
+        if (not isinstance(mols, (list, tuple)) or not mols
+                or not all(isinstance(m, str) and m.strip() for m in mols)):
+            raise ValueError(
+                "study 'molecules' is required and must be a non-empty list "
+                "of name/SMILES strings.")
+
+        # everything else falls through to the dataclass defaults
+        rest = {k: v for k, v in data.items()
+                if k not in ("name", "molecules")}
+        return cls(name=name, molecules=tuple(mols), **rest)
 
 
 # --- The default case study (drivers default to it) ------------------------
@@ -380,20 +444,130 @@ CASE_STUDIES: dict[str, CaseStudy] = {
 }
 
 
-def case_study(name: str) -> CaseStudy:
-    """Look up a named case study by its (case-insensitive) name.
+def is_study_file(name: str) -> bool:
+    """Whether a ``--case`` value names a study file rather than a preset.
+
+    Registry keys are bare words, so a value that ends in ``.json`` or carries a
+    path separator is a study file; anything else is a preset lookup. Keying on
+    explicit markers (not ``os.path.exists``) keeps a name like ``arghel`` a
+    preset even if a file of that name happens to sit in the working directory.
 
     Args:
-        name: The case-study key, e.g. ``"arghel"`` (aliases accepted).
+        name: The raw ``--case`` value.
 
     Returns:
-        The matching :class:`CaseStudy`.
+        True if ``name`` should be loaded as a study file.
+    """
+    return name.endswith(".json") or "/" in name or os.sep in name
+
+
+def load_study(path: str) -> CaseStudy:
+    """Load a case study from a JSON file (the fields of :class:`CaseStudy`).
+
+    Args:
+        path: Path to a study JSON file.
+
+    Returns:
+        The deserialised study, structurally validated by
+        :meth:`CaseStudy.from_dict`; call :func:`validate_study` for the
+        substrate/element envelope check.
 
     Raises:
-        KeyError: If no case study is registered under ``name``.
+        ValueError: If the file is structurally malformed.
     """
+    with open(path) as fh:
+        return CaseStudy.from_dict(json.load(fh))
+
+
+def save_study(case: CaseStudy, path: str) -> None:
+    """Write a case study to a JSON file, creating parent directories.
+
+    Args:
+        case: The study to serialise.
+        path: Destination path; its parent directory is created if absent.
+    """
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(case.to_dict(), fh, indent=2)
+
+
+def case_study(name: str) -> CaseStudy:
+    """Resolve a case study by registry name, or load it from a study file.
+
+    A bare word (``"arghel"``, aliases accepted) is looked up in
+    :data:`CASE_STUDIES`; a value that names a file (see :func:`is_study_file`)
+    is loaded as a study JSON, so a user can run their own study without editing
+    this module.
+
+    Args:
+        name: A registry key, or a path to a study JSON file.
+
+    Returns:
+        The matching or loaded :class:`CaseStudy`.
+
+    Raises:
+        KeyError: If ``name`` is a bare word not registered in CASE_STUDIES.
+        ValueError: If ``name`` is a study file that is malformed.
+    """
+    if is_study_file(name):
+        return load_study(name)
     key = name.strip().lower()
     if key not in CASE_STUDIES:
         raise KeyError(f"Unknown case study {name!r}. "
                        f"Known: {sorted(set(CASE_STUDIES))}.")
     return CASE_STUDIES[key]
+
+
+# A name safe as the cases/<name>/ directory component: alphanumeric plus the
+# dash/underscore separators the shipped case names use.
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+
+
+def validate_study(case: CaseStudy, *, check_elements: bool = False) -> None:
+    """Check a study lies inside the pipeline's supported envelope.
+
+    Guards a user-supplied study before any stage runs, so an unsupported metal
+    or element fails immediately with a clear message instead of three stages
+    deep. The substrate table and the UFF element set are imported lazily, so
+    this module stays a stdlib-only leaf at import time.
+
+    Args:
+        case: The study to validate.
+        check_elements: Also build each molecule and check its elements are in
+            the UFF van-der-Waals table (needs RDKit; skip for a dry run).
+
+    Raises:
+        ValueError: If the name is not filesystem-safe, the metal is not a
+            supported substrate, or (when ``check_elements``) a molecule carries
+            an element with no UFF parameters.
+    """
+    # filesystem-safe name (it becomes the cases/<name>/ output directory)
+    if not _SAFE_NAME.match(case.name):
+        raise ValueError(
+            f"study name {case.name!r} must be alphanumeric with '-'/'_' only "
+            f"(it becomes the cases/<name>/ output directory).")
+
+    # supported substrate: only a metal with a slab lattice runs the full
+    # pipeline (the MC/MD stages need the slab, the DFT stage its work function)
+    from corrosim.adsorption.surface import METAL_LATTICE, UFF
+
+    if case.metal_element not in METAL_LATTICE:
+        raise ValueError(
+            f"metal {case.metal!r} is not supported; the slab builder knows "
+            f"{', '.join(sorted(METAL_LATTICE))}. Add a lattice to extend it.")
+    if not check_elements:
+        return
+
+    # supported chemistry: every atom needs a UFF parameter for the vdW field
+    from corrosim.molecules import build_molecule
+
+    known = set(UFF)
+    for spec in case.molecule_list():
+        missing = sorted(set(build_molecule(spec).symbols) - known)
+        if missing:
+            raise ValueError(
+                f"molecule {spec!r} carries element(s) "
+                f"{', '.join(missing)} with no UFF parameters; supported "
+                f"elements: {', '.join(sorted(known))}.")

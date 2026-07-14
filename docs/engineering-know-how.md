@@ -312,6 +312,31 @@ def profile(name: str) -> Profile:
     return PROFILES[key]
 ```
 
+#### Let the same lookup also load a user config file
+
+Once the config library is data (a registry of built-ins), the *user's* config
+should be data too, resolved through the *same* selector, so an installed tool
+runs a user's own run without editing source. Add `to_dict`/`from_dict` (keys are
+the field names; `from_dict` does structural validation only — required keys,
+types, reject unknown keys so a typo fails loud) and grow the resolver one
+branch: a value that names a file (an explicit marker — an extension or a path
+separator, **not** `exists()`, so a bare registry key never collides with a
+same-named file) loads the file; a bare word is the registry, byte-identical.
+
+```python
+def config(name: str) -> Profile:
+    if name.endswith(".json") or "/" in name or os.sep in name:
+        return Profile.from_dict(json.load(open(name)))   # a user file
+    return profile(name)                                  # the built-in registry
+```
+
+Offer a second front door (ad-hoc flags) as **sugar that materialises a file and
+delegates** to the file path: one construction/validation path, and the ad-hoc
+run leaves behind a reproducible artifact. And **validate a user config against
+the supported envelope at the door** — a message naming the supported set beats a
+traceback deep in the run; split the cheap always-on checks (name safety, enum
+membership) from the ones needing a heavy import (skip those for a dry run).
+
 #### Unset flag means "use the config"; explicit always wins
 
 Every CLI flag defaults to `None`; after parsing, a shared resolver fills each

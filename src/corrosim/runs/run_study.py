@@ -31,8 +31,19 @@ import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from corrosim.presets import CaseStudy, case_study
-from corrosim.runs._cli import add_case_arg, stderr_log
+from corrosim.presets import (
+    CaseStudy,
+    case_study,
+    is_study_file,
+    save_study,
+    validate_study,
+)
+from corrosim.runs._cli import (
+    _DEFAULT_CASE,
+    add_case_arg,
+    parse_molecules,
+    stderr_log,
+)
 
 # A stage's presentation (desc / out_display) and behaviour (run / outputs) are
 # functions of the resolved case and the parsed flags, so each field is a small
@@ -555,6 +566,43 @@ def _run_pipeline(
     return 0
 
 
+def _study_from_flags(args: argparse.Namespace) -> CaseStudy:
+    """Build a study from the ad-hoc ``--name`` / ``--molecules`` / ... flags.
+
+    Only the flags the user set are forwarded to :meth:`CaseStudy.from_dict`, so
+    the rest fall back to the ``CaseStudy`` defaults (metal ``Fe(110)``, medium
+    ``1 M HCl``, the production DFT level).
+
+    Args:
+        args: Parsed CLI arguments (reads the study-definition flags).
+
+    Returns:
+        The constructed study.
+
+    Raises:
+        SystemExit: If ``--name`` is missing, or ``--case`` was also set (the
+            two ways to name a study are mutually exclusive).
+    """
+    if not args.name:
+        raise SystemExit(
+            "--molecules needs --name (it becomes the cases/<name>/ dir).")
+    if args.case != _DEFAULT_CASE:
+        raise SystemExit(
+            "use --case OR the --molecules/--metal/... build flags, not both.")
+
+    # required identity + molecule set
+    data: dict[str, object] = {
+        "name": args.name,
+        "molecules": parse_molecules(args.molecules),
+    }
+    # forward only the optional flags the user actually set
+    for key in ("metal", "medium", "pkah", "basis", "xc"):
+        value = getattr(args, key)
+        if value is not None:
+            data[key] = value
+    return CaseStudy.from_dict(data)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Construct the run_study argument parser.
 
@@ -567,6 +615,32 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Run the full multiscale study end-to-end (one command).",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     add_case_arg(p)
+
+    # define a new study from flags instead of --case; giving --molecules
+    # switches on build mode and writes cases/<name>/study.json
+    build = p.add_argument_group(
+        "define a new study (build one from flags instead of --case)")
+    build.add_argument("--name", default=None,
+                       help="Name a new study; required with --molecules. "
+                            "Becomes the cases/<name>/ output directory.")
+    build.add_argument("--molecules", default=None,
+                       help="Comma-separated names or SMILES. Giving this "
+                            "builds a new study (writes cases/<name>/"
+                            "study.json) instead of resolving --case.")
+    build.add_argument("--metal", default=None,
+                       help="Substrate for a new study (Fe/Cu/Al, facet "
+                            "optional). Default Fe(110).")
+    build.add_argument("--medium", default=None,
+                       help="Medium label for a new study. Default '1 M HCl'.")
+    build.add_argument("--pkah", type=float, default=None,
+                       help="Conjugate-acid pKaH for a new study. Default "
+                            "-1.5.")
+    build.add_argument("--basis", default=None,
+                       help="DFT basis for a new study. Default "
+                            "6-311++G(d,p); use def2-SVP for Br/I.")
+    build.add_argument("--xc", default=None,
+                       help="DFT functional for a new study. Default b3lyp.")
+
     p.add_argument("--optimize", action="store_true",
                    help="Also compute the DFT-relaxed-geometry matrix (adds "
                         "the opt-geometry ranking section). Heavy.")
@@ -600,7 +674,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         otherwise).
     """
     args = _build_parser().parse_args(argv)
-    case = case_study(args.case)
+
+    # Two ways to name a study: build one from flags (--molecules writes
+    # cases/<name>/study.json, then runs it exactly as a --case file would), or
+    # resolve --case (a registered preset name, or a path to a study file). A
+    # malformed / out-of-envelope study is a clean error, not a traceback.
+    try:
+        if args.molecules is not None:
+            case = _study_from_flags(args)
+            validate_study(case, check_elements=not args.plan)
+            # point the driver subcalls at the written study; skip the write on
+            # a dry run, which returns before any driver reads it
+            args.case = f"{case.case_dir}/study.json"
+            if not args.plan:
+                save_study(case, args.case)
+                stderr_log(f"wrote study definition -> {args.case}")
+        else:
+            case = case_study(args.case)
+            # validate a user study file; the shipped presets are trusted
+            if is_study_file(args.case):
+                validate_study(case, check_elements=not args.plan)
+    except (ValueError, KeyError, OSError) as exc:
+        stderr_log(f"error: {exc}")
+        return 2
+
     stages = select_stages(args)
 
     # A dry run: describe the steps and stop before importing/running any driver

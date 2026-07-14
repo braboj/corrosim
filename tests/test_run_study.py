@@ -133,3 +133,77 @@ def test_fukui_stage_omits_basis_for_a_pople_case(monkeypatch):
     rc = run_study.main(["--case", "arghel", "--only", "fukui", "--force"])
     assert rc == 0
     assert argvs == [["--case", "arghel"]]
+
+
+# --- a user-defined study (the --case file / --molecules build flags) --------
+
+
+def test_build_flags_write_study_json_and_delegate_via_the_file(
+        tmp_path, monkeypatch):
+    # --molecules builds a study, writes cases/<name>/study.json, and points the
+    # driver subcalls at that file (one engine for both front doors)
+    monkeypatch.chdir(tmp_path)
+    argvs: list[list[str]] = []
+    monkeypatch.setattr("corrosim.runs.run_mc.main",
+                        lambda argv: argvs.append(argv) or 0)
+    rc = run_study.main(["--name", "byo", "--molecules", "CCO",
+                         "--metal", "Cu(111)", "--only", "mc", "--force"])
+    assert rc == 0
+    study = tmp_path / "cases" / "byo" / "study.json"
+    assert study.exists()                          # the reproducible artifact
+    assert argvs == [["--case", "cases/byo/study.json"]]
+
+
+def test_case_file_path_is_resolved_and_delegated(tmp_path, monkeypatch):
+    # a --case that names a study file resolves and runs like a preset name
+    from corrosim.presets import CaseStudy, save_study
+
+    study = tmp_path / "s.json"
+    save_study(CaseStudy(name="filecase", molecules=("CCO",), metal="Al(111)"),
+               str(study))
+    argvs: list[list[str]] = []
+    monkeypatch.setattr("corrosim.runs.run_mc.main",
+                        lambda argv: argvs.append(argv) or 0)
+    rc = run_study.main(["--case", str(study), "--only", "mc", "--force"])
+    assert rc == 0
+    assert argvs == [["--case", str(study)]]
+
+
+def test_build_flags_without_name_is_an_error(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit, match="needs --name"):
+        run_study.main(["--molecules", "CCO", "--only", "mc"])
+
+
+def test_build_flags_conflicting_with_case_is_an_error():
+    with pytest.raises(SystemExit, match="not both"):
+        run_study.main(
+            ["--case", "phytic", "--molecules", "CCO", "--name", "x"])
+
+
+def test_unsupported_metal_via_flags_returns_a_clean_error_code(
+        tmp_path, monkeypatch, capsys):
+    # an out-of-envelope study is a clean exit-2, not a traceback, and nothing
+    # runs or is written
+    monkeypatch.chdir(tmp_path)
+    calls: list[str] = []
+    _mock_all_drivers(monkeypatch, calls)
+    rc = run_study.main(["--name", "zz", "--molecules", "CCO", "--metal", "Zn"])
+    assert rc == 2
+    assert calls == []
+    assert "not supported" in capsys.readouterr().err
+    assert not (tmp_path / "cases" / "zz").exists()
+
+
+def test_plan_with_build_flags_previews_without_writing(
+        tmp_path, monkeypatch, capsys):
+    # a dry run validates the metal and prints the plan, but writes no file
+    monkeypatch.chdir(tmp_path)
+    calls: list[str] = []
+    _mock_all_drivers(monkeypatch, calls)
+    rc = run_study.main(["--name", "byo", "--molecules", "CCO",
+                         "--metal", "Cu(111)", "--plan"])
+    assert rc == 0
+    assert calls == []
+    assert "full multiscale study" in capsys.readouterr().out
+    assert not (tmp_path / "cases" / "byo" / "study.json").exists()
