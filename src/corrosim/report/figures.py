@@ -18,6 +18,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from ase.io.cube import read_cube
+from matplotlib.lines import Line2D
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -28,9 +29,58 @@ if TYPE_CHECKING:
 # --- consistent publication palette ---------------------------------------
 C_HOMO, C_LUMO, C_BAR, C_METAL = "#2b6cb0", "#dd6b20", "#319795", "#c53030"
 
+# Orbital-phase lobe colours for render_orbital: positive lobe blue, negative
+# lobe red — the common blue/red wavefunction-sign convention. Kept separate
+# from the C_HOMO/C_LUMO series colours, which distinguish HOMO from LUMO in the
+# energy diagram and bar charts, not the two phases of one orbital.
+C_LOBE_POS, C_LOBE_NEG = "#2b6cb0", "#d62728"
+
 # Covalent-bond cutoff for the ball-and-stick skeleton in the 3D renderers: a
 # pair closer than this (H-H excepted) is drawn as a bond.
 BOND_CUTOFF_ANG = 1.75
+
+# Shared element -> colour palette. One map drives the ball-and-stick atoms in
+# render_orbital and the adsorption pose, so a single "Color code" legend reads
+# the same across every 3D figure. Metals cover the validated substrates.
+_ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
+               "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000",
+               "Br": "#a52a2a", "I": "#7a1fa2",
+               "Fe": "#b45a2b", "Cu": "#c8813c", "Al": "#9aa0b4"}
+
+# Scatter marker sizes for the ball-and-stick atoms in render_orbital.
+_ELEM_SIZE = {"C": 45, "H": 16, "O": 65, "N": 58, "S": 80, "P": 80}
+
+# Legend ordering: substrate metal first, then the common organics; anything
+# unlisted is appended.
+_LEGEND_ORDER = ["Fe", "Cu", "Al", "C", "H", "N", "O", "S", "P",
+                 "F", "Cl", "Br", "I"]
+
+
+def _atom_color_legend(fig: Any, symbols: Sequence[str],
+                       extra: Sequence[str] = ()) -> None:
+    """Draw a bottom 'Color code' legend of the elements present.
+
+    One shared palette drives every 3D figure, so the atom-colour key reads the
+    same across the report — the element-describing legend the manuscript
+    figures carry. Elements sort substrate-metal-first, then the common
+    organics; anything unlisted is appended.
+    """
+    # Distinct elements, in a stable order (metal, then organics, then the rest)
+    present = list(dict.fromkeys(list(symbols) + list(extra)))
+    rank = {e: i for i, e in enumerate(_LEGEND_ORDER)}
+    present.sort(key=lambda e: rank.get(e, len(rank)))
+
+    # One proxy marker per element, coloured from the shared palette
+    handles = [
+        Line2D([0], [0], marker="o", linestyle="none", label=e,
+               markerfacecolor=_ELEM_COLOR.get(e, "#888888"),
+               markeredgecolor="k", markeredgewidth=0.4, markersize=9)
+        for e in present
+    ]
+    fig.legend(handles=handles, title="Color code", loc="lower center",
+               ncol=len(handles), frameon=False, fontsize=8,
+               title_fontsize=8, bbox_to_anchor=(0.5, 0.0),
+               handletextpad=0.3, columnspacing=1.1)
 
 
 def _save(fig, out, dpi=150):
@@ -285,14 +335,24 @@ def plot_adsorption_pose(system: Any, out: str | None = None) -> object:
         The rendered figure (saved to ``out`` when given).
     """
     from ase.visualize.plot import plot_atoms
-    fig, axes = plt.subplots(1, 2, figsize=(9, 4.2))
-    plot_atoms(system.combined, axes[0], rotation="0x,0y,0z")
-    plot_atoms(system.combined, axes[1], rotation="-90x,0y,0z")
+    combined = system.combined
+    syms = combined.get_chemical_symbols()
+
+    # Colour every atom from the shared palette so the "Color code" legend
+    # below is truthful — ASE would otherwise fall back to its own CPK colours,
+    # which the legend key would then misdescribe.
+    colors = np.array([mpl.colors.to_rgb(_ELEM_COLOR.get(s, "#888888"))
+                       for s in syms])
+
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4.6))
+    plot_atoms(combined, axes[0], rotation="0x,0y,0z", colors=colors)
+    plot_atoms(combined, axes[1], rotation="-90x,0y,0z", colors=colors)
     axes[0].set_title(f"{system.metal}{system.surface} — top")
     axes[1].set_title("side")
     for a in axes:
         a.set_axis_off()
     fig.tight_layout()
+    _atom_color_legend(fig, syms)
     return _save(fig, out) or fig
 
 
@@ -432,11 +492,6 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
 
 
 # --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
-_ELEM_COLOR = {"C": "#404040", "H": "#cccccc", "O": "#d00000", "N": "#1060d0",
-               "S": "#d4a000", "F": "#30a030", "Cl": "#30a030", "P": "#d08000"}
-_ELEM_SIZE = {"C": 45, "H": 16, "O": 65, "N": 58, "S": 80, "P": 80}
-
-
 def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
                    title: str | None = None, elev: int = 16,
                    azim: int = -64) -> object:
@@ -461,7 +516,7 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
     fig = plt.figure(figsize=(5.2, 5.2))
     ax = fig.add_subplot(111, projection="3d")
     level = iso * float(np.abs(data).max()) if abs(iso) < 1 else iso
-    for lvl, color in ((level, C_HOMO), (-level, C_LUMO)):
+    for lvl, color in ((level, C_LOBE_POS), (-level, C_LOBE_NEG)):
         if not (data.min() < lvl < data.max()):
             continue
         verts, faces, _, _ = measure.marching_cubes(data, level=lvl,
@@ -480,6 +535,7 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
     if title:
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
+    _atom_color_legend(fig, syms)
     return _save(fig, out) or fig
 
 
