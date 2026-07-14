@@ -171,14 +171,14 @@ def plot_structures(names: Sequence[str], mols_per_row: int = 3,
     from rdkit import Chem
     from rdkit.Chem import AllChem, Draw
 
-    from ..molecules import resolve_smiles
+    from ..molecules import display_name, resolve_smiles
     mols, legends = [], []
     for n in names:
         nm, smi = resolve_smiles(n)
         m = Chem.MolFromSmiles(smi)
         AllChem.Compute2DCoords(m)
         mols.append(m)
-        legends.append(nm)
+        legends.append(display_name(nm))
     img = Draw.MolsToGridImage(mols, legends=legends,
                                molsPerRow=min(mols_per_row, len(mols)),
                                subImgSize=(330, 270))
@@ -200,6 +200,7 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import METAL_WORK_FUNCTION
     phi = METAL_WORK_FUNCTION.get(metal)
     n = len(rows)
@@ -221,7 +222,8 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
         ax.text(n - 0.5, -phi + 0.08, f"−Φ({metal}) = −{phi:.2f} eV",
                 color=C_METAL, va="bottom", ha="right", fontsize=8)
     ax.set_xticks(range(n))
-    ax.set_xticklabels([r["name"] for r in rows], rotation=12, ha="right")
+    ax.set_xticklabels([display_name(r["name"]) for r in rows], rotation=12,
+                       ha="right")
     ax.set_ylabel("Energy vs. vacuum (eV)")
     ax.set_title("Frontier molecular-orbital energies")
     ax.plot([], [], color=C_HOMO, lw=2.5, label="HOMO")
@@ -245,10 +247,11 @@ def plot_descriptor_comparison(rows: list[dict],
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import DESCRIPTOR_META
     keys = keys or ["gap_ev", "hardness_ev", "softness_inv_ev",
                     "electrophilicity_ev", "delta_n"]
-    names = [r["name"] for r in rows]
+    names = [display_name(r["name"]) for r in rows]
     fig, axes = plt.subplots(1, len(keys), figsize=(2.5 * len(keys), 3.6))
     axes = np.atleast_1d(axes)
     for ax, k in zip(axes, keys):
@@ -279,6 +282,7 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, key, title in ((axes[0], "gap_ev", "Energy gap ΔE (eV)"),
                            (axes[1], "delta_n", "ΔN (electrons transferred)")):
@@ -292,7 +296,7 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
         ax.bar(x - 0.2, neu, 0.4, label="neutral", color=C_BAR)
         ax.bar(x + 0.2, pro, 0.4, label="protonated", color=C_LUMO)
         ax.set_xticks(x)
-        ax.set_xticklabels(order, rotation=15)
+        ax.set_xticklabels([display_name(m) for m in order], rotation=15)
         ax.set_title(title, fontsize=10)
         ax.axhline(0, color="grey", lw=0.6)
         ax.legend(fontsize=8)
@@ -322,6 +326,7 @@ def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
     Returns:
         The rendered figure (saved to ``out`` when given).
     """
+    from ..molecules import display_name
     from ..qm.descriptors import DESCRIPTOR_META
 
     def col(df, name, key):
@@ -338,7 +343,8 @@ def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
         ax.bar(x - 0.2, ff, 0.4, label="FF geom", color=C_BAR)
         ax.bar(x + 0.2, op, 0.4, label="DFT-opt geom", color=C_METAL)
         ax.set_xticks(x)
-        ax.set_xticklabels(order, rotation=18, ha="right")
+        ax.set_xticklabels([display_name(n) for n in order], rotation=18,
+                           ha="right")
         ax.set_title(DESCRIPTOR_META.get(k, (k, ""))[0], fontsize=10)
         ax.axhline(0, color="grey", lw=0.6)
     axes[0].legend(fontsize=8)

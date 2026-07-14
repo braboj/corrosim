@@ -273,6 +273,26 @@ def resolve_smiles(name_or_smiles: str) -> tuple[str, str]:
     )
 
 
+def display_name(name: str) -> str:
+    """Capitalise a molecule's display name for figure titles and labels.
+
+    Upper-cases the first alphabetic character and leaves the rest untouched, so
+    'quercetin' becomes 'Quercetin' and '5-phenyltetrazole' becomes
+    '5-Phenyltetrazole' (a leading locant is preserved). Interior casing —
+    chemical prefixes, acronyms — is never altered.
+
+    Args:
+        name: The molecule's library display name.
+
+    Returns:
+        The name with its first letter capitalised.
+    """
+    for i, ch in enumerate(name):
+        if ch.isalpha():
+            return f"{name[:i]}{ch.upper()}{name[i + 1:]}"
+    return name
+
+
 def build_molecule(name_or_smiles: str, seed: int = 42,
                    ff: str = "MMFF") -> Molecule:
     """Build a 3D-embedded, force-field-relaxed molecule from a name or SMILES.
