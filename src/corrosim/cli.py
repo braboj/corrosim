@@ -256,12 +256,25 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print(f"Screening {len(inhibitors)} molecule(s) on {args.metal} "
           f"with engine='{args.engine}'...", file=sys.stderr)
-    df, html = corrosim.screen(
-        inhibitors, metal=args.metal, medium=args.medium,
-        engine=args.engine, adsorption=args.adsorption, out_html=args.out,
-        progress=lambda m: print(m, file=sys.stderr), **engine_kwargs)
 
-    ranked = corrosim.rank_inhibitors(df)
+    # A bad molecule, an unavailable engine, or an I/O failure becomes a
+    # one-line error and a non-zero exit, not a traceback (matching the
+    # run_study and add-inhibitor CLIs).
+    try:
+        df, html = corrosim.screen(
+            inhibitors, metal=args.metal, medium=args.medium,
+            engine=args.engine, adsorption=args.adsorption, out_html=args.out,
+            progress=lambda m: print(m, file=sys.stderr), **engine_kwargs)
+        ranked = corrosim.rank_inhibitors(df)
+    except ImportError as exc:
+        print(f"error: engine {args.engine!r} is unavailable ({exc}); install "
+              "the 'qm' extra (pip install -e '.[qm]') or run in the "
+              "corrosim-qm container.", file=sys.stderr)
+        return 1
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
     print("\nRanking (best first):")
     cols = [c for c in ["name", "gap_ev", "hardness_ev", "softness_inv_ev",
                         "delta_n", "e_ads_kjmol", "score"]
