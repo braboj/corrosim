@@ -1169,6 +1169,51 @@ and each stage's own output routing so the orchestrator threads no paths. Each
 runner imports its stage lazily, so the plan pays no heavy import for a stage it
 will not run. (Upstream candidate for the shared CLI conventions.)
 
+### Data visualization and rendering
+
+#### A legend built from the encoding source can't misdescribe the output
+
+When marks are coloured (or sized, or shaped) by a lookup, build the legend from
+that *same* lookup — enumerate the categories actually present and read each
+swatch from the map that drew them. A legend hand-listed separately, or one that
+duplicates the palette, drifts silently the moment the palette changes or a
+category is added. If a third-party drawer would otherwise apply its own default
+colours, override them with your palette so the one shared legend stays truthful
+for every figure.
+
+```python
+PALETTE = {"a": "#...", "b": "#...", ...}          # one source of truth
+
+def draw(marks, ax):
+    for m in marks:
+        ax.plot(m, color=PALETTE[m.kind])          # marks coloured from it
+
+def legend(marks):
+    present = order(set(m.kind for m in marks))
+    return [(k, PALETTE[k]) for k in present]       # key read from the same map
+```
+
+#### Normalize an object's pose by its principal axes before a fixed-camera render
+
+A fixed camera angle only flatters objects that happen to sit a certain way in
+their source frame; render a batch and some come out face-on, others edge-on and
+foreshortened. Rotate each object into its principal-axis frame first — the
+largest-spread axes into the view plane, the smallest (a planar object's normal)
+into depth — then one view setting presents every object consistently. Apply the
+same transform to every layer drawn in that frame (the object and any derived
+surface or overlay), and keep it a proper rotation so chirality is preserved.
+
+```python
+def principal_frame(points):
+    c = points.mean(0)
+    _, evecs = eigh((points - c).T @ (points - c))  # ascending eigenvalues
+    rot = evecs[:, ::-1].T                           # largest-spread axis first
+    if det(rot) < 0:
+        rot[2] = -rot[2]                             # proper rotation, no mirror
+    return c, rot
+# transform the object AND every overlay by the same (p - c) @ rot.T
+```
+
 ## The shortlist
 
 If you take five things:

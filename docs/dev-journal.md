@@ -2171,4 +2171,71 @@ actually run a user's own screen.
   open work: **#40** (LAMMPS / periodic-DFT chemisorption E_ads, the standalone
   research item) and the optional `qm-image.yml` branch-protection toggle.
 
+## 2026-07-14 (session 31): v0.1.0 release + report-figure quality pass (client review)
+
+Cut the first release, then ran a multi-round figure-quality pass driven by a
+client review of the validation-report figures.
+
+- **v0.1.0 release (closes #67, #71).** Cut `git tag v0.1.0` -> `release.yml`
+  built the image, smoke-ran it standalone (no bind mount), pushed
+  `ghcr.io/braboj/corrosim:0.1.0` + `:latest`, and cut the GitHub Release, all
+  green in 2m15s. The GHCR package came out **Public automatically** (it
+  inherited the public repo's visibility), so the one-time visibility toggle the
+  session-30 wrap flagged was not needed — verified anonymous pull returns HTTP
+  200 for both tags. Closed **#67** and the deployment epic **#71** (all three
+  front doors done: Pages live, GHCR shipping, Colab won't-do). Only **#40**
+  remains open from the code-quality epics.
+- **Figure-quality pass (PR #230, six commits, squash-merged).** Client review
+  against a pyrazolone-sulfonamide study asked whether corrosim can produce the
+  paper's HOMO/LUMO and Monte-Carlo-pose figures with a proper atom legend. Both
+  figure families already existed; the review drove a sequence of refinements:
+  - **Atom "Color code" legend** on the orbital, ESP, and MC-pose figures, from
+    one shared element->colour palette (organics + the validated substrate metals
+    Fe/Cu/Al + heavier halogens). The pose now colours the slab + molecule from
+    that same palette so the legend is truthful; ASE's own CPK colours are no
+    longer used. New `_atom_color_legend` helper; 4 QM-light tests.
+  - **Legibility:** frontier-orbital lobes made translucent and atoms enlarged /
+    saturated with thicker dark bonds, so the ball-and-stick skeleton reads
+    through the lobe; the pose legend dropped below the axes to clear the
+    side-view cell box.
+  - **Face-on auto-orientation:** `_principal_frame` (PCA of the atom positions)
+    lays each molecule flat in the view plane so a near-planar molecule presents
+    face-on instead of edge-on, for any molecule in any cube frame — the fix for
+    the "quercetin orientation is bad" note. Default view eased to a gentle tilt
+    (elev 68).
+  - **Blue/red orbital lobes** (paper convention), then a further round making
+    the lobes **fainter** (alpha 0.14) and hydrogen **yellow** everywhere (S
+    moved to dark goldenrod to stay distinct from the yellow H).
+  - **ESP** left translucent (atoms visible) per the client's call.
+  - **Capitalised molecule names** via a new `molecules.display_name` (upper-case
+    the first letter, preserve a leading locant and interior casing), applied to
+    every figure title / legend / axis label AND every report table
+    header/label: the transposed descriptor + ranking/summary tables (via the
+    shared `_matrix` / `ranking_matrix`, so HTML and Word both get it), the
+    computed-pKaH table, the lead-by-basis "Top candidate" cells, and the Fukui
+    donor-site list. Running prose keeps the lowercase common-noun name. Report
+    goldens refreshed (diff is capitalisation only); 3 `display_name` tests.
+- **fig0 pipeline diagram backfill (PR #231).** The tmp-smx / tetrazoles /
+  pyrazolylnucleosides reports rendered `[figure not found: fig0_pipeline.png]`
+  in their Overview — the case-agnostic pipeline diagram was never copied into
+  those bundles (the PLAYBOOK documents the manual copy; it was missed for the
+  three cases added in sessions 24-25). Copied the shared diagram (the existing
+  copies are byte-identical) and re-rendered the three reports. Filed **#232** to
+  make it robust (a fallback so a new case can't ship without the diagram).
+- **Regeneration discipline.** Each rendering change re-rendered only the
+  affected figure families (orbital/ESP/pose) plus the six report bundles;
+  confirmed the untouched figures (pose-energy, RDF, 2D charts) stayed
+  byte-identical, and reverted the EOL-only `ranking.csv` churn each time, so
+  every diff carried only intended changes. Pages redeployed on merge and was
+  verified live (capitalised headers + no fig0 placeholder on the site).
+- **No ADR** (incremental rendering work inside `report/figures.py` +
+  `report.py`; no new directory, no content moved between documents). **Gates:**
+  pytest 311 passed / 1 skipped (from 304: +4 legend, +3 display_name); ruff +
+  mypy + complexipy clean.
+- **Pending:** the validation suite, deployment epic, and figure set are all
+  complete and shipped. Remaining open work: **#40** (LAMMPS / periodic-DFT
+  chemisorption E_ads, the standalone research item) and **#232** (auto-populate
+  fig0 for new cases, low priority). Optional: the `qm-image.yml`
+  branch-protection toggle.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
