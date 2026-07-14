@@ -27,11 +27,13 @@ added case appears automatically with no edit to the gallery. The validation
 (which holds screening *inputs*, not results), so it lives in a small explicit
 status map in the generator, mirroring the scorecard in `docs/validation.md`.
 
-**The design encodes the science.** Each card is accented by its substrate metal
-(steel-blue Fe, copper Cu, aluminium Al), so the gallery reads as the three
-metals at a glance. The page is self-contained static HTML (one web-font link),
-dark-default with a light-mode variant, and degrades gracefully without the
-fonts or `color-mix`.
+**The design encodes the science.** On a white canvas, each card is accented by
+its substrate metal (steel-blue Fe, copper Cu, aluminium Al) with a green
+(validated) / amber (partial) status badge, and each names in full the published
+study the case is validated against, so the gallery reads as corrosim's own
+results checked against the literature. The page is self-contained static HTML
+(one web-font link), white-default with a dark variant, and degrades gracefully
+without the fonts or `color-mix`.
 
 **Path-gated deploy.** `pages.yml` runs on push to `main` only when a report
 bundle, the generator, `presets`, or the workflow changes, so unrelated commits
