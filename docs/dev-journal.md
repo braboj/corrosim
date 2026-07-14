@@ -2067,4 +2067,46 @@ diffuse-sensitive inhibitors on two fronts, both fixed here.
   bonus scientific check, not a gate. Optional: add `qm-image.yml` to branch
   protection.
 
+  *Postscript:* the phytic bonus run confirmed the win — the gas single point
+  converged at the production 6-311++G(d,p) basis (it moved on to the aqueous
+  point), i.e. the ladder + guarded density fitting made the previously-divergent
+  case tractable. The run used `--density-fit`, so the convergence is the result,
+  not the RI-approximate numbers.
+
+## 2026-07-14 (session 29): pyrazolylnucleosides Fukui + ESP backfill (#211 closed)
+
+Backfilled the last-missing local-reactivity maps for the pyrazolylnucleosides
+Cu(111) case and fixed two driver gaps the backfill exposed.
+
+- **Backfill (PR #219, merged; closed #211).** The bundle shipped DFT + MC + MD
+  only; the source (Oukhrib 2021) also reports ESP + Mulliken + HOMO/LUMO maps.
+  Ran Fukui + HOMO/LUMO + density/ESP cubes at the case's **def2-SVP** basis (the
+  light `6-31G(d)` default has no bromine, so 5e failed), rendered fig4 (condensed
+  Fukui), fig7 (ESP/MEP) and fig2b (HOMO/LUMO isosurfaces) for all five, and
+  rebuilt `report.html` + `report.docx` (now embedding all three sections, 39
+  figures). Mirrors the tmp-smx backfill. 5 Fukui JSONs (basis persisted as
+  `def2-SVP (FMO)`) + 20 cubes.
+- **Two driver bugs fixed en route.** `run_study._run_fukui` did not thread the
+  case basis, so the orchestrated Fukui stage would run at run_fukui's light
+  Pople default and fail on bromine — now it passes the case's def2 basis
+  through, mirroring the cube stage. And `make_report` loaded each `*_fukui.json`
+  raw and assumed the legacy bare-list shape, so it crashed (`AttributeError`)
+  on the current `as_json` object form (`{"basis", "atoms"}`) a freshly-computed
+  case now writes — a `_fukui_rows` normaliser now routes both formats through
+  the single `FukuiResult.from_json` compat home. The second would have bitten
+  any freshly-computed case, not just this one.
+- **No new ADR** (a data backfill plus two localized bug fixes; no architectural
+  decision, new directory, or cross-document move). **Know-how:** distilled the
+  generic "route every reader of an evolving serialized format through one
+  decode function" pattern into `docs/engineering-know-how.md`.
+- **Gates.** pytest 279 passed / 1 skipped (+3 QM-light tests: the two
+  basis-threading paths + the both-formats loader); ruff + mypy + complexipy
+  clean.
+- **Pending:** the validation suite is now complete across all three metals with
+  full Fukui/ESP coverage. Next thread is the deployment epic **#71** (recommended
+  **#67** release-on-tag → GHCR + PyPI, which unblocks #68 Pages / #66 Colab);
+  the pick remains paused mid-decision. Standalone open: **#40** (LAMMPS /
+  periodic-DFT chemisorption E_ads). Optional: add `qm-image.yml` to branch
+  protection.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

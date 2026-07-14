@@ -138,8 +138,10 @@ degrade gracefully to nothing rather than erroring.
 
 A gotcha when adding a new case: if any molecule contains a heavier element
 (Br, I), set the preset `basis` to a def2 set (`def2-SVP`): the engine's Pople
-sets (`6-31G(d)`, `6-311++G(d,p)`) carry no bromine, and `run_fukui` /
-`make_cubes` at their `6-31G(d)` default will also fail on it.
+sets (`6-31G(d)`, `6-311++G(d,p)`) carry no bromine. `run_study` threads that
+def2 basis into its Fukui and cube stages automatically, but the standalone
+`run_fukui` / `make_cubes` keep their light `6-31G(d)` default and need an
+explicit `--basis def2-SVP` for such a case, or they fail on the bromine.
 
 A large, compact, oxygen-dense molecule can make the diffuse production basis
 diverge (near-linear-dependence). The SCF now escalates on non-convergence
