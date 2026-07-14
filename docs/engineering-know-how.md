@@ -237,6 +237,31 @@ beyond that, and refuse with a clear error past a hard ceiling. A diagnosable
 "too large for this budget" beats an OOM crash mid-run — and the scratch path
 must land on real disk, not a RAM-backed tmpfs, or the spill defeats itself.
 
+#### One decode home accepts every persisted shape
+
+When a serialized format evolves — gains a version, wraps its payload in an
+envelope, adds a field — route every reader through a single decode function
+that accepts all supported shapes, and never let a consumer re-parse the raw
+payload itself. A second reader that hard-codes the old shape keeps working
+until a new writer changes it, then crashes on data it never learned — and the
+break surfaces at the read site, far from the format change. Keep the shape
+knowledge in one place (the decode function, the inverse of encode), have it
+fall back across the legacy forms, and make every consumer go through it.
+
+```python
+@classmethod
+def from_json(cls, obj):
+    # accept the current {"version", "payload"} envelope AND the legacy bare form
+    payload = obj["payload"] if isinstance(obj, dict) else obj
+    return cls(...)
+
+rows = Thing.from_json(load(path))   # every reader decodes; none parses raw
+```
+
+The bug this prevents: a consumer that loaded the raw payload and assumed the
+old shape works until the writer is upgraded, then fails on the new shape — a
+format change silently breaking a reader that never went through the one decoder.
+
 Two recurring design criteria worth internalizing:
 
 - **Restraint over speculation.** Abstract only where duplication or a second
