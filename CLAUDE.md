@@ -93,6 +93,7 @@ duplicate.
 | `README.md` | Project overview, structure, setup, commands |
 | `CLAUDE.md` | AI agent context and project rules (this file) |
 | `docs/ONBOARDING.md` | Onboarding guide for new contributors |
+| `docs/user-journeys.md` | Actor-level paths through the tool (evaluate → screen → integrate) |
 | `docs/PLAYBOOK.md` | Operational reference for common tasks |
 | `docs/dev-journal.md` | Development history and session log |
 | `docs/decisions/` | Architecture decision records (`NNN-slug.md`, one concern each) |
