@@ -49,6 +49,30 @@ word report written to cases/arghel/report/report.docx (3101 kB)
 tables in cases/arghel/report/tables/ (per-stage subfolders)
 ```
 
+### Run the full pipeline with Docker (no Python setup)
+
+The DFT/xTB engines have no Windows wheels, so the published image is the
+cross-platform way to run the whole pipeline: it bundles corrosim with rdkit,
+pyscf, and tblite, so with only Docker installed you run DFT to report with no
+Python, wheels, or compiler on your side. Outputs land in `./cases/` on your
+host.
+
+```bash
+# a shipped validation case
+docker run --rm -v "$PWD/cases:/work/cases" \
+    ghcr.io/braboj/corrosim corrosim-run-study --case arghel
+
+# your own study: bring-your-own inhibitors / metal / medium
+docker run --rm -v "$PWD/cases:/work/cases" \
+    ghcr.io/braboj/corrosim corrosim-run-study --name my-screen \
+        --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
+```
+
+Add `--plan` to preview the ordered steps without computing. The image is
+published per release (`ghcr.io/braboj/corrosim:<version>`, and `:latest`); the
+`docker compose` path under [Development setup](#development-setup) builds it
+locally from source instead.
+
 ## Usage
 
 **Command line.** Screen the case-study set, rank it, and write a report + CSV:
