@@ -10,9 +10,11 @@ with no regeneration.
     presets.CASE_STUDIES --> build_index_html() --> _site/index.html
     cases/<name>/report/report.html  --copy-->     _site/<name>.html
 
-The design encodes the science: each card is accented by its substrate metal
-(steel-blue Fe, copper Cu, aluminium Al), so the gallery reads as the three
-metals at a glance.
+The design encodes the science on a white canvas: each card is accented by its
+substrate metal (steel-blue Fe, copper Cu, aluminium Al), and its badge reads
+green (validated) or amber (partial). Every card names the published study the
+case is validated against, so the gallery reads as corrosim's own results checked
+against the literature.
 """
 from __future__ import annotations
 
@@ -108,6 +110,15 @@ def _card_html(case: CaseStudy, index: int) -> str:
         badge = (f'<span class="badge badge--{tier}">'
                  f'<span class="dot"></span>{html.escape(label)}</span>')
 
+    # the published study this case is validated against, named in full so the
+    # validation relationship is explicit (all shipped cases carry one)
+    ref = ""
+    if case.source:
+        ref = ('<div class="case__ref">'
+               '<span class="case__ref-label">Validated against</span>'
+               f'<span class="case__ref-src">{html.escape(case.source)}</span>'
+               '</div>')
+
     return (
         f'<a class="case" href="{html.escape(case.name)}.html" '
         f'style="--accent:{accent};animation-delay:{index * 70}ms">'
@@ -119,7 +130,7 @@ def _card_html(case: CaseStudy, index: int) -> str:
         f'<p class="case__meta">{html.escape(case.medium)} '
         f'<span class="dotsep">·</span> {n} {plural}</p>'
         f'<p class="case__desc">{html.escape(case.description)}</p>'
-        f'<p class="case__src">{html.escape(case.source)}</p>'
+        f'{ref}'
         f'<span class="case__cta">View report <span class="arrow">&rarr;</span>'
         f'</span>'
         f'</a>'
@@ -135,23 +146,16 @@ def build_index_html(cases: Sequence[CaseStudy]) -> str:
     Returns:
         A complete, self-contained HTML document.
     """
-    substrates = len({c.metal_element for c in cases})
     cards = "\n".join(_card_html(c, i) for i, c in enumerate(cases))
-    stat = (f"{len(cases)} stud{'y' if len(cases) == 1 else 'ies'} "
-            f"<span class='dotsep'>·</span> {substrates} "
-            f"substrate{'' if substrates == 1 else 's'} "
-            f"<span class='dotsep'>·</span> self-contained reports")
 
     return (
         _HEAD
         + '<div class="wrap">'
         + '<header class="masthead">'
-        + '<p class="eyebrow">Validation gallery</p>'
         + '<h1 class="wordmark">corrosim</h1>'
-        + '<p class="lede">Green corrosion-inhibitor screening: DFT reactivity, '
-          'adsorption, and molecular dynamics, reproduced against published '
-          'studies.</p>'
-        + f'<p class="stat">{stat}</p>'
+        + '<p class="lede">Each report is a full corrosim screening (DFT '
+          'reactivity, adsorption, and molecular dynamics), validated against a '
+          'published corrosion-inhibitor study.</p>'
         + '</header>'
         + f'<main class="grid">{cards}</main>'
         + '<footer class="colophon">'
@@ -207,35 +211,32 @@ _HEAD = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>corrosim — validation gallery</title>
-<meta name="description" content="Green corrosion-inhibitor screening, reproduced against published studies.">
+<meta name="description" content="corrosim screenings validated against published corrosion-inhibitor studies.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;450;500&display=swap" rel="stylesheet">
 <style>
+  /* White canvas; each card accented by its substrate metal (steel-blue Fe,
+     copper Cu, aluminium Al); badges green (validated) / amber (partial). Light
+     is the default; dark keeps the same accents on a near-black ground. */
   :root {
-    --bg: #0d1012; --panel: #14191c; --ink: #eaeef0; --muted: #93a0a8;
-    --faint: #616d74; --line: #232a2f;
-    --fe: #6f92ad; --cu: #cc8a54; --al: #a9b6bd;
-    --ok: #63c08d; --ok-bg: rgba(99,192,141,.12);
-    --partial: #d8a94f; --partial-bg: rgba(216,169,79,.13);
+    --bg: #f5f6f7; --panel: #ffffff; --ink: #16191c; --muted: #55606a;
+    --faint: #8b949c; --line: #e5e7ea;
+    --fe: #4d6f8a; --cu: #a9662f; --al: #6f7c85;
+    --ok: #2f9d68; --ok-bg: rgba(47,157,104,.10);
+    --warn: #b5811f; --warn-bg: rgba(181,129,31,.12);
     --display: "Fraunces", Georgia, "Times New Roman", serif;
     --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
     --sans: "IBM Plex Sans", system-ui, sans-serif;
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #efece6; --panel: #ffffff; --ink: #191d21; --muted: #58636a;
-      --faint: #8a949b; --line: #e4ded4;
-      --fe: #4d6f8a; --cu: #a9662f; --al: #6f7c85;
-      --ok: #2f9d68; --ok-bg: rgba(47,157,104,.10);
-      --partial: #b5811f; --partial-bg: rgba(181,129,31,.10);
+      --bg: #0e0f12; --panel: #17191d; --ink: #f1f3f5; --muted: #9aa3ab;
+      --faint: #69717a; --line: #24272c;
+      --fe: #6f92ad; --cu: #cc8a54; --al: #a9b6bd;
+      --ok: #63c08d; --ok-bg: rgba(99,192,141,.14);
+      --warn: #d8a94f; --warn-bg: rgba(216,169,79,.13);
     }
-  }
-  :root[data-theme="light"] {
-    --bg: #efece6; --panel: #ffffff; --ink: #191d21; --muted: #58636a;
-    --faint: #8a949b; --line: #e4ded4;
-    --fe: #4d6f8a; --cu: #a9662f; --al: #6f7c85;
-    --ok: #2f9d68; --partial: #b5811f;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -245,24 +246,20 @@ _HEAD = """<!doctype html>
     line-height: 1.55; letter-spacing: .002em;
     -webkit-font-smoothing: antialiased;
     background-image:
-      radial-gradient(900px 480px at 50% -8%, rgba(111,146,173,.14), transparent 62%),
+      radial-gradient(900px 460px at 50% -8%, rgba(77,111,138,.06), transparent 62%),
       linear-gradient(to right, var(--line) 1px, transparent 1px),
       linear-gradient(to bottom, var(--line) 1px, transparent 1px);
     background-size: 100% 100%, 46px 46px, 46px 46px;
     background-attachment: fixed, fixed, fixed;
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     body { background-image:
-      radial-gradient(900px 480px at 50% -8%, rgba(77,111,138,.10), transparent 62%),
+      radial-gradient(900px 460px at 50% -8%, rgba(111,146,173,.10), transparent 62%),
       linear-gradient(to right, var(--line) 1px, transparent 1px),
       linear-gradient(to bottom, var(--line) 1px, transparent 1px); }
   }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.5rem); }
-  .masthead { padding: clamp(3.5rem, 9vw, 6.5rem) 0 clamp(1.6rem, 4vw, 2.6rem); }
-  .eyebrow {
-    font-family: var(--mono); font-size: .72rem; letter-spacing: .28em;
-    text-transform: uppercase; color: var(--faint); margin: 0 0 1rem;
-  }
+  .masthead { padding: clamp(2.4rem, 6vw, 4.2rem) 0 clamp(1.6rem, 4vw, 2.6rem); }
   .wordmark {
     font-family: var(--display); font-weight: 600;
     font-size: clamp(3.4rem, 12vw, 6.5rem); line-height: .92;
@@ -275,13 +272,8 @@ _HEAD = """<!doctype html>
     }
   }
   .lede {
-    max-width: 40ch; margin: 1.3rem 0 0; color: var(--muted);
+    max-width: 46ch; margin: 1.3rem 0 0; color: var(--muted);
     font-size: clamp(1rem, 2.1vw, 1.16rem); line-height: 1.5;
-  }
-  .stat {
-    font-family: var(--mono); font-size: .82rem; color: var(--faint);
-    margin: 1.5rem 0 0; padding-top: 1.4rem;
-    border-top: 1px solid var(--line);
   }
   .dotsep { color: var(--faint); padding: 0 .15em; }
   .grid {
@@ -301,13 +293,13 @@ _HEAD = """<!doctype html>
   }
   .case__bar {
     position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent);
-    opacity: .85;
+    opacity: .9;
   }
   .case:hover {
     transform: translateY(-5px);
     border-color: color-mix(in oklab, var(--accent) 55%, var(--line));
-    box-shadow: 0 22px 48px -26px rgba(0,0,0,.65),
-                0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+    box-shadow: 0 20px 44px -26px rgba(20,30,45,.28),
+                0 0 0 1px color-mix(in oklab, var(--accent) 26%, transparent);
   }
   .case__head {
     display: flex; align-items: center; justify-content: space-between;
@@ -328,8 +320,8 @@ _HEAD = """<!doctype html>
   .badge .dot { width: .46em; height: .46em; border-radius: 50%; }
   .badge--ok { color: var(--ok); background: var(--ok-bg); }
   .badge--ok .dot { background: var(--ok); }
-  .badge--partial { color: var(--partial); background: var(--partial-bg); }
-  .badge--partial .dot { background: var(--partial); }
+  .badge--partial { color: var(--warn); background: var(--warn-bg); }
+  .badge--partial .dot { background: var(--warn); }
   .case__title {
     font-family: var(--display); font-weight: 600;
     font-size: 1.42rem; line-height: 1.12; letter-spacing: -.01em;
@@ -340,15 +332,22 @@ _HEAD = """<!doctype html>
     margin: 0 0 .85rem;
   }
   .case__desc {
-    font-size: .92rem; color: var(--muted); margin: 0 0 .9rem;
+    font-size: .92rem; color: var(--muted); margin: 0 0 1.1rem;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .case__src {
-    font-family: var(--mono); font-size: .68rem; line-height: 1.5;
-    color: var(--faint); margin: 0 0 1.15rem;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    overflow: hidden;
+  .case__ref {
+    margin: 0 0 1.2rem; padding-top: .95rem;
+    border-top: 1px solid var(--line);
+  }
+  .case__ref-label {
+    display: block; font-family: var(--mono); font-size: .62rem;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--faint);
+    margin-bottom: .35rem;
+  }
+  .case__ref-src {
+    font-family: var(--mono); font-size: .69rem; line-height: 1.5;
+    color: var(--muted);
   }
   .case__cta {
     margin-top: auto; font-family: var(--mono); font-size: .8rem;
