@@ -107,6 +107,27 @@ def _read_cube_grid(path):
     return data, atoms, origin, spacing
 
 
+def _principal_frame(positions):
+    """Centroid + rotation aligning a molecule's principal axes to x, y, z.
+
+    The largest-spread axis maps to x and the smallest (the plane normal of a
+    roughly planar molecule) to z, so applying it lays the molecule flat in the
+    xy-plane and presents it face-on regardless of how the cube happened to be
+    oriented. Returns (centroid, R) with R a right-handed rotation whose rows
+    are the principal axes; transform points as ``(p - centroid) @ R.T``.
+    """
+    centroid = positions.mean(axis=0)
+    centred = positions - centroid
+    # Principal axes: eigenvectors of the covariance, ordered by descending
+    # spread so the long molecular axis leads.
+    _, evecs = np.linalg.eigh(centred.T @ centred)
+    rot = evecs[:, ::-1].T
+    # Keep it a proper rotation (no mirror), else chirality would flip.
+    if np.linalg.det(rot) < 0:
+        rot[2] = -rot[2]
+    return centroid, rot
+
+
 def _draw_bonds(ax, positions, symbols, **line_kw):
     """Draw covalent bonds — atom pairs within BOND_CUTOFF_ANG, minus H-H."""
     for i in range(len(positions)):
@@ -500,8 +521,8 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
 
 # --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
 def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
-                   title: str | None = None, elev: int = 16,
-                   azim: int = -64) -> object:
+                   title: str | None = None, elev: int = 68,
+                   azim: int = -90) -> object:
     """Render an orbital .cube as +/- isosurface lobes over the skeleton.
 
     Args:
@@ -519,6 +540,11 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from skimage import measure
     data, atoms, origin, spacing = _read_cube_grid(cubefile)
+    syms = atoms.get_chemical_symbols()
+
+    # Lay the molecule flat in the xy-plane (principal-axis frame) so it shows
+    # face-on; the same transform applies to the atoms and the isosurface verts.
+    centroid, rot = _principal_frame(atoms.get_positions())
 
     fig = plt.figure(figsize=(5.2, 5.2))
     ax = fig.add_subplot(111, projection="3d")
@@ -528,13 +554,12 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
             continue
         verts, faces, _, _ = measure.marching_cubes(data, level=lvl,
                                                     spacing=tuple(spacing))
-        verts = verts + origin
+        verts = (verts + origin - centroid) @ rot.T
         # A translucent shell (low alpha) so the ball-and-stick skeleton stays
         # legible through the lobe instead of being buried under it.
         ax.add_collection3d(Poly3DCollection(verts[faces], alpha=0.22,
                                              facecolor=color, edgecolor="none"))
-    positions = atoms.get_positions()
-    syms = atoms.get_chemical_symbols()
+    positions = (atoms.get_positions() - centroid) @ rot.T
     # Bonds first, then the atoms on top — both after the lobes so the skeleton
     # reads clearly; depthshade off keeps the element colours saturated.
     _draw_bonds(ax, positions, syms, color="#202020", lw=2.4)
@@ -552,8 +577,8 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
 
 def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
                iso: float = 0.002, title: str | None = None,
-               clip_pct: float = 2.0, elev: int = 16,
-               azim: int = -64) -> object:
+               clip_pct: float = 2.0, elev: int = 68,
+               azim: int = -90) -> object:
     """Render a molecular electrostatic-potential (ESP/MEP) map.
 
     The electron-density isosurface (default 0.002 e/bohr³) is coloured by the
@@ -590,8 +615,10 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     # Marching cubes in *index* space so we can sample the ESP grid directly
     verts_idx, faces, _, _ = measure.marching_cubes(rho, level=iso)
     pot_at_vert = map_coordinates(pot, verts_idx.T, order=1, mode="nearest")
-    # Physical coords (Å)
-    verts = verts_idx * spacing + origin
+    # Physical coords (Å), then laid flat in the principal-axis frame so the
+    # molecule presents face-on (the same transform applies to the atoms below).
+    centroid, rot = _principal_frame(atoms.get_positions())
+    verts = (verts_idx * spacing + origin - centroid) @ rot.T
 
     face_pot = pot_at_vert[faces].mean(axis=1)
     vmax = (np.percentile(np.abs(pot_at_vert), 100 - clip_pct)
@@ -610,7 +637,7 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
                             edgecolor="none", alpha=0.5)
     ax.add_collection3d(surf)
 
-    positions = atoms.get_positions()
+    positions = (atoms.get_positions() - centroid) @ rot.T
     syms = atoms.get_chemical_symbols()
     # Bonds then atoms, drawn after the shell so the skeleton reads through it
     _draw_bonds(ax, positions, syms, color="#202020", lw=2.0)
