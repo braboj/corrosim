@@ -134,9 +134,11 @@ mkdir -p logs
 docker compose run -d --rm --name qmjob qm sh -c \
     'corrosim-run-study --case <name> --with-cubes > /work/logs/<name>.log 2>&1'
 tail -f logs/<name>.log          # poll progress; rm the log once the job is done
-cp cases/arghel/report/figures/pipeline/fig0_pipeline.png \
-   cases/<name>/report/figures/pipeline/     # fig0 is shared, not regenerated
 ```
+
+The figure stage populates `fig0_pipeline.png` (the shared pipeline diagram) into
+the bundle automatically — it copies the packaged asset, so no manual copy is
+needed.
 
 For a partial run or to debug one stage, drive the drivers directly — the QM
 stages (detached, since the ESP cubes are slow) then the classical stages and the
@@ -296,12 +298,13 @@ refactor epic), zero dead-code findings at ≥80% confidence.
   which produce the `cases/<case>/report/` bundle.
 - After editing `docs/diagrams/pipeline.drawio`, re-export the pipeline diagram
   to **both** destinations (they must stay identical — the doc copy shown by
-  `docs/pipeline.md` and the `cases/<case>/report/` bundle's `fig0`); commit the
-  `.drawio` source and both PNGs together:
+  `docs/pipeline.md` and the packaged `fig0` asset the figure stage copies into
+  each bundle); commit the `.drawio` source and both PNGs together, then
+  re-render the reports so each bundle picks up the new `fig0`:
 
   ```bash
-  drawio -x -f png -s 2 -o docs/diagrams/pipeline.png              docs/diagrams/pipeline.drawio
-  drawio -x -f png -s 2 -o cases/arghel/report/figures/pipeline/fig0_pipeline.png docs/diagrams/pipeline.drawio
+  drawio -x -f png -s 2 -o docs/diagrams/pipeline.png                        docs/diagrams/pipeline.drawio
+  drawio -x -f png -s 2 -o src/corrosim/report/assets/fig0_pipeline.png      docs/diagrams/pipeline.drawio
   ```
 
   If `drawio` is not on PATH, invoke the installed draw.io desktop app's CLI

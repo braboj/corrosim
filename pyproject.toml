@@ -65,9 +65,10 @@ where = ["src"]
 include = ["corrosim*"]
 
 [tool.setuptools.package-data]
-# Ship the inhibitor library as package data (loaded via importlib.resources),
-# so adding a molecule is a data edit and the JSON travels in the wheel/sdist.
-corrosim = ["data/*.json"]
+# Ship the inhibitor library and the case-agnostic pipeline diagram as package
+# data (both loaded via importlib.resources), so adding a molecule is a data
+# edit and the report's Overview figure (fig0) travels in the wheel/sdist.
+corrosim = ["data/*.json", "report/assets/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
