@@ -11,7 +11,9 @@ corrosim.qm.cubes (which needs PySCF and runs in the QM container).
 from __future__ import annotations
 
 import io
+import shutil
 from collections.abc import Sequence
+from importlib.resources import files
 from typing import TYPE_CHECKING, Any
 
 import matplotlib as mpl
@@ -57,6 +59,31 @@ _ELEM_SIZE = {"C": 95, "H": 34, "O": 130, "N": 120, "S": 150, "P": 150,
 # unlisted is appended.
 _LEGEND_ORDER = ["Fe", "Cu", "Al", "C", "H", "N", "O", "S", "P",
                  "F", "Cl", "Br", "I"]
+
+
+def place_pipeline_diagram(out: str) -> str:
+    """Write the case-agnostic pipeline diagram (fig0) into a case bundle.
+
+    fig0 is the DFT -> Monte Carlo -> MD schematic shown in every report's
+    Overview. Unlike the other figures it is not plotted from case data — it is
+    the same drawing for every substrate, exported from the drawn source and
+    shipped as package data (``corrosim/report/assets/fig0_pipeline.png``). This
+    copies that packaged render to ``out`` so the figure driver produces a
+    complete figure set and no case can ship a report without the diagram.
+
+    The asset is located via ``importlib.resources`` so it resolves the same
+    from a source checkout and an installed wheel.
+
+    Args:
+        out: Destination path for the ``fig0_pipeline.png`` copy.
+
+    Returns:
+        The destination path (``out``).
+    """
+    src = files("corrosim.report") / "assets" / "fig0_pipeline.png"
+    with src.open("rb") as fsrc, open(out, "wb") as fdst:
+        shutil.copyfileobj(fsrc, fdst)
+    return out
 
 
 def _atom_color_legend(fig: Any, symbols: Sequence[str],

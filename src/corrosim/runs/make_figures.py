@@ -45,6 +45,12 @@ if TYPE_CHECKING:
 _Out = Callable[[str], str]
 
 
+def _fig_pipeline(out: _Out) -> None:
+    """Fig 0: the case-agnostic pipeline diagram (copied from package data)."""
+    log("Fig 0: pipeline diagram")
+    figures.place_pipeline_diagram(out("fig0_pipeline.png"))
+
+
 def _fig_structures(order: list[str], out: _Out) -> None:
     """Fig 1: the 2D molecular structures."""
     log("Fig 1: structures")
@@ -180,6 +186,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         return path
 
+    _fig_pipeline(out)
     _fig_structures(order, out)
     _fig_descriptors(args, case, order, out)
     _fig_fukui(args, order, out)
