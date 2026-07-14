@@ -1,0 +1,96 @@
+name: Release
+
+# On a v* tag, publish the all-in-one corrosim image to GHCR and cut a GitHub
+# Release. The image bundles rdkit + pyscf + tblite + corrosim, so a user runs
+# the whole DFT -> MC -> MD -> report pipeline with only Docker installed - no
+# Python, wheels, or compiler on their side. The DFT/xTB engines ship no Windows
+# wheels, so the image is the cross-platform way to run them. GHCR and Actions
+# are free for public repos, so this costs the maintainer nothing.
+#
+# One-time setup: after the first release, set the ghcr.io/<owner>/corrosim
+# package to Public in its GHCR package settings so anonymous `docker pull`
+# works (GITHUB_TOKEN can push the image but cannot flip package visibility).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # create the GitHub Release
+  packages: write # push the image to GHCR
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/corrosim
+
+jobs:
+  publish:
+    name: Build, smoke-run, and publish the image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive the image version from the tag
+        # v0.1.0 -> 0.1.0: the image tag drops the leading v (Docker convention),
+        # while the GitHub Release keeps the tag name verbatim.
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the image
+        # The Dockerfile ends in `RUN python -c "import corrosim, pyscf, tblite"`,
+        # so a broken build or a missing engine fails here, before any push.
+        run: |
+          docker build \
+            -t "$IMAGE:${{ steps.ver.outputs.version }}" \
+            -t "$IMAGE:latest" .
+
+      - name: Smoke-run the image standalone (no bind mount)
+        # A published-image user mounts no repo, so confirm the console script
+        # resolves the baked /work/src and the orchestrator runs with no volume -
+        # the exact path the bind-mounted dev/CI smoke never exercises.
+        run: |
+          docker run --rm "$IMAGE:${{ steps.ver.outputs.version }}" \
+            corrosim-run-study --case arghel --plan
+
+      - name: Push both tags
+        run: |
+          docker push "$IMAGE:${{ steps.ver.outputs.version }}"
+          docker push "$IMAGE:latest"
+
+      - name: Cut the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > notes.md <<'EOF'
+          ## Run it (only Docker needed)
+
+          The image bundles every engine (rdkit + pyscf + tblite), so the whole
+          DFT -> MC -> MD -> report pipeline runs with no Python, wheels, or
+          compiler on your side. Outputs land in `./cases/` on your host.
+
+          ```bash
+          # a shipped validation case
+          docker run --rm -v "$PWD/cases:/work/cases" \
+            ghcr.io/${{ github.repository_owner }}/corrosim:${{ steps.ver.outputs.version }} \
+            corrosim-run-study --case arghel
+
+          # your own study: bring-your-own inhibitors / metal / medium
+          docker run --rm -v "$PWD/cases:/work/cases" \
+            ghcr.io/${{ github.repository_owner }}/corrosim:latest \
+            corrosim-run-study --name my-screen \
+              --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
+          ```
+
+          Add `--plan` to preview the ordered steps without computing. `:latest`
+          also points at this release.
+          EOF
+          gh release create "${{ github.ref_name }}" \
+            --title "corrosim ${{ github.ref_name }}" \
+            --notes-file notes.md

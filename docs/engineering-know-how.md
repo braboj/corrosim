@@ -858,6 +858,31 @@ jobs:
       - run: docker compose run --rm img    # import-smoke under the runtime bind mount
 ```
 
+#### Publish on tag, and smoke the image in the config the user runs
+
+Release-on-tag builds, smoke-runs, and pushes the image, then cuts a release with
+the run instructions. The subtle part is the smoke: the dev and CI smoke overlays
+the repo with a bind mount, so it never exercises the **standalone** path a
+published-image user takes (no mount, the baked source). Run the smoke with no
+volume, so a broken standalone image fails before the push, not in a user's hands.
+Registry and CI are free for public repos, so this costs the maintainer nothing;
+one manual step remains — the token can push but cannot flip package visibility,
+so set the package public once after the first release.
+
+```yaml
+on:
+  push:
+    tags: ["v*"]
+permissions: { contents: write, packages: write }   # release + registry push
+steps:
+  - run: docker build -t "$IMG:${TAG#v}" -t "$IMG:latest" .   # build-time import check gates
+  - run: docker run --rm "$IMG:${TAG#v}" app --dry-run        # STANDALONE: no bind mount
+  - run: docker push "$IMG:${TAG#v}" && docker push "$IMG:latest"
+```
+
+Mount only the output directory to retrieve results; never mount over the workdir
+that holds the baked source, or the mount shadows it and the import breaks.
+
 ## Security
 
 SAST, secrets, and supply chain.
