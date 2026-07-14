@@ -1,0 +1,9 @@
+{
+  "name": "my-study",
+  "molecules": ["quercetin", "benzotriazole", "CCO"],
+  "metal": "Fe(110)",
+  "medium": "1 M HCl",
+  "pkah": -1.5,
+  "basis": "6-311++G(d,p)",
+  "xc": "b3lyp"
+}

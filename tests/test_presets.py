@@ -1,7 +1,13 @@
 import pytest
 
 from corrosim import ARGHEL, build_molecule, case_study
-from corrosim.presets import CaseStudy
+from corrosim.presets import (
+    CaseStudy,
+    is_study_file,
+    load_study,
+    save_study,
+    validate_study,
+)
 
 
 def test_arghel_is_the_single_source_of_truth():
@@ -216,3 +222,81 @@ def test_drivers_share_the_preset_list():
     for drv in (run_dft, run_fukui, run_mc, run_md, run_pka,
                 make_report, make_figures, compare_geometry):
         assert drv.resolve_case is _cli.resolve_case
+
+
+# --- a study declared as data (bring-your-own inhibitors/metal/medium) -------
+
+
+def test_case_study_round_trips_through_a_dict():
+    # to_dict -> from_dict reproduces the study exactly (molecules as a list)
+    case = CaseStudy(name="demo", molecules=("quercetin", "CCO"),
+                     metal="Cu(111)", medium="0.5 M H2SO4", pkah=2.5)
+    data = case.to_dict()
+    assert data["molecules"] == ["quercetin", "CCO"]     # JSON-friendly list
+    assert CaseStudy.from_dict(data) == case
+
+
+def test_from_dict_requires_name_and_a_nonempty_molecule_list():
+    with pytest.raises(ValueError, match="name"):
+        CaseStudy.from_dict({"molecules": ["CCO"]})
+    with pytest.raises(ValueError, match="molecules"):
+        CaseStudy.from_dict({"name": "x", "molecules": []})
+    with pytest.raises(ValueError, match="molecules"):
+        CaseStudy.from_dict({"name": "x", "molecules": "CCO"})   # not a list
+
+
+def test_from_dict_rejects_an_unknown_field():
+    # a typo ('metals') fails loud instead of being silently dropped
+    with pytest.raises(ValueError, match="unknown study field"):
+        CaseStudy.from_dict(
+            {"name": "x", "molecules": ["CCO"], "metals": "Fe"})
+
+
+def test_is_study_file_distinguishes_a_path_from_a_registry_name():
+    assert is_study_file("my-study.json")
+    assert is_study_file("./cases/x/study.json")
+    assert not is_study_file("arghel")           # a bare word is a preset lookup
+
+
+def test_save_and_load_study_round_trips_through_a_file(tmp_path):
+    case = CaseStudy(name="demo", molecules=("quercetin", "CCO"),
+                     metal="Cu(111)")
+    path = tmp_path / "sub" / "study.json"        # parent is created
+    save_study(case, str(path))
+    assert load_study(str(path)) == case
+
+
+def test_case_study_loads_a_study_file_path(tmp_path):
+    # the same resolver serves a registered name and a file path
+    case = CaseStudy(name="demo", molecules=("CCO",), metal="Al(111)")
+    path = tmp_path / "study.json"
+    save_study(case, str(path))
+    assert case_study(str(path)) == case
+    assert case_study("arghel") is ARGHEL         # registry path is unchanged
+
+
+def test_validate_study_rejects_an_unsupported_metal():
+    # only a metal the slab builder knows runs the full pipeline
+    with pytest.raises(ValueError, match="not supported"):
+        validate_study(CaseStudy(name="x", molecules=("CCO",), metal="Zn"))
+
+
+def test_validate_study_rejects_an_unsafe_name():
+    # the name becomes the cases/<name>/ directory, so it must be path-safe
+    with pytest.raises(ValueError, match="alphanumeric"):
+        validate_study(CaseStudy(name="../evil", molecules=("CCO",)))
+
+
+def test_validate_study_rejects_an_element_with_no_uff_parameters():
+    # iodine has no UFF vdW parameter, so the MC/MD field can't score it
+    with pytest.raises(ValueError, match="no UFF parameters"):
+        validate_study(
+            CaseStudy(name="x", molecules=("CI",), metal="Fe(110)"),
+            check_elements=True)
+
+
+def test_validate_study_accepts_a_supported_organic_on_a_known_metal():
+    # a CHO organic on Fe/Cu/Al passes both the metal and the element check
+    validate_study(
+        CaseStudy(name="ok", molecules=("CCO",), metal="Cu(111)"),
+        check_elements=True)

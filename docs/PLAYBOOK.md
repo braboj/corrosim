@@ -97,6 +97,31 @@ docker compose run -d --name corrosim_job qm \
 docker logs -f corrosim_job             # poll; then: docker rm corrosim_job
 ```
 
+### Run your own study (bring-your-own inhibitors, metal, medium)
+
+The `--case` names above screen the shipped validation studies. To screen a new
+set, declare a study as data (name + molecules + metal + medium, with an optional
+DFT level) and point the same runner at it — no `presets.py` edit. Two
+interchangeable front doors, one engine:
+
+```bash
+# a study file (durable, shareable, reproducible) — copy examples/study.template.json
+docker compose run --rm qm corrosim-run-study --case ./my-study.json
+
+# ad-hoc flags: builds the study inline, writing cases/<name>/study.json
+corrosim-run-study --name my-study --molecules "quercetin,CCO" \
+    --metal Cu(111) --medium "1 M HCl" --basis def2-SVP
+```
+
+`--molecules` switches on build mode (it needs `--name`, and is mutually
+exclusive with `--case`); the unset study fields fall back to the `CaseStudy`
+defaults. Molecules are library names or SMILES, so a novel compound needs no
+library edit. The supported envelope is validated before any stage runs: the
+metal must be one the slab builder knows (`Fe`/`Cu`/`Al`) and every atom must
+have a UFF parameter (`H, C, N, O, S, F, Cl, Br, P`); an out-of-range study exits
+with a clear message. A bromine-containing set needs `--basis def2-SVP` (the
+Pople sets lack bromine). `--plan` validates and previews without computing.
+
 ### Render a validation case end-to-end
 
 Each case study renders the same bundle as arghel (ADR 0019). The one command

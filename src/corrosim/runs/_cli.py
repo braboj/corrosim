@@ -39,9 +39,9 @@ def add_case_arg(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         "--case", default=_DEFAULT_CASE,
-        help="Named case study from presets.CASE_STUDIES (default: arghel); "
-             "its molecule set / metal / medium fill any unset "
-             "--molecules / --metal / --medium.")
+        help="Named case study from presets.CASE_STUDIES (default: arghel), or "
+             "a path to a study JSON file; its molecule set / metal / medium "
+             "fill any unset --molecules / --metal / --medium.")
 
 
 def add_molecules_arg(parser: argparse.ArgumentParser) -> None:
