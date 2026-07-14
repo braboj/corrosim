@@ -44,7 +44,7 @@ def test_build_html_report_is_self_contained_and_nan_safe(tmp_path):
 
     html = out.read_text(encoding="utf-8")
     assert os.path.exists(out)
-    assert "quercetin" in html and "kaempferol" in html
+    assert "Quercetin" in html and "Kaempferol" in html   # capitalised headers
     assert ">nan<" not in html                       # NaN-safe table (was the style_table bug)
     assert 'class="best"' in html                    # ranking highlight present
     assert "2026-01-01 00:00" in html                # injectable timestamp honoured
@@ -69,7 +69,7 @@ def test_pipeline_report_is_self_contained(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert os.path.exists(out)
     # quercetin (smaller gap+hardness) ranks first: its column is highlighted
-    assert '<th class="best">quercetin</th>' in html
+    assert '<th class="best">Quercetin</th>' in html
     # adsorption data merged in from MC/MD
     assert "-16.0" in html and "3.65" in html
     # no external resource references — the file is shareable on its own
@@ -97,8 +97,8 @@ def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
                                  order=["quercetin"], acid_cation_rows=acid)
     html = out.read_text(encoding="utf-8")
     assert "Species in the acidic medium" in html
-    assert "quercetin+H+" in html
-    assert '<th class="best">quercetin</th>' in html    # neutral lead still headline
+    assert "Quercetin+H+" in html
+    assert '<th class="best">Quercetin</th>' in html    # neutral lead still headline
 
     # no cation rows (non-acidic medium) -> no in-acid section
     out2 = tmp_path / "report2.html"
