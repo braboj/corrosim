@@ -24,7 +24,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 from ase import Atoms
-from ase.io import write
 
 from .surface import (
     EV_TO_KJMOL,
@@ -52,22 +51,6 @@ class AdsorptionSystem:
     # Slab + molecule
     combined: Atoms
     box: tuple[float, float, float]
-
-    def write_files(self, prefix: str) -> dict[str, str]:
-        """Write .xyz and .cif for visualisation/handoff.
-
-        Args:
-            prefix: Path prefix; writes ``<prefix>.xyz`` and ``<prefix>.cif``.
-
-        Returns:
-            The written paths keyed by extension (``"xyz"`` / ``"cif"``).
-        """
-        paths = {}
-        for ext in ("xyz", "cif"):
-            p = f"{prefix}.{ext}"
-            write(p, self.combined)
-            paths[ext] = p
-        return paths
 
 
 def place_molecule(slab: Atoms, symbols: Sequence[str], coords: npt.ArrayLike,

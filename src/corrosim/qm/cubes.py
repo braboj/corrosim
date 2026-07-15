@@ -33,57 +33,6 @@ def _cube_scf(symbols, coords, basis, xc, charge, solvent=None):
     return mf.mol, mf
 
 
-def write_orbital_cube(symbols: Sequence[str], coords: npt.ArrayLike,
-                       which: str = "homo", basis: str = "6-311++G(d,p)",
-                       xc: str = "b3lyp", charge: int = 0,
-                       out: str = "orbital.cube") -> str:
-    """Write a HOMO or LUMO .cube for a molecule (PySCF cubegen).
-
-    Render the cube with py3Dmol (notebook) or skimage marching-cubes (static).
-
-    Args:
-        symbols: Element symbols.
-        coords: Geometry in Angstrom.
-        which: 'homo' or 'lumo'.
-        basis: The AO basis set.
-        xc: The exchange-correlation functional.
-        charge: Net molecular charge.
-        out: Output .cube path.
-
-    Returns:
-        The output .cube path.
-    """
-    from . import _backend_pyscf as _pyscf
-    mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
-    occ = mf.mo_occ
-    idx = int(np.where(occ > 0)[0].max()) if which.lower() == "homo" \
-        else int(np.where(occ == 0)[0].min())
-    _pyscf.cubegen.orbital(mol, out, mf.mo_coeff[:, idx])
-    return out
-
-
-def write_mep_cube(symbols: Sequence[str], coords: npt.ArrayLike,
-                   basis: str = "6-311++G(d,p)", xc: str = "b3lyp",
-                   charge: int = 0, out: str = "mep.cube") -> str:
-    """Write a molecular electrostatic-potential .cube (PySCF cubegen.mep).
-
-    Args:
-        symbols: Element symbols.
-        coords: Geometry in Angstrom.
-        basis: The AO basis set.
-        xc: The exchange-correlation functional.
-        charge: Net molecular charge.
-        out: Output .cube path.
-
-    Returns:
-        The output .cube path.
-    """
-    from . import _backend_pyscf as _pyscf
-    mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
-    _pyscf.cubegen.mep(mol, out, mf.make_rdm1())
-    return out
-
-
 def write_orbital_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
                         prefix: str = "mol", basis: str = "6-31G(d)",
                         xc: str = "b3lyp", charge: int = 0,
