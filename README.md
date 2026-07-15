@@ -220,7 +220,10 @@ The screening run is configured through CLI options (`corrosim --help`):
 - The adsorption stages (Monte Carlo pose search + Brownian MD) use a **UFF
   van-der-Waals model** (rigid bodies, no charge transfer): bounded and good for
   ranking and the physisorption distance, but **not a quantitative chemisorption
-  E_ads**.
+  E_ads**. This is a deliberate boundary — a bond-capable E_ads needs an
+  HPC-scale periodic-DFT or classical-MD run that would break the free, $0,
+  runs-on-a-workstation premise (see ADR 0029; the external recipe is kept in
+  `LAMMPS_HANDOFF_NOTE`).
 - Simulations **screen and explain**; they do not prove efficiency. Validate with
   electrochemistry (EIS, polarization, weight loss).
 
