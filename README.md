@@ -36,11 +36,11 @@ land in `./cases/` on your host.
 ```bash
 # a shipped validation case
 docker run --rm -v "$PWD/cases:/work/cases" \
-    ghcr.io/braboj/corrosim corrosim-run-study --case arghel
+    ghcr.io/braboj/corrosim corrosim run-study --case arghel
 
 # your own study: bring-your-own inhibitors / metal / medium
 docker run --rm -v "$PWD/cases:/work/cases" \
-    ghcr.io/braboj/corrosim corrosim-run-study --name my-screen \
+    ghcr.io/braboj/corrosim corrosim run-study --name my-screen \
         --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
 ```
 
@@ -57,8 +57,8 @@ image, so the command runs through Docker (mount a directory for the outputs):
 
 ```bash
 docker run --rm -v "$PWD:/work/out" -w /work/out ghcr.io/braboj/corrosim \
-    corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
-             --engine pyscf --out report.html --csv screen.csv
+    corrosim screen --inhibitors kaempferol,quercetin,isorhamnetin \
+                    --engine pyscf --out report.html --csv screen.csv
 ```
 
 Output (the ranking prints best-first, then the report path):
