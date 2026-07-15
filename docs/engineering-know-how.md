@@ -723,6 +723,34 @@ library, so there is no runtime dependency and CI stays offline. Monkeypatch its
 one network call in tests to keep the suite deterministic. Adding an entry is a
 data edit, never a code edit.
 
+#### A build step stamps the invariant asset — don't hand-copy it
+
+An asset that is identical across every generated output — a shared header
+diagram, a license blob, a boilerplate template — should be shipped once as
+package data and written into each output *by the generator*, never copied by
+hand per output. A manual "also copy this file into each bundle" step is one a
+human silently skips: the existing outputs have it (so nothing looks wrong), and
+only a newly added output ships without it — surfacing as a broken reference in
+production, not at build time.
+
+```python
+# the generator already writes every other artifact into the output dir;
+# make it write the invariant one too, from package data
+def place_shared_asset(out_path: str) -> None:
+    src = files("mypkg.report") / "assets" / "header.png"
+    with src.open("rb") as s, open(out_path, "wb") as d:
+        shutil.copyfileobj(s, d)
+```
+
+Two properties fall out. Because it is package data located with
+`importlib.resources`, the same asset resolves from a source checkout and an
+installed wheel, so a tool run against a *new* output (not just the ones in the
+repo) still gets it. And because the copy is now a line in the generator rather
+than a line in a runbook, "the output set is complete" becomes an invariant the
+build enforces instead of a convention a reviewer has to remember. Same family
+as *a step with a durable output persists it by default* — don't rely on a human
+repeating a step the tool could guarantee.
+
 #### Prefer pure-language chains over system binaries
 
 A feature that adds a system binary breaks the "installs anywhere" guarantee and

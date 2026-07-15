@@ -2238,4 +2238,53 @@ client review of the validation-report figures.
   fig0 for new cases, low priority). Optional: the `qm-image.yml`
   branch-protection toggle.
 
+## 2026-07-15 (session 32): fig0 auto-populate, chemisorption dropped, v0.2.0 released
+
+Cleared the backlog to empty and cut the second release.
+
+- **#232 fig0 auto-populate (PR #234, closed #232).** `make_figures` claimed to
+  regenerate "the full manuscript figure set" but silently omitted
+  `fig0_pipeline.png` (the case-agnostic DFT->MC->MD schematic in every report's
+  Overview) — it was a manual per-case `cp` that got missed for three cases,
+  shipping a `[figure not found]` placeholder until #231 backfilled them. Fixed
+  by **shipping the diagram as package data** (`corrosim/report/assets/`,
+  wired into `[tool.setuptools.package-data]` next to `inhibitors.json`) and
+  having `make_figures` copy it into the bundle like every other figure group,
+  via `figures.place_pipeline_diagram` (located with `importlib.resources`, so it
+  resolves the same from a source checkout and an installed wheel). The report
+  builders stay pure consumers of the figures dir; a study-as-data case run by
+  the installed tool now gets fig0 automatically. Verified the asset ships in a
+  built wheel and that an end-to-end driver run writes a byte-identical fig0
+  (md5 `bb0ecc…`), so no reports re-rendered. 3 QM-light tests; PLAYBOOK dropped
+  the manual copy step.
+- **#40 dropped as won't-do (PR #235, ADR 0029).** A feasibility pass sized the
+  chemisorption E_ads compute: a bond-capable value needs an HPC-scale
+  spin-polarized periodic-DFT slab (~130–200 atoms, magnetic geometry relaxation)
+  or a large solvated classical MD — ~1–2 weeks on a cluster, weeks-to-months on
+  a workstation, per case. That breaks corrosim's premise (free software, $0, no
+  HPC, runs in Docker/venv), so the boundary is a decision, not backlog. ADR 0029
+  records the numbers, the alternatives (periodic-DFT/QE, LAMMPS hand-off,
+  semi-infinite KKR, cluster-xTB per ADR 0001), and the MC-pose seed as the cost
+  lever if revisited; the external `LAMMPS_HANDOFF_NOTE` recipe stays documented
+  but unimplemented. Closed #40 `NOT_PLANNED`. **Backlog is now empty** (0 open
+  issues, 0 open PRs).
+- **Branch cleanup.** Pruned 2 stale tracking refs (merged+auto-deleted PRs) and
+  deleted 2 real remote branches after verifying their content was on `main`:
+  `refactor/63-decompose` (PR #105 merged) and `feat/validation-preset-source-field`
+  (PR #163 closed-unmerged, but the `source` field + phytic-acid preset shipped
+  via other PRs). Remote and local are now just `main`.
+- **v0.2.0 released.** Bumped `pyproject` version 0.1.0 -> 0.2.0, tagged `v0.2.0`
+  on green `main`; `release.yml` built the image, standalone-smoke-ran it, pushed
+  `ghcr.io/braboj/corrosim:0.2.0` + `:latest`, and cut the GitHub Release
+  (ADR 0027, unchanged). Corrected the PLAYBOOK release runbook (add the
+  version-bump-before-tag step; drop the stale "set GHCR Public" note — the
+  package inherits the public repo's visibility automatically).
+- **Gates:** pytest 314 passed / 1 skipped (+3 from the fig0 tests); ruff, mypy
+  and complexipy clean.
+- **Pending:** roadmap fully closed out — pipeline, three-metal validation,
+  deployment (v0.2.0 on GHCR + Pages gallery), figure set, and the chemisorption
+  scope boundary all shipped and recorded. Backlog empty. Only untracked loose
+  end: the optional `qm-image.yml` branch-protection toggle (repo setting, not
+  code). No active thread to resume — next session starts fresh from a user goal.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
