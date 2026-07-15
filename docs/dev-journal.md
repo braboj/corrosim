@@ -2349,4 +2349,45 @@ v0.3.0 release, and a dead-code cleanup.
   toggle, and (by decision, not filed) the vestigial `AdsorptionSystem` handoff
   cluster. No active thread to resume.
 
+## 2026-07-15 (session 34): report page-card centering, black gallery CTA, README journeys
+
+A polish pass before freezing the project. One PR (#247), merged.
+
+- **README (#247).** Quick start now leads with **Install Docker** and a
+  one-line quick `corrosim screen` (was the full `run-study`). Usage
+  reorganized into the four main journeys (quick screen with sample output,
+  full study on your own molecules, reproduce a shipped case, add-inhibitor).
+  Removed the prose under the Modes table (kept table + legend). Stripped the
+  five em-dashes I'd introduced — the rest of the README was already
+  de-em-dashed.
+- **Report (#247).** The self-contained HTML now renders as a centered white
+  page-card on a light canvas (modern Confluence-page look), via `html`/`body`
+  CSS only (canvas on `html`, card on `body` — no wrapper element, so both the
+  screen and pipeline builders inherit it from the shared `_REPORT_CSS`).
+  Content unchanged (verified: identical ranking numbers). Regenerated the six
+  tracked case reports HTML-only (`--out-docx ""`) so the independently-styled
+  `.docx` bundles stay untouched; refreshed the HTML golden (CSS-only diff).
+  Reverted content-identical CRLF churn on four `ranking.csv` and the docx
+  golden to keep the diff focused (scope.md: revert silent tooling churn).
+- **Gallery (#247).** The "View report" CTA recolored from the per-metal accent
+  to `var(--ink)` (near-black, rendered `rgb(22,25,28)`), theme-aware. The
+  client's "still colored" was the **stale live build**, not a code bug: the
+  Pages gallery is CI-built from `gallery.py` on push, so merging redeployed it
+  (Pages run green).
+- **Verification.** Screenshotted the report before/after headless (Edge
+  `--headless`) and pixel-sampled the CTA to confirm the real colour, rather
+  than trusting `var(--ink)` resolves to black. Distilled as a generic pattern.
+- **No ADR:** presentation-only, reversible, no new directories, no content
+  moved between documents.
+- **Gates:** pytest 324 passed / 1 skipped; ruff + mypy clean.
+- **Know-how + upstream:** added "Verify a visual change against the rendered
+  output, not the source" to `engineering-know-how.md`; filed the reusable half
+  upstream as solid-ai-templates#820.
+- **Pending:** project frozen after this polish pass. Backlog empty (0 open
+  issues / 0 open PRs); v0.3.0 is the latest release; the Pages gallery and
+  reports are redeployed with the new styling. Untracked loose ends unchanged
+  (the optional `qm-image.yml` branch-protection toggle; the vestigial
+  `AdsorptionSystem` handoff cluster, kept by decision). No active thread to
+  resume.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

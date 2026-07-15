@@ -429,6 +429,28 @@ A behaviour-preserving refactor must produce byte-identical (or
 section-identical) output, checked by a golden file. A refactor that changes a
 golden is a bug, not a style choice. This is what lets you reorganize freely.
 
+#### Verify a visual change against the rendered output, not the source
+
+Editing the style that should produce an effect proves only that the source
+changed, not that the result is right: a token can resolve to the wrong value, a
+more specific rule can win the cascade, a build can serve a stale copy. Render
+the artifact headless and assert on the actual output — sample the pixels, query
+the DOM, or diff a screenshot.
+
+```bash
+# render headless, then read the element's real colour off the pixels
+browser --headless --screenshot=out.png "file://page.html"
+python -c "from PIL import Image; ...; print(px)"   # -> (22, 25, 28) == black
+```
+
+Ground the change both ways: shoot the *before* to confirm the problem is real
+(a page may already be centred — the ask was the card treatment, not the
+centring), and the *after* to confirm the fix landed. If the render still looks
+wrong, confirm you are viewing the fresh build: a CI-built artifact (a static
+site, a Pages deploy) lags its source until the change is pushed, and a browser
+may be serving a cached copy — the source can be correct while the thing on
+screen is stale.
+
 #### Enforce the API contract with a test the linter cannot express
 
 The test parses each module with `ast`, filters the public surface, and asserts
