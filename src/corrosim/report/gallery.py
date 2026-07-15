@@ -351,7 +351,7 @@ _HEAD = """<!doctype html>
   }
   .case__cta {
     margin-top: auto; font-family: var(--mono); font-size: .8rem;
-    font-weight: 500; color: var(--accent);
+    font-weight: 500; color: var(--ink);
     display: inline-flex; align-items: center; gap: .45em;
   }
   .arrow { transition: transform .25s; }
