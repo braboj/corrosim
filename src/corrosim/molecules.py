@@ -194,14 +194,6 @@ class Molecule:
         from rdkit.Chem import rdMolDescriptors
         return rdMolDescriptors.CalcMolFormula(self.rdkit_mol)
 
-    def atoms_for_pyscf(self) -> list:
-        """Geometry in the layout ``pyscf.gto.M`` expects.
-
-        Returns:
-            ``[[symbol, (x, y, z)], ...]``.
-        """
-        return [[s, c] for s, c in zip(self.symbols, self.coords)]
-
     def to_xyz(self) -> str:
         """Serialise to a standard XYZ block (coordinates in Å).
 
