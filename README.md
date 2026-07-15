@@ -84,7 +84,7 @@ macOS you can install the engines natively with the `qm` extra and drop the
 The screen is fast triage (ranking only); the full study runs the whole
 pipeline. ✓ = on by default, a flag = opt-in, ✗ = not in this mode.
 
-| Capability | `corrosim` (screen) | `corrosim-run-study` (full study) |
+| Capability | `corrosim screen` | `corrosim run-study` |
 | --- | --- | --- |
 | Geometry | MMFF force field | MMFF, or DFT-relaxed (`--optimize`) |
 | Descriptors (gap, hardness, ΔN) | xTB single-point (or DFT) | DFT (B3LYP) |
@@ -95,6 +95,38 @@ pipeline. ✓ = on by default, a flag = opt-in, ✗ = not in this mode.
 | pKa / speciation | ✗ | `--with-pka` |
 | Output | one-page HTML + ranking | report bundle with figures |
 | Speed | seconds | minutes to hours |
+
+Both are subcommands of one `corrosim` command; a third, `corrosim add-inhibitor`,
+fetches a compound from PubChem into the library. A leading option is shorthand
+for the screen (`corrosim --inhibitors ...`), and the standalone
+`corrosim-run-study` / `corrosim-add-inhibitor` scripts are equivalent aliases of
+the subcommands.
+
+## Configuration reference
+
+corrosim reads no secrets and needs no `.env`. The only environment variables
+are the paths to the optional external ORCA/Gaussian binaries:
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `ORCA_CMD` | path | `orca` | ORCA executable used by `--engine orca`. |
+| `GAUSSIAN_CMD` | path | `g16` | Gaussian executable used by `--engine gaussian`. |
+
+The screen's run is configured through CLI options (`corrosim screen --help`;
+the full study has its own, `corrosim run-study --help`):
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--input` / `--inhibitors` | path / list | *(one required)* | Molecules: a CSV (`name[,smiles]`) or a comma-separated list of names/SMILES. |
+| `--metal` | str | `Fe(110)` | Substrate: `Fe(110)`, `Cu(111)`, or `Al(111)`. |
+| `--medium` | str | `1 M HCl` | Medium label for the report header. |
+| `--engine` | choice | `xtb` | Quantum engine: `xtb`, `pyscf`, `orca`, `gaussian`. |
+| `--basis` | str | `6-311++G(d,p)` | PySCF basis set (ADR 0002 production level). |
+| `--xc` | str | `b3lyp` | PySCF exchange–correlation functional. |
+| `--solvent` | str | `water` | Implicit solvent (`none` for gas phase). |
+| `--adsorption` | flag | off | Add a fast UFF van-der-Waals physisorption estimate (`e_ads_kjmol`), scanned over heights at a flat orientation. |
+| `--out` | path | `corrosion_report.html` | HTML report output path. |
+| `--csv` | path | *(none)* | Also write the ranked results table to this CSV. |
 
 ## Project structure
 
@@ -147,31 +179,6 @@ The repo is bind-mounted at `/work`, so outputs land back in `cases/<case>/resul
 should run detached (`docker compose run -d --name <job> qm …`) so they survive
 a shell exit. On Linux/macOS you may instead install the engines natively with
 the `qm` extra (`pip install -e ".[qm]"`).
-
-## Configuration reference
-
-corrosim reads no secrets and needs no `.env`. The only environment variables
-are the paths to the optional external ORCA/Gaussian binaries:
-
-| Variable | Type | Default | Description |
-| --- | --- | --- | --- |
-| `ORCA_CMD` | path | `orca` | ORCA executable used by `--engine orca`. |
-| `GAUSSIAN_CMD` | path | `g16` | Gaussian executable used by `--engine gaussian`. |
-
-The screening run is configured through CLI options (`corrosim --help`):
-
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `--input` / `--inhibitors` | path / list | *(one required)* | Molecules: a CSV (`name[,smiles]`) or a comma-separated list of names/SMILES. |
-| `--metal` | str | `Fe(110)` | Substrate: `Fe(110)`, `Cu(111)`, or `Al(111)`. |
-| `--medium` | str | `1 M HCl` | Medium label for the report header. |
-| `--engine` | choice | `xtb` | Quantum engine: `xtb`, `pyscf`, `orca`, `gaussian`. |
-| `--basis` | str | `6-311++G(d,p)` | PySCF basis set (ADR 0002 production level). |
-| `--xc` | str | `b3lyp` | PySCF exchange–correlation functional. |
-| `--solvent` | str | `water` | Implicit solvent (`none` for gas phase). |
-| `--adsorption` | flag | off | Add a fast UFF van-der-Waals physisorption estimate (`e_ads_kjmol`), scanned over heights at a flat orientation. |
-| `--out` | path | `corrosion_report.html` | HTML report output path. |
-| `--csv` | path | *(none)* | Also write the ranked results table to this CSV. |
 
 ## Limitations
 
