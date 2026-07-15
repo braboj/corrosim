@@ -2390,4 +2390,42 @@ A polish pass before freezing the project. One PR (#247), merged.
   `AdsorptionSystem` handoff cluster, kept by decision). No active thread to
   resume.
 
+## 2026-07-15 (session 35): README Usage de-densified; add-inhibitor moved to PLAYBOOK
+
+A small docs pass on top of the frozen project. One PR (#249), merged.
+
+- **README (#249).** De-densified the quick-start / Usage prose the client
+  flagged as too dense and AI-like: bulleted the `report.html` contents and the
+  image-publishing note, dropped the reproduce-a-shipped-case example and the
+  run-on flags paragraph, and replaced the grow-the-library block with a
+  one-line pointer to the PLAYBOOK. Usage is now two worked subcommand examples
+  (screen, run-study) plus the pointer.
+- **The bug the block hid.** The old grow-the-library block implied you could
+  `add-inhibitor` and then screen the compound by name through
+  `docker run --rm ghcr.io/braboj/corrosim`. That never works: the library is
+  package data baked into the image, so the write dies with the `--rm` container
+  and the published image's copy is unchanged. The host and image libraries are
+  separate files; they coincide only under `docker compose`, which bind-mounts
+  the tree at `/work`.
+- **PLAYBOOK (#249).** Gave the library section a `### Growing the inhibitor
+  library` heading (the README now anchors to it) and added a paragraph stating
+  the persistence boundary: a published `docker run --rm` never sees a new
+  entry; add from a source clone (native `.[qm]` venv or compose), commit, and
+  rebuild the image; or pass a SMILES for a one-off. Removed two em-dashes.
+- **No ADR.** Moving a how-to paragraph from the README to the PLAYBOOK applies
+  the existing doc-homes discipline (PLAYBOOK = operational reference, CLAUDE.md
+  §1.4); routine placement, not a structural decision, so no ADR.
+- **Gates:** ruff + mypy clean; pytest green (docs-only change, count unchanged
+  from the 324-passed baseline — every test shows a passing dot, though the
+  final tally line is swallowed by a Windows capture quirk).
+- **Know-how + upstream:** added "A write inside an ephemeral container does not
+  persist; say so in the docs" to `engineering-know-how.md` (Containers) — the
+  write-side complement to the existing standalone-vs-mount read guidance. Filed
+  the reusable half upstream as solid-ai-templates#821 (infra/containers.md).
+- **Pending:** project remains frozen; this was an unsolicited docs touch-up on
+  top. Backlog empty (0 open issues / 0 open PRs); v0.3.0 is the latest release.
+  Untracked loose ends unchanged (the optional `qm-image.yml` branch-protection
+  toggle; the vestigial `AdsorptionSystem` handoff cluster, kept by decision).
+  No active thread to resume.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
