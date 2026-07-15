@@ -563,8 +563,14 @@ def _ranking_table_html(
 
 
 _REPORT_CSS = """
+ html{background:#f4f5f7;}
  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-       max-width:1040px;margin:2rem auto;color:#1a202c;padding:0 1rem;line-height:1.5;}
+       max-width:920px;margin:2.5rem auto;color:#1a202c;line-height:1.5;
+       background:#fff;border:1px solid #e5e7ea;border-radius:10px;
+       padding:clamp(1.6rem,5vw,3.5rem);
+       box-shadow:0 1px 3px rgba(9,30,66,.12),0 0 1px rgba(9,30,66,.2);}
+ body>*:first-child{margin-top:0}
+ @media (max-width:640px){body{margin:0;border:0;border-radius:0}}
  h1{font-size:1.6rem;margin-bottom:.2rem}
  h2{font-size:1.2rem;margin-top:2rem;border-bottom:2px solid #e2e8f0;padding-bottom:.3rem}
  h3{font-size:1rem;margin-top:1.2rem;color:#2d3748}

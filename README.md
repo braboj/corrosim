@@ -27,41 +27,40 @@ supported substrate.
 
 ## Quick start
 
-Prerequisites: Docker. The DFT/xTB engines have no Windows wheels, so the
-published image is the cross-platform way to run the whole pipeline: it bundles
-corrosim with rdkit, pyscf, and tblite, so with only Docker installed you go
-from DFT to report with no Python, wheels, or compiler on your side. Outputs
-land in `./cases/` on your host.
+**Install Docker** (Desktop on Windows/macOS, Engine on Linux). It is the only
+prerequisite. The DFT/xTB engines have no Windows wheels, so the published image
+bundles corrosim with rdkit, pyscf, and tblite: with Docker alone you go from a
+molecule to a report, no Python, wheels, or compiler on your side.
+
+Screen a few molecules and write a one-page report in seconds:
 
 ```bash
-# a shipped validation case
-docker run --rm -v "$PWD/cases:/work/cases" \
-    ghcr.io/braboj/corrosim corrosim run-study --case arghel
-
-# your own study: bring-your-own inhibitors / metal / medium
-docker run --rm -v "$PWD/cases:/work/cases" \
-    ghcr.io/braboj/corrosim corrosim run-study --name my-screen \
-        --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
+docker run --rm -v "$PWD:/work/out" -w /work/out ghcr.io/braboj/corrosim \
+    corrosim screen --inhibitors quercetin,benzotriazole,caffeine \
+                    --out report.html --csv screen.csv
 ```
 
-Add `--plan` to preview the ordered steps without computing. The image is
-published per release (`ghcr.io/braboj/corrosim:<version>`, and `:latest`); the
-`docker compose` path under [Development setup](#development-setup) builds it
-locally from source instead.
+Open `report.html`: a best-first ranking with the reactivity descriptors and
+charts, all in one self-contained file (`screen.csv` is the same table as data).
+That is the fast path; [Usage](#usage) covers the full pipeline and the other
+journeys. The image is published per release
+(`ghcr.io/braboj/corrosim:<version>`, and `:latest`); the `docker compose` path
+under [Development setup](#development-setup) builds it locally from source.
 
 ## Usage
 
-Besides the full study, the image runs a fast `corrosim` screen: it ranks a set
-of molecules and writes a one-page report. The quantum engine lives in the
-image, so the command runs through Docker (mount a directory for the outputs):
+corrosim is one command with three subcommands: `screen` (fast triage),
+`run-study` (the full pipeline), and `add-inhibitor` (grow the library). Every
+command runs through the image, so mount a directory for the outputs.
+
+**Quick screen.** Rank a molecule set in seconds; ranks best-first and writes a
+one-page HTML report:
 
 ```bash
 docker run --rm -v "$PWD:/work/out" -w /work/out ghcr.io/braboj/corrosim \
     corrosim screen --inhibitors kaempferol,quercetin,isorhamnetin \
                     --engine pyscf --out report.html --csv screen.csv
 ```
-
-Output (the ranking prints best-first, then the report path):
 
 ```text
 Ranking (best first):
@@ -73,11 +72,34 @@ isorhamnetin 4.098977     2.049489         0.487927 0.209973  0.373
 HTML report: report.html
 ```
 
-Use `--engine xtb` for a sub-second ranking pass, `--input molecules.csv` to
-screen a batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
-van-der-Waals physisorption estimate as an `e_ads_kjmol` column. (On Linux or
-macOS you can install the engines natively with the `qm` extra and drop the
-`docker run` prefix; see [Development setup](#development-setup).)
+**Full study.** The whole pipeline on your own molecules (minutes to hours):
+DFT descriptors + Fukui + ESP + Monte Carlo adsorption + Brownian MD, written as
+a report bundle (`report.html`, `report.docx`, figures, and tables) under
+`cases/<name>/`:
+
+```bash
+docker run --rm -v "$PWD/cases:/work/cases" ghcr.io/braboj/corrosim \
+    corrosim run-study --name my-screen \
+        --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
+```
+
+**Reproduce a shipped case.** The validation studies ship inside the image;
+rerun one end to end into `cases/arghel/`:
+
+```bash
+docker run --rm -v "$PWD/cases:/work/cases" ghcr.io/braboj/corrosim \
+    corrosim run-study --case arghel
+```
+
+Molecules are given by name or SMILES; a SMILES needs no library step. Add
+`--plan` to a `run-study` to preview the ordered steps without computing,
+`--engine xtb` for a sub-second screen, `--input molecules.csv` to screen a
+batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
+physisorption estimate (`e_ads_kjmol`). A leading option is shorthand for the
+screen (`corrosim --inhibitors ...`); `corrosim add-inhibitor <name|CAS>`
+fetches a new compound from PubChem into the library. On Linux or macOS you can
+install the engines natively with the `qm` extra and drop the `docker run`
+prefix (see [Development setup](#development-setup)).
 
 ## Modes
 
@@ -95,12 +117,6 @@ pipeline. ✓ = on by default, a flag = opt-in, ✗ = not in this mode.
 | pKa / speciation | ✗ | `--with-pka` |
 | Output | one-page HTML + ranking | report bundle with figures |
 | Speed | seconds | minutes to hours |
-
-Both are subcommands of one `corrosim` command; a third, `corrosim add-inhibitor`,
-fetches a compound from PubChem into the library. A leading option is shorthand
-for the screen (`corrosim --inhibitors ...`), and the standalone
-`corrosim-run-study` / `corrosim-add-inhibitor` scripts are equivalent aliases of
-the subcommands.
 
 ## Configuration reference
 
