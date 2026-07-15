@@ -2298,4 +2298,55 @@ Cleared the backlog to empty and cut the second release.
   end: the optional `qm-image.yml` branch-protection toggle (repo setting, not
   code). No active thread to resume — next session starts fresh from a user goal.
 
+## 2026-07-15 (session 33): unified subcommand CLI, v0.3.0, README polish, dead code
+
+Continued from the v0.2.0 wrap: documentation polish, a CLI unification, the
+v0.3.0 release, and a dead-code cleanup.
+
+- **README polish (PRs #240, #241, #243).** Reframed docker-first (dropped the
+  pre-computed report-rebuild quick-start; Docker is the prerequisite; removed
+  the premature Python-API Usage section); renamed "How it fits together" ->
+  "Modes" and split its single per-molecule cell into per-capability rows
+  (geometry vs descriptors, checkmarks for binary features), prompted by a
+  question where MMFF (the force-field geometry step) read as if it were the xTB
+  engine. Corrected two overstatements in passing: both modes default to MMFF
+  geometry (DFT geometry is `--optimize`), and ESP/pKa are opt-in
+  (`--with-cubes` / `--with-pka`). Bold paths + trimmed the structure table;
+  moved Configuration reference up after Modes.
+- **Unified subcommand CLI (#242, ADR 0030).** Replaced three console scripts
+  with one `corrosim` front door dispatching to `screen` / `run-study` /
+  `add-inhibitor`. New `corrosim.app` is a thin forwarder: the first token
+  selects the command, the rest forwards verbatim to the existing module
+  `main()`, each imported lazily. Back-compat: a leading option routes to the
+  screen (`corrosim --inhibitors ...`), and `corrosim-run-study` /
+  `corrosim-add-inhibitor` stay as aliases. Rejected a `--quick`/`--full` mode
+  flag (mode-invalid flags on one parser; a one-file-vs-directory output-contract
+  clash). 10 dispatcher tests; pattern filed upstream on
+  `solid-ai-templates#755`.
+- **v0.3.0 released (#244).** Bumped 0.2.0 -> 0.3.0, flipped the README Docker
+  examples to the subcommand forms, and upgraded the release smoke to exercise
+  the dispatcher (`corrosim run-study --plan` + `corrosim screen --plan`)
+  standalone, so a broken front door fails the release before the push. Tag ->
+  GHCR `:0.3.0` + `:latest` + GitHub Release, all green; the smoke verified the
+  dispatcher in the published image itself. GHCR came out Public automatically.
+- **Dead-code sweep (#245).** A vulture scan (each hit hand-verified) removed
+  four zero-reference symbols: the singular `cubes.write_orbital_cube` /
+  `write_mep_cube` (superseded by the plural writers `make_cubes` calls),
+  `Molecule.atoms_for_pyscf`, and `AdsorptionSystem.write_files` (+ its now-
+  orphaned `ase.io.write` import). 76 lines, no behaviour change. By decision,
+  kept the `AdsorptionSystem` / `build_adsorption_system` cluster (public, tested
+  API, though unused by the pipeline — LAMMPS-handoff scaffolding) and
+  `FIGURE_STAGES` (a test oracle). Confirmed `runs/_cli.py` is the opposite of
+  dead — every helper is used across the drivers.
+- **Gates:** pytest 324 passed / 1 skipped; ruff, mypy, complexipy clean.
+- **Workflow gotcha (recorded):** backticks inside a double-quoted
+  `git commit -m` / `gh --body` are shell command substitution — they ran
+  `corrosim` mid-commit and corrupted the message once. Amended from a message
+  file; PR/commit bodies now authored via `--body-file` / `-F`.
+- **Pending:** roadmap closed; backlog empty (0 open issues, 0 open PRs); three
+  releases tagged (v0.1.0/v0.2.0/v0.3.0), the unified CLI shipped and documented.
+  Untracked loose ends only: the optional `qm-image.yml` branch-protection
+  toggle, and (by decision, not filed) the vestigial `AdsorptionSystem` handoff
+  cluster. No active thread to resume.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
