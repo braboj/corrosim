@@ -65,8 +65,8 @@ whole study end-to-end in one command:
 
 ```bash
 docker compose run --rm qm pytest -q
-docker compose run --rm qm corrosim-run-study --case arghel   # dft -> ... -> report
-corrosim-run-study --case arghel --plan                       # dry run: list the steps, no QM
+docker compose run --rm qm corrosim run-study --case arghel   # dft -> ... -> report
+corrosim run-study --case arghel --plan                       # dry run: list the steps, no QM
 ```
 
 ## 4. Key files
@@ -77,8 +77,9 @@ Read these first to understand the codebase.
 | --- | --- |
 | `src/corrosim/presets.py` | The `ARGHEL` case study — molecule set, substrate, medium. Single source of truth; drivers import it. |
 | `src/corrosim/qm/engines.py` | Uniform wrappers over the quantum engines (xTB, PySCF) plus geometry optimisation and thermochemistry. |
-| `src/corrosim/cli.py` | The `corrosim` command-line entry point. |
-| `src/corrosim/runs/` | Stage drivers (`run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_figures`, `make_report`, `compare_geometry`); `run_study` runs them all end-to-end (`corrosim-run-study`). |
+| `src/corrosim/app.py` | The `corrosim` front door: dispatches to the `screen` / `run-study` / `add-inhibitor` subcommands (ADR 0030). |
+| `src/corrosim/cli.py` | The `corrosim screen` quick-screen command. |
+| `src/corrosim/runs/` | Stage drivers (`run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_figures`, `make_report`, `compare_geometry`); `run_study` runs them all end-to-end (`corrosim run-study`). |
 | `src/corrosim/report/report.py` | Builds the self-contained HTML pipeline report. |
 | `docs/pipeline.md` | The scientific basis for the multiscale pipeline. |
 | `docs/validation.md` | How the computational results hold up against published and experimental work. |

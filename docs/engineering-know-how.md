@@ -1197,6 +1197,39 @@ and each stage's own output routing so the orchestrator threads no paths. Each
 runner imports its stage lazily, so the plan pays no heavy import for a stage it
 will not run. (Upstream candidate for the shared CLI conventions.)
 
+#### One front door dispatches to subcommands over the existing mains
+
+When a tool grows several related-but-distinct programs (a fast path, a full
+pipeline, a maintenance utility), expose one command that dispatches to
+subcommands, not N separate console scripts and not one parser with a mode flag.
+Keep the dispatcher a thin forwarder: take the first token as the command and
+forward the *remaining argv verbatim* to that module's existing `main(argv)`,
+importing each lazily so an unused command's dependencies never load.
+
+```python
+def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv or argv[0] in ("-h", "--help"):
+        print_usage(); return 0
+    first, rest = argv[0], argv[1:]
+    if first.startswith("-"):                 # leading option -> the default cmd
+        from .quick import main as m; return m(argv)      # back-compat
+    if first == "run":
+        from .pipeline import main as m; return m(rest)
+    if first == "add":
+        from .tool import main as m; return m(rest)
+    sys.stderr.write(f"unknown command {first!r}\n"); return 2
+```
+
+Each subcommand keeps its own parser, `--help`, and tests unchanged — nothing is
+rewritten. Two affordances keep the change non-breaking: a leading option routes
+to the most-common subcommand (so `tool --flag ...` keeps working), and the old
+standalone scripts stay as aliases of the subcommands. Prefer this to a
+`--quick`/`--full` mode flag on one parser: a flag forces every option onto one
+parser where most are valid in only one mode (which argparse can't cleanly gate)
+and clashes when the modes have different output contracts (one file vs a
+directory tree). (Upstream candidate; filed on the shared-CLI-conventions issue.)
+
 ### Data visualization and rendering
 
 #### A legend built from the encoding source can't misdescribe the output
