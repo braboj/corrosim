@@ -959,6 +959,25 @@ steps:
 Mount only the output directory to retrieve results; never mount over the workdir
 that holds the baked source, or the mount shadows it and the import breaks.
 
+#### A write inside an ephemeral container does not persist; say so in the docs
+
+A command that mutates persistent state (seeds a database, appends to a bundled
+data file, writes config) does nothing lasting in a throwaway container: the
+write lands in the container's top layer and vanishes on exit, and when the
+target is data baked into the image it never reaches the host or a later build. A
+quickstart that shows such a command under `run --rm` silently misleads, because
+the reader runs it, sees success, and the state reverts on the next run. Document
+where the write lands, and route the reader to a boundary that persists (a
+bind-mounted host path, or editing the source and rebuilding the image); for a
+one-off, offer the alternative that needs no write at all by passing the value
+inline instead of storing it.
+
+```text
+  run --rm (ephemeral)   bind-mount host path   edit source + rebuild
+  write -> top layer     write -> host file     write -> next image
+  gone on exit           persists               persists (shipped)
+```
+
 ## Security
 
 SAST, secrets, and supply chain.
