@@ -323,14 +323,18 @@ corrosim ships as a downloadable **tool**, not a PyPI library or a notebook
 `.github/workflows/release.yml` fires on a `v*` tag: it builds the `Dockerfile`,
 smoke-runs it standalone (no bind mount), pushes
 `ghcr.io/braboj/corrosim:<version>` + `:latest`, and cuts a GitHub Release with
-the `docker run` instructions. To cut a release:
+the `docker run` instructions. The image tag is derived from the git tag
+(`vX.Y.Z` -> `X.Y.Z`). To cut a release, bump the package version to match, land
+it on a green `main`, then tag that commit:
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+# 1. bump `version` in pyproject.toml to X.Y.Z, land it on main (PR)
+# 2. tag the merge commit and push the tag
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
-One-time after the first release: set the GHCR package **Public** in its package
-settings (the token pushes the image but cannot flip visibility).
+The GHCR package inherits the public repo's visibility, so it publishes
+**Public** automatically — no manual visibility toggle is needed.
 
 ### The validation gallery (GitHub Pages)
 
