@@ -40,12 +40,17 @@ docker run --rm -v "$PWD:/work/out" -w /work/out ghcr.io/braboj/corrosim \
                     --out report.html --csv screen.csv
 ```
 
-Open `report.html`: a best-first ranking with the reactivity descriptors and
-charts, all in one self-contained file (`screen.csv` is the same table as data).
-That is the fast path; [Usage](#usage) covers the full pipeline and the other
-journeys. The image is published per release
-(`ghcr.io/braboj/corrosim:<version>`, and `:latest`); the `docker compose` path
-under [Development setup](#development-setup) builds it locally from source.
+Open `report.html`, one self-contained file that holds:
+
+- a best-first ranking of the molecules,
+- the reactivity descriptors behind it, and
+- the charts.
+
+The Docker image is published per release:
+
+- `ghcr.io/braboj/corrosim:<version>` (and `:latest`) from GHCR;
+- `docker compose` path under [Development setup](#development-setup) builds
+  it locally from source.
 
 ## Usage
 
@@ -83,23 +88,10 @@ docker run --rm -v "$PWD/cases:/work/cases" ghcr.io/braboj/corrosim \
         --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
 ```
 
-**Reproduce a shipped case.** The validation studies ship inside the image;
-rerun one end to end into `cases/arghel/`:
-
-```bash
-docker run --rm -v "$PWD/cases:/work/cases" ghcr.io/braboj/corrosim \
-    corrosim run-study --case arghel
-```
-
-Molecules are given by name or SMILES; a SMILES needs no library step. Add
-`--plan` to a `run-study` to preview the ordered steps without computing,
-`--engine xtb` for a sub-second screen, `--input molecules.csv` to screen a
-batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
-physisorption estimate (`e_ads_kjmol`). A leading option is shorthand for the
-screen (`corrosim --inhibitors ...`); `corrosim add-inhibitor <name|CAS>`
-fetches a new compound from PubChem into the library. On Linux or macOS you can
-install the engines natively with the `qm` extra and drop the `docker run`
-prefix (see [Development setup](#development-setup)).
+Growing the inhibitor library (`add-inhibitor`) is a source-clone task, not a
+one-off container run: the library is package data baked into the image. See
+[Growing the inhibitor library](docs/PLAYBOOK.md#growing-the-inhibitor-library)
+in the PLAYBOOK.
 
 ## Modes
 

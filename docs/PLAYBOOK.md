@@ -32,10 +32,12 @@ The case study — molecule set, substrate, and medium — is defined once in
 `src/corrosim/presets.py` as `ARGHEL`. Change it there; the stage drivers import
 `ARGHEL.molecule_list()` and `ARGHEL.metal` rather than re-declaring the list.
 
+### Growing the inhibitor library
+
 The inhibitor library ships as data in `src/corrosim/data/inhibitors.json`
 (name -> SMILES + `source`/`cas`/`notes`), loaded by `molecules`. Add an
 inhibitor as a data edit, or fetch it from PubChem by name or CAS and commit
-the result — the JSON stays the offline source of truth:
+the result; the JSON stays the offline source of truth:
 
 ```bash
 corrosim-add-inhibitor thiourea         # by name
@@ -43,6 +45,13 @@ corrosim-add-inhibitor 62-56-6          # by CAS number
 corrosim-add-inhibitor 68-12-2 --name dmf   # override the stored key
 # validates the SMILES with RDKit, appends source: pubchem; then commit the file
 ```
+
+Because the library is package data, a one-off `docker run --rm
+ghcr.io/braboj/corrosim` never sees a new entry: its baked-in copy is read-only
+and the write dies with the container. Add from a source clone (a native
+`.[qm]` venv, or `docker compose`, which bind-mounts the tree at `/work`), then
+commit the JSON and rebuild the image to ship it. For a one-off you need none of
+this: pass the SMILES directly wherever a molecule name goes.
 
 ### The full study in one command
 
