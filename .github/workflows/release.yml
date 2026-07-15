@@ -54,10 +54,14 @@ jobs:
       - name: Smoke-run the image standalone (no bind mount)
         # A published-image user mounts no repo, so confirm the console script
         # resolves the baked /work/src and the orchestrator runs with no volume -
-        # the exact path the bind-mounted dev/CI smoke never exercises.
+        # the exact path the bind-mounted dev/CI smoke never exercises. Exercise
+        # the subcommand dispatcher (the front door) for both the study and the
+        # screen, so a broken `corrosim <command>` fails the release before push.
         run: |
           docker run --rm "$IMAGE:${{ steps.ver.outputs.version }}" \
-            corrosim-run-study --case arghel --plan
+            corrosim run-study --case arghel --plan
+          docker run --rm "$IMAGE:${{ steps.ver.outputs.version }}" \
+            corrosim screen --inhibitors quercetin --plan
 
       - name: Push both tags
         run: |
@@ -79,12 +83,12 @@ jobs:
           # a shipped validation case
           docker run --rm -v "$PWD/cases:/work/cases" \
             ghcr.io/${{ github.repository_owner }}/corrosim:${{ steps.ver.outputs.version }} \
-            corrosim-run-study --case arghel
+            corrosim run-study --case arghel
 
           # your own study: bring-your-own inhibitors / metal / medium
           docker run --rm -v "$PWD/cases:/work/cases" \
             ghcr.io/${{ github.repository_owner }}/corrosim:latest \
-            corrosim-run-study --name my-screen \
+            corrosim run-study --name my-screen \
               --molecules "quercetin,benzotriazole,CCO" --metal Cu(111)
           ```
 
