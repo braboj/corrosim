@@ -2279,6 +2279,17 @@ Cleared the backlog to empty and cut the second release.
   (ADR 0027, unchanged). Corrected the PLAYBOOK release runbook (add the
   version-bump-before-tag step; drop the stale "set GHCR Public" note — the
   package inherits the public repo's visibility automatically).
+- **Node.js-20 Actions bump (#237, PR #238; filed + fixed post-release).** The
+  v0.2.0 release run warned that `actions/checkout@v4` and `docker/login-action@v3`
+  were force-run on Node 24 (GitHub is deprecating the Node-20 Actions runtime).
+  Read the runtime at each pinned ref and bumped every node20 action to its
+  node24 major: checkout v4->v5, setup-python v5->v6, docker/login-action v3->v4,
+  deploy-pages v4->v5, upload-pages-artifact v3->v5, gitleaks-action v2->v3. Left
+  `github/codeql-action@v3` (current major, no v4; GitHub moves the `v3` tag to a
+  node24 release on their own schedule). Verified empirically: the PR run
+  exercised checkout/setup-python/gitleaks/CodeQL/QM-image (all green) and the
+  post-merge Pages deploy ran upload-pages-artifact v5 + deploy-pages v5
+  successfully; only `docker/login-action@v4` awaits the next release tag.
 - **Gates:** pytest 314 passed / 1 skipped (+3 from the fig0 tests); ruff, mypy
   and complexipy clean.
 - **Pending:** roadmap fully closed out — pipeline, three-metal validation,
