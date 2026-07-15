@@ -47,9 +47,13 @@ dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
        "scipy", "Pillow", "python-docx>=1.0"]
 
 [project.scripts]
-corrosim = "corrosim.cli:main"
-# One command for the full multiscale study: orchestrates the runs/* drivers in
-# dependency order (also runnable as `python -m corrosim.runs.run_study`).
+# The one front door: `corrosim <command>` dispatches to the subcommands
+# (screen / run-study / add-inhibitor). A leading option is shorthand for the
+# screen, so `corrosim --inhibitors ...` keeps working.
+corrosim = "corrosim.app:main"
+# Back-compat aliases for the subcommands, kept so existing invocations and the
+# published image's documented commands do not break. `corrosim run-study` and
+# `corrosim add-inhibitor` are the same programs.
 corrosim-run-study = "corrosim.runs.run_study:main"
 # Dev-time library-expand tool. Uses only the stdlib (urllib) to query PubChem,
 # so it needs no extra dependency; runs and CI stay offline by default.

@@ -21,6 +21,13 @@ Operational reference for common corrosim tasks. New contributors should read
 
 ## 2. Domain operations
 
+`corrosim` is one command with three subcommands (ADR 0030): `corrosim screen`
+for a quick ranking, `corrosim run-study` for the full multiscale study, and
+`corrosim add-inhibitor` for the library tool. A leading option is shorthand for
+the screen (`corrosim --inhibitors ...`), and the standalone `corrosim-run-study`
+/ `corrosim-add-inhibitor` scripts stay as aliases, so the commands below can be
+written either way.
+
 The case study — molecule set, substrate, and medium — is defined once in
 `src/corrosim/presets.py` as `ARGHEL`. Change it there; the stage drivers import
 `ARGHEL.molecule_list()` and `ARGHEL.metal` rather than re-declaring the list.
