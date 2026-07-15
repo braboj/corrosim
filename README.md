@@ -6,9 +6,9 @@ report for green corrosion inhibitors. Free software, end to end.*
 corrosim screens corrosion inhibitors end to end: from a molecule and a
 metal, it computes reactivity descriptors, estimates adsorption, ranks
 candidates, and writes a self-contained report, all on free, open-source
-software. It is built for green, plant-derived inhibitors: the **Arghel
-(*Solenostemma argel*) flavonoids** on mild steel in 1 M HCl. It also accepts
-any molecule and supported substrate.
+software. It began as a case study of the **Arghel (*Solenostemma argel*)
+flavonoids** on mild steel in 1 M HCl, and now screens any molecule on any
+supported substrate.
 
 ![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -27,35 +27,11 @@ any molecule and supported substrate.
 
 ## Quick start
 
-Prerequisites: Python 3.10+ with `pip`. No quantum engines needed for this path:
-it rebuilds the report from the committed result data.
-
-```bash
-git clone https://github.com/braboj/corrosim
-cd corrosim
-
-# core + figure rendering + Word output
-pip install -e ".[viz,report]"
-
-# rebuild cases/arghel/report/ from cases/arghel/results/
-python -m corrosim.runs.make_report    
-```
-
-Expected output:
-
-```text
-report written to cases/arghel/report/report.html (4248 kB, self-contained)
-word report written to cases/arghel/report/report.docx (3101 kB)
-tables in cases/arghel/report/tables/ (per-stage subfolders)
-```
-
-### Run the full pipeline with Docker (no Python setup)
-
-The DFT/xTB engines have no Windows wheels, so the published image is the
-cross-platform way to run the whole pipeline: it bundles corrosim with rdkit,
-pyscf, and tblite, so with only Docker installed you run DFT to report with no
-Python, wheels, or compiler on your side. Outputs land in `./cases/` on your
-host.
+Prerequisites: Docker. The DFT/xTB engines have no Windows wheels, so the
+published image is the cross-platform way to run the whole pipeline: it bundles
+corrosim with rdkit, pyscf, and tblite, so with only Docker installed you go
+from DFT to report with no Python, wheels, or compiler on your side. Outputs
+land in `./cases/` on your host.
 
 ```bash
 # a shipped validation case
@@ -75,11 +51,14 @@ locally from source instead.
 
 ## Usage
 
-**Command line.** Screen the case-study set, rank it, and write a report + CSV:
+Besides the full study, the image runs a fast `corrosim` screen: it ranks a set
+of molecules and writes a one-page report. The quantum engine lives in the
+image, so the command runs through Docker (mount a directory for the outputs):
 
 ```bash
-corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
-         --engine pyscf --out report.html --csv screen.csv
+docker run --rm -v "$PWD:/work/out" -w /work/out ghcr.io/braboj/corrosim \
+    corrosim --inhibitors kaempferol,quercetin,isorhamnetin \
+             --engine pyscf --out report.html --csv screen.csv
 ```
 
 Output (the ranking prints best-first, then the report path):
@@ -96,63 +75,33 @@ HTML report: report.html
 
 Use `--engine xtb` for a sub-second ranking pass, `--input molecules.csv` to
 screen a batch (columns `name[,smiles]`), and `--adsorption` to add a fast UFF
-van-der-Waals physisorption estimate as an `e_ads_kjmol` column.
+van-der-Waals physisorption estimate as an `e_ads_kjmol` column. (On Linux or
+macOS you can install the engines natively with the `qm` extra and drop the
+`docker run` prefix; see [Development setup](#development-setup).)
 
-**Python.** The same screen from a script:
+## Modes
 
-```python
-import corrosim
-
-df, html = corrosim.screen(
-    ["kaempferol", "quercetin", "isorhamnetin"],
-    metal="Fe(110)", engine="xtb", out_html="report.html",
-)
-print(corrosim.rank_inhibitors(df).iloc[0]["name"])
-```
-
-Output:
-
-```text
-quercetin
-```
-
-## How it fits together
-
-| | `corrosim` (screen) | `runs/*` → `make_report` (report) |
+| | `corrosim` (screen) | `corrosim-run-study` (full study) |
 | --- | --- | --- |
 | Per molecule | MMFF geometry, single-point descriptors | DFT (optionally relaxed), Fukui, ESP, MC, MD, pKa |
 | Produces | one-page HTML + ranking | `cases/<case>/report/` bundle with figures |
 | Speed | seconds | minutes to hours |
 
-The full multiscale report is one command too:
-`docker compose run --rm qm corrosim-run-study --case arghel` orchestrates the
-whole pipeline (`dft → fukui → mc → md → figures → report`) into the
-`cases/<case>/report/` bundle; `--plan` lists the ordered steps without computing
-them, and `--optimize` / `--with-pka` / `--with-cubes` add the heavier
-enrichments (ADR 0022).
-
-`corrosim --plan` likewise lists the steps a screen will run without computing
-them. On Windows the engines (`xtb`, `pyscf`) run in the `corrosim-qm` container;
-the venv does everything else. Full pipeline commands and the per-stage drivers:
-[`docs/PLAYBOOK.md`](docs/PLAYBOOK.md).
-
 ## Project structure
 
 | Path | Contents |
 | --- | --- |
-| `src/corrosim/` | Core package facade: `__init__`, `cli`, `molecules`, `medium`, `presets`, `fetch`; subsystem sub-packages below (ADR 0011). |
-| `src/corrosim/qm/` | `engines`, `descriptors`, `fukui`, `pka`, `speciation`, `protonation`, `cubes`; `_backend_pyscf`/`_tblite` hold the deferred pyscf/tblite imports (ADR 0015). |
-| `src/corrosim/adsorption/` | `surface`, `adsorption`, `mc`, `md`. |
-| `src/corrosim/report/` | `report`, `ranking` (canonical basis + robustness gate), `report_docx`, `report_content`, `report_layout`, `figures` (renders cubes; `qm.cubes` writes them), `gallery` (the Pages showcase index). |
-| `src/corrosim/data/` | `inhibitors.json`: the shipped inhibitor library (name → SMILES + provenance), loaded by `molecules`; grown by the fetch tool. |
-| `src/corrosim/runs/` | Stage drivers: `run_dft`, `run_fukui`, `run_mc`, `run_md`, `run_pka`, `make_cubes`, `make_figures`, `make_report`, `make_pages` (Pages gallery), `compare_geometry`; `run_study` orchestrates them end-to-end (+ `_cli`: shared CLI plumbing). |
-| `cases/<case>/` | One co-located subtree per case study (the shipped one is `cases/arghel/`), split into `results/` and `report/`. |
-| `cases/<case>/results/` | Tracked pipeline data: descriptors, Fukui, MC/MD, pKa. |
-| `cases/<case>/report/` | Report bundle (`make_report`): `report.html` + `report.docx` + `figures/<stage>/` + `tables/<stage>/`. |
-| `examples/` | Runnable CLI + Python-API examples with commands and expected output ([`examples/README.md`](examples/README.md)); `molecules.csv` is the batch-input sample. |
-| `tests/` | pytest suite (QM-light, no DFT, fast). |
-| `docs/` | `pipeline.md`, `validation.md`, `ONBOARDING.md`, `PLAYBOOK.md`, `dev-journal.md`, `decisions/` (ADRs), `diagrams/` (.drawio sources). |
-| `Dockerfile`, `docker-compose.yml` | The `corrosim-qm` QM environment (PySCF + tblite). |
+| **src/corrosim/** | Core package: CLI, molecules, medium, presets, and the fetch tool, plus the subsystem packages below. |
+| **src/corrosim/qm/** | Quantum layer: the DFT and xTB engines, reactivity descriptors, Fukui, pKa, speciation, and cube writers. |
+| **src/corrosim/adsorption/** | Metal surface, Monte Carlo pose search, and Brownian MD. |
+| **src/corrosim/report/** | Report builders (HTML and Word), ranking, figures, and the Pages gallery. |
+| **src/corrosim/data/** | Shipped inhibitor library (`inhibitors.json`), grown by the fetch tool. |
+| **src/corrosim/runs/** | Stage drivers and the `run-study` orchestrator that chains them end to end. |
+| **cases/** | One subtree per case study (shipped: `arghel`), each split into `results/` (data) and `report/` (bundle). |
+| **examples/** | Runnable CLI and Python examples with expected output. |
+| **tests/** | pytest suite (QM-light, fast). |
+| **docs/** | Pipeline, validation, onboarding, playbook, ADRs, and diagram sources. |
+| **Dockerfile, docker-compose.yml** | The `corrosim-qm` quantum environment. |
 
 ## Development setup
 
@@ -220,7 +169,7 @@ The screening run is configured through CLI options (`corrosim --help`):
 - The adsorption stages (Monte Carlo pose search + Brownian MD) use a **UFF
   van-der-Waals model** (rigid bodies, no charge transfer): bounded and good for
   ranking and the physisorption distance, but **not a quantitative chemisorption
-  E_ads**. This is a deliberate boundary — a bond-capable E_ads needs an
+  E_ads**. This is a deliberate boundary: a bond-capable E_ads needs an
   HPC-scale periodic-DFT or classical-MD run that would break the free, $0,
   runs-on-a-workstation premise (see ADR 0029; the external recipe is kept in
   `LAMMPS_HANDOFF_NOTE`).
