@@ -81,10 +81,19 @@ macOS you can install the engines natively with the `qm` extra and drop the
 
 ## Modes
 
-| | `corrosim` (screen) | `corrosim-run-study` (full study) |
+The screen is fast triage (ranking only); the full study runs the whole
+pipeline. ✓ = on by default, a flag = opt-in, ✗ = not in this mode.
+
+| Capability | `corrosim` (screen) | `corrosim-run-study` (full study) |
 | --- | --- | --- |
-| Per molecule | MMFF geometry, single-point descriptors | DFT (optionally relaxed), Fukui, ESP, MC, MD, pKa |
-| Produces | one-page HTML + ranking | `cases/<case>/report/` bundle with figures |
+| Geometry | MMFF force field | MMFF, or DFT-relaxed (`--optimize`) |
+| Descriptors (gap, hardness, ΔN) | xTB single-point (or DFT) | DFT (B3LYP) |
+| Fukui indices | ✗ | ✓ |
+| ESP / orbital maps | ✗ | `--with-cubes` |
+| Adsorption estimate | UFF scan (`--adsorption`) | ✓ Monte Carlo pose |
+| Binding distance (MD RDF) | ✗ | ✓ |
+| pKa / speciation | ✗ | `--with-pka` |
+| Output | one-page HTML + ranking | report bundle with figures |
 | Speed | seconds | minutes to hours |
 
 ## Project structure
