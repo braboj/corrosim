@@ -2428,4 +2428,41 @@ A small docs pass on top of the frozen project. One PR (#249), merged.
   toggle; the vestigial `AdsorptionSystem` handoff cluster, kept by decision).
   No active thread to resume.
 
+## 2026-07-16 (session 36): config reference delegates to per-subcommand --help
+
+Another small docs pass on the frozen project. One PR (#251), merged.
+
+- **The drift.** The README **Configuration reference** tabulated the `screen`
+  flags, duplicating the argparse definitions. Spot-checking the table against
+  the parser found it had already drifted: the `--plan` dry-run flag
+  (`corrosim.cli`) was defined and user-facing but never listed. The table was
+  a second copy of the CLI's own `--help`, so it rotted the moment a flag was
+  added.
+- **The fix (#251).** Replaced the `screen`-only options table with a
+  three-row, per-subcommand `--help` pointer (`screen` / `run-study` /
+  `add-inhibitor`), which is the authoritative, always-current list, and kept
+  only the env-var table (`ORCA_CMD`, `GAUSSIAN_CMD`) — the one piece `--help`
+  never shows, since those are read from the environment. This deletes the
+  `--plan` drift by removing the copy rather than patching it, and makes the
+  three subcommands symmetric (previously only `screen` was tabulated). Diff
+  +7 / −14.
+- **No ADR.** A table replaced within one document, no directory created and no
+  content moved between documents; routine placement applying the existing
+  give-each-fact-one-home discipline (the CLI self-documents; the README stops
+  duplicating it). Not a structural decision.
+- **Gates:** ruff clean; mypy clean (44 files); pytest passing (docs-only, no
+  test parses the README; count unchanged from the 324-passed / 1-skipped
+  baseline — every test shows a passing dot, the final tally line swallowed by
+  the Windows capture quirk).
+- **Know-how + upstream:** added "Delegate to a self-documenting source; don't
+  re-tabulate it" to `engineering-know-how.md` (Documentation and decisions) —
+  the sharper instance of one-home where the second copy is of a tool's own
+  `--help`/generated output. Reusable; filed upstream as
+  solid-ai-templates#822 (base/core/docs.md, Single source of truth).
+- **Pending:** project remains frozen; this was an unsolicited docs touch-up on
+  top. Backlog empty (0 open issues / 0 open PRs); v0.3.0 is the latest release.
+  Untracked loose ends unchanged (the optional `qm-image.yml` branch-protection
+  toggle; the vestigial `AdsorptionSystem` handoff cluster, kept by decision).
+  No active thread to resume.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
