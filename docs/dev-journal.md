@@ -2465,4 +2465,51 @@ Another small docs pass on the frozen project. One PR (#251), merged.
   toggle; the vestigial `AdsorptionSystem` handoff cluster, kept by decision).
   No active thread to resume.
 
+## 2026-07-16 (session 37): pyproject comment hygiene; comment-layout style anchored for all projects
+
+Two increments on top of the session-36 wrap: a corrosim config cleanup and a
+cross-project convention. Three PRs merged (#253 here, #823 upstream) plus a new
+global agent-config file.
+
+- **pyproject.toml cleanup (#253).** Brought the config to the 80-col
+  readability standard (ADR 0012) and the blank-line-before-comment grouping,
+  prompted by the client asking about the line limit and comment spacing.
+  Wrapped every over-80 comment block, reflowed the `keywords` array
+  one-per-line to match `classifiers`, and moved the 90-char trailing inline
+  comment on `ignore_missing_imports` above its line. Added a blank line before
+  each comment block that documents an item, and removed the two blanks that sat
+  between a comment and the item it documented. Cleared all 5 em-dashes. Left
+  the `description` string over-length by intent: it is the single-line PyPI
+  summary and must not carry an embedded newline. No behaviour change: ruff and
+  mypy still consume the config, `tomllib` parses it, keywords/scripts intact.
+  ruff does not gate `.toml`, so this was consistency, not a fixed lint failure.
+- **Comment-layout style anchored for all projects (#823 upstream + global
+  config).** The client asked to make the pyproject comment style permanent
+  across every project and chose template plus global memory. Two anchors:
+  (1) added three comment-layout rules to `solid-ai-templates`
+  `base/core/quality.md` (Code style): a comment sits directly above the item it
+  documents (no trailing, no blank between), one blank line separates each
+  comment-plus-item group, and comment prose wraps to the project line-length
+  limit including commented config files the linter skips. Regenerated the
+  cached chains (`tools/sync.py`), so all 17 stack templates carry it; smoke
+  23/23; merged as #823. (2) Created `~/.claude/CLAUDE.md` (did not exist
+  before), the user-level agent config loaded in every session and repo, so the
+  rule applies immediately everywhere.
+- **No ADR** in either repo: a style cleanup (corrosim) and a rule added to an
+  existing template section (upstream) are not structural decisions.
+- **Gates:** ruff and mypy clean; pytest passing (324-passed / 1-skipped
+  baseline, the tally line swallowed by the Windows capture quirk). Upstream
+  smoke 23/23; `sync.py --check` clean.
+- **Know-how:** added "Hold config-file comments to the code standard: the
+  linter won't" to `engineering-know-how.md` (Configuration). The layout
+  convention itself is now upstream in `quality.md` (#823), so it is a merged
+  template rule, not a pending candidate.
+- **Memory:** new [[global-comment-layout-convention]] records the two anchors
+  and that a global `~/.claude/CLAUDE.md` now exists.
+- **Pending:** project stays frozen; backlog empty (0 open issues / 0 open PRs);
+  v0.3.0 latest. Optional un-done follow-up: corrosim's vendored
+  `docs/solid-ai-templates` submodule still pins the pre-#823 commit (not
+  bumped, since it would pull unrelated upstream changes; corrosim enforces the
+  rule locally via ADR 0012 regardless). No active thread to resume.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
