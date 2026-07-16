@@ -120,21 +120,14 @@ are the paths to the optional external ORCA/Gaussian binaries:
 | `ORCA_CMD` | path | `orca` | ORCA executable used by `--engine orca`. |
 | `GAUSSIAN_CMD` | path | `g16` | Gaussian executable used by `--engine gaussian`. |
 
-The screen's run is configured through CLI options (`corrosim screen --help`;
-the full study has its own, `corrosim run-study --help`):
+Everything else is per-subcommand CLI options. Run the command's own `--help`,
+which is the authoritative, always-current list:
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `--input` / `--inhibitors` | path / list | *(one required)* | Molecules: a CSV (`name[,smiles]`) or a comma-separated list of names/SMILES. |
-| `--metal` | str | `Fe(110)` | Substrate: `Fe(110)`, `Cu(111)`, or `Al(111)`. |
-| `--medium` | str | `1 M HCl` | Medium label for the report header. |
-| `--engine` | choice | `xtb` | Quantum engine: `xtb`, `pyscf`, `orca`, `gaussian`. |
-| `--basis` | str | `6-311++G(d,p)` | PySCF basis set (ADR 0002 production level). |
-| `--xc` | str | `b3lyp` | PySCF exchange–correlation functional. |
-| `--solvent` | str | `water` | Implicit solvent (`none` for gas phase). |
-| `--adsorption` | flag | off | Add a fast UFF van-der-Waals physisorption estimate (`e_ads_kjmol`), scanned over heights at a flat orientation. |
-| `--out` | path | `corrosion_report.html` | HTML report output path. |
-| `--csv` | path | *(none)* | Also write the ranked results table to this CSV. |
+| Command | Purpose |
+| --- | --- |
+| `corrosim screen --help` | Quick reactivity screen + ranking of a molecule set. |
+| `corrosim run-study --help` | Full multiscale study (DFT → MC → MD → report) for a case. |
+| `corrosim add-inhibitor --help` | Fetch a compound from PubChem into the inhibitor library. |
 
 ## Project structure
 
