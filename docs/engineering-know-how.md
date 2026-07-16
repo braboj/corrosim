@@ -58,6 +58,19 @@ the contributor guide; decisions in decision records; history in a changelog. A
 rule you apply constantly is one line; if it needs a paragraph, it is a decision
 record with a one-line pointer.
 
+#### Delegate to a self-documenting source; don't re-tabulate it
+
+When a tool already documents itself — a CLI's `--help`, a generated schema, an
+OpenAPI page — a hand-maintained table in the docs that restates it is a second
+copy that drifts. It rots the moment someone adds an option and forgets the
+table; a reader then trusts a list that is quietly wrong. Point the docs at the
+authoritative, always-current source ("run `<command> --help`") instead of
+copying its rows. Keep in the reference only what that source cannot surface —
+for a CLI, the environment variables it reads, which never appear in `--help`.
+The test for whether a row belongs in the doc: could the tool print it itself?
+If yes, delete the row and link to the tool; if no, it is exactly what the
+reference is for.
+
 #### A self-describing examples/ folder
 
 Ship an `examples/` directory whose `README.md` indexes each example as an exact
