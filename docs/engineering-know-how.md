@@ -286,6 +286,24 @@ Two recurring design criteria worth internalizing:
 
 ### Configuration
 
+#### Hold config-file comments to the code standard: the linter won't
+
+Linters scan source, not `pyproject.toml` / YAML / CI workflows, so comments in
+config files drift below the code standard unnoticed: over-long lines, comments
+trailing values, a comment stranded a blank line away from the key it explains.
+Hold them to the same line-length limit and layout as code by hand. A config
+comment sits directly above the key it documents, and one blank line separates
+each comment-plus-key group.
+
+```toml
+# before: over-long, trailing, ungrouped
+ignore_missing_imports = true        # third-party libs ship no usable stubs
+
+# after: above the key, wrapped, grouped
+# third-party libs ship no usable stubs.
+ignore_missing_imports = true
+```
+
 #### One frozen config object, a registry, and a lookup
 
 A frozen dataclass bundles every input for a run. `frozen=True` prevents
