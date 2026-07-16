@@ -10,13 +10,21 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Branimir Georgiev", email = "branimir@imbra.io" }]
-keywords = ["corrosion", "inhibitor", "DFT", "xtb", "adsorption", "computational-chemistry"]
+keywords = [
+    "corrosion",
+    "inhibitor",
+    "DFT",
+    "xtb",
+    "adsorption",
+    "computational-chemistry",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Chemistry",
 ]
+
 # Lower bounds are the tested-minimum on Python 3.10; left open above so the
 # library composes with whatever recent stack the user already has.
 dependencies = [
@@ -32,17 +40,18 @@ dependencies = [
 # geometric = geomeTRIC backend for PySCF DFT geometry optimisation.
 qm = ["tblite", "pyscf", "geometric"]
 
-# Figure/cube rendering: orbital + ESP isosurfaces (marching cubes + grid sampling).
+# Figure/cube rendering: orbital + ESP isosurfaces
+# (marching cubes + grid sampling).
 viz = ["scikit-image", "scipy", "Pillow"]
 
 # Word (.docx) report output (make_report). Pure-Python, no system binary; the
 # HTML report needs none of this.
-
 report = ["python-docx>=1.0"]
-# Tests / dev (viz + report deps listed explicitly so the renderers are importable).
-# tblite is deliberately NOT here: the suite is QM-light (CLAUDE.md 3.1), and the
-# one xtb smoke test importorskips it. Use `.[dev,qm]` to exercise the xtb path.
 
+# Tests / dev (viz + report deps listed explicitly so the renderers are
+# importable). tblite is deliberately NOT here: the suite is QM-light
+# (CLAUDE.md 3.1), and the one xtb smoke test importorskips it. Use
+# `.[dev,qm]` to exercise the xtb path.
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
        "scipy", "Pillow", "python-docx>=1.0"]
 
@@ -51,10 +60,12 @@ dev = ["pytest", "pytest-cov", "ruff", "mypy", "complexipy", "scikit-image",
 # (screen / run-study / add-inhibitor). A leading option is shorthand for the
 # screen, so `corrosim --inhibitors ...` keeps working.
 corrosim = "corrosim.app:main"
+
 # Back-compat aliases for the subcommands, kept so existing invocations and the
 # published image's documented commands do not break. `corrosim run-study` and
 # `corrosim add-inhibitor` are the same programs.
 corrosim-run-study = "corrosim.runs.run_study:main"
+
 # Dev-time library-expand tool. Uses only the stdlib (urllib) to query PubChem,
 # so it needs no extra dependency; runs and CI stay offline by default.
 corrosim-add-inhibitor = "corrosim.fetch:main"
@@ -80,6 +91,7 @@ addopts = "-q"
 
 [tool.coverage.run]
 source = ["corrosim"]
+
 # Coverage is scoped to the QM-light-testable surface (issue #31 / ADR 0007).
 # These modules need a QM engine (PySCF/tblite) or Docker to execute, so they
 # cannot run in the venv/CI suite; they are validated by the QM suite
@@ -95,26 +107,29 @@ omit = [
 ]
 
 [tool.coverage.report]
-# Gate the scoped (non-omitted) surface at 80% — the python-lib stack target,
+# Gate the scoped (non-omitted) surface at 80%, the python-lib stack target,
 # now meaningful because the untestable QM layer is out of the denominator.
 fail_under = 80
 show_missing = true
 
 [tool.mypy]
 # Non-strict introduction (issue #6): catch real type errors without forcing
-# annotations everywhere yet. Trigger to tighten — once the public API is fully
-# annotated and stubs exist for the scientific deps, flip on disallow_untyped_defs
-# + strict_optional per module, then drop ignore_missing_imports en route to --strict.
+# annotations everywhere yet. Trigger to tighten: once the public API is fully
+# annotated and stubs exist for the scientific deps, flip on
+# disallow_untyped_defs + strict_optional per module, then drop
+# ignore_missing_imports en route to --strict.
 files = ["src"]
 python_version = "3.10"
-ignore_missing_imports = true        # rdkit/ase/pyscf/tblite/skimage ship no usable stubs
+
+# rdkit/ase/pyscf/tblite/skimage ship no usable stubs.
+ignore_missing_imports = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
 # Treat the scientific stack as untyped (Any): their stubs/sources use PEP 695
-# `type` aliases (3.12+) or, for rdkit, contain a syntax error mypy can't parse at
-# our 3.10 target. Skipping the top-level libs stops mypy descending into their
-# 3.12-syntax transitive deps (e.g. skimage -> tifffile).
+# `type` aliases (3.12+) or, for rdkit, contain a syntax error mypy can't
+# parse at our 3.10 target. Skipping the top-level libs stops mypy descending
+# into their 3.12-syntax transitive deps (e.g. skimage -> tifffile).
 module = [
     "rdkit.*", "numpy", "numpy.*", "pandas", "pandas.*", "scipy.*", "skimage.*",
     "matplotlib.*", "mpl_toolkits.*", "ase.*", "PIL.*", "tblite.*", "pyscf.*",
@@ -131,7 +146,7 @@ extend-exclude = ["docs/solid-ai-templates"]
 [tool.ruff.lint]
 # pyflakes + pycodestyle + imports + Google docstrings (D, incl. D417) +
 # mccabe cyclomatic complexity (C90). The full public API contract (ADR 0012 /
-# issue #51) — all public params/returns typed — is enforced by
+# issue #51), all public params/returns typed, is enforced by
 # tests/test_docstrings.py, not ruff `ANN`, so private QM helpers that take
 # un-stubbed pyscf objects stay annotation-free.
 select = ["E", "F", "I", "W", "D", "C90"]
@@ -162,12 +177,13 @@ convention = "google"
 # inside string literals (including an unbreakable web-font URL).
 "src/corrosim/report/report.py" = ["E501"]
 "src/corrosim/report/gallery.py" = ["E501"]
-# Tests are not public API — docstrings (D), line length and complexity there
+
+# Tests are not public API: docstrings (D), line length and complexity there
 # are not held to the package standard.
 "tests/**" = ["D", "E501", "C901"]
 
 [tool.complexipy]
-# Cognitive-complexity ratchet (SonarQube's metric — counts nesting and
+# Cognitive-complexity ratchet (SonarQube's metric that counts nesting and
 # control-flow interruptions, which McCabe/C901 cannot see). Threshold matches
 # the C901 gate. complexipy-snapshot.json is the committed watermark: an
 # over-threshold function fails only when it is NEW or has INCREASED relative
