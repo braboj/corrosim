@@ -22,7 +22,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.0674,
     "form": "neutral",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": 4.1665039885653945
   },
   {
     "name": "kaempferol",
@@ -47,7 +48,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.4224,
     "form": "neutral",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": 5.530802449482134
   },
   {
     "name": "kaempferol+H+",
@@ -72,7 +74,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -3.6079,
     "form": "protonated",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": null
   },
   {
     "name": "kaempferol+H+",
@@ -97,7 +100,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.0136,
     "form": "protonated",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": null
   },
   {
     "name": "quercetin",
@@ -122,7 +126,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.3584,
     "form": "neutral",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": 4.603340316867087
   },
   {
     "name": "quercetin",
@@ -147,7 +152,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.7136,
     "form": "neutral",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": 6.336621730889282
   },
   {
     "name": "quercetin+H+",
@@ -172,7 +178,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.0661,
     "form": "protonated",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": null
   },
   {
     "name": "quercetin+H+",
@@ -197,7 +204,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.4377,
     "form": "protonated",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": null
   },
   {
     "name": "isorhamnetin",
@@ -222,7 +230,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -5.3056,
     "form": "neutral",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": 3.04265044701792
   },
   {
     "name": "isorhamnetin",
@@ -247,7 +256,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -5.5249,
     "form": "neutral",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": 4.4196007521672325
   },
   {
     "name": "isorhamnetin+H+",
@@ -272,7 +282,8 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.6607,
     "form": "protonated",
-    "phase": "gas"
+    "phase": "gas",
+    "dipole_debye": null
   },
   {
     "name": "isorhamnetin+H+",
@@ -297,6 +308,7 @@
     "phi_metal_ev": 4.82,
     "tnc": -4.9928,
     "form": "protonated",
-    "phase": "aqueous"
+    "phase": "aqueous",
+    "dipole_debye": null
   }
 ]

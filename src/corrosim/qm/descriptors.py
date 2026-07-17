@@ -154,4 +154,5 @@ DESCRIPTOR_META = {
     "electrophilicity_ev":  ("Electrophilicity ω (eV)",  "context"),
     "delta_n":              ("ΔN (e- transferred)",  "0<ΔN<3.6"),
     "back_donation_ev":     ("Back-donation (eV)",   "context"),
+    "dipole_debye":         ("Dipole moment (Debye)", "context"),
 }

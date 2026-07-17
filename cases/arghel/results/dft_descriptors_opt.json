@@ -24,7 +24,8 @@
     "form": "neutral",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 4.484056929770529
   },
   {
     "name": "kaempferol",
@@ -51,7 +52,8 @@
     "form": "neutral",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 6.142678982087317
   },
   {
     "name": "kaempferol+H+",
@@ -78,7 +80,8 @@
     "form": "protonated",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   },
   {
     "name": "kaempferol+H+",
@@ -105,7 +108,8 @@
     "form": "protonated",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   },
   {
     "name": "quercetin",
@@ -132,7 +136,8 @@
     "form": "neutral",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 5.741499691776963
   },
   {
     "name": "quercetin",
@@ -159,7 +164,8 @@
     "form": "neutral",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 8.02131881784265
   },
   {
     "name": "quercetin+H+",
@@ -186,7 +192,8 @@
     "form": "protonated",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   },
   {
     "name": "quercetin+H+",
@@ -213,7 +220,8 @@
     "form": "protonated",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   },
   {
     "name": "isorhamnetin",
@@ -240,7 +248,8 @@
     "form": "neutral",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 2.0960819642274067
   },
   {
     "name": "isorhamnetin",
@@ -267,7 +276,8 @@
     "form": "neutral",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": 3.4679392644679368
   },
   {
     "name": "isorhamnetin+H+",
@@ -294,7 +304,8 @@
     "form": "protonated",
     "phase": "gas",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   },
   {
     "name": "isorhamnetin+H+",
@@ -321,6 +332,7 @@
     "form": "protonated",
     "phase": "aqueous",
     "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
-    "n_imag": 0
+    "n_imag": 0,
+    "dipole_debye": null
   }
 ]

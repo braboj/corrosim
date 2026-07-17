@@ -320,8 +320,8 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
         neu = [val("neutral", m) for m in order]
         pro = [val("protonated", m + "+H+") for m in order]
         x = np.arange(len(order))
-        ax.bar(x - 0.2, neu, 0.4, label="neutral", color=C_BAR)
-        ax.bar(x + 0.2, pro, 0.4, label="protonated", color=C_LUMO)
+        ax.bar(x - 0.2, neu, 0.4, label="Neutral", color=C_BAR)
+        ax.bar(x + 0.2, pro, 0.4, label="Protonated", color=C_LUMO)
         ax.set_xticks(x)
         ax.set_xticklabels([display_name(m) for m in order], rotation=15)
         ax.set_title(title, fontsize=10)
@@ -407,7 +407,7 @@ def plot_adsorption_pose(system: Any, out: str | None = None) -> object:
     plot_atoms(combined, axes[0], rotation="0x,0y,0z", colors=colors)
     plot_atoms(combined, axes[1], rotation="-90x,0y,0z", colors=colors)
     axes[0].set_title(f"{system.metal}{system.surface} — top")
-    axes[1].set_title("side")
+    axes[1].set_title(f"{system.metal}{system.surface} — side")
     for a in axes:
         a.set_axis_off()
     fig.tight_layout()
@@ -534,7 +534,7 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
                                        gridspec_kw={"width_ratios": [1, 1.5]})
         ax0.imshow(struct)
         ax0.axis("off")
-        ax0.set_title("atom indices", fontsize=10)
+        ax0.set_title("Atom indices", fontsize=10)
     else:
         fig, ax1 = plt.subplots(figsize=(max(6.5, 0.45 * len(heavy)), 4.3))
     x = np.arange(len(heavy))
@@ -683,7 +683,7 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
     # Two keys: the potential colour scale (surface) and the atom colour code
     cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
                       shrink=0.6, pad=0.02)
-    cb.set_label("electrostatic potential (a.u.)\nred = electron-rich, "
+    cb.set_label("Electrostatic potential (a.u.)\nred = electron-rich, "
                  "blue = electron-poor", fontsize=8)
     cb.ax.tick_params(labelsize=7)
     if title:

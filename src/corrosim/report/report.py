@@ -49,7 +49,8 @@ def results_dataframe(rows: list[dict]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     cols = ["name", "formula", "charge", "level", "homo_ev", "lumo_ev", "gap_ev",
             "hardness_ev", "softness_inv_ev", "electronegativity_ev",
-            "electrophilicity_ev", "delta_n", "back_donation_ev", "tnc"]
+            "electrophilicity_ev", "delta_n", "back_donation_ev", "dipole_debye",
+            "tnc"]
     if "e_ads_kjmol" in df.columns:
         cols.append("e_ads_kjmol")
     cols = [c for c in cols if c in df.columns]
@@ -369,6 +370,7 @@ DESCRIPTOR_ROW_LABELS = {
     "electrophilicity_ev": "ω electrophilicity (eV)",
     "delta_n": "ΔN",
     "back_donation_ev": "E_back-donation (eV)",
+    "dipole_debye": "Dipole (D)",
     "tnc": "TNC",
     "e_ads_kjmol": "E_ads (kJ/mol)",
     "score": "Score",

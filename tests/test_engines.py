@@ -7,7 +7,10 @@ orchestration loop and the DFT calls around them do.
 import numpy as np
 
 from corrosim.qm.engines import (
+    AU_TO_DEBYE,
     HARTREE_TO_EV,
+    EngineResult,
+    dipole_magnitude_debye,
     displace_along_mode,
     imaginary_mode,
     min_check_fields,
@@ -16,6 +19,30 @@ from corrosim.qm.engines import (
     write_gaussian_input,
     write_orca_input,
 )
+
+
+def test_dipole_magnitude_debye_scales_atomic_units():
+    # a 3-4-0 vector has magnitude 5 a.u.; in Debye that is 5 * AU_TO_DEBYE
+    got = dipole_magnitude_debye([3.0, 4.0, 0.0], in_atomic_units=True)
+    assert abs(got - 5.0 * AU_TO_DEBYE) < 1e-9
+
+
+def test_dipole_magnitude_debye_passes_through_debye():
+    # a vector already in Debye is only reduced to its magnitude, not rescaled
+    got = dipole_magnitude_debye([0.0, 0.0, 2.5], in_atomic_units=False)
+    assert abs(got - 2.5) < 1e-9
+
+
+def test_dipole_magnitude_debye_none_when_absent_or_short():
+    assert dipole_magnitude_debye(None, in_atomic_units=True) is None
+    assert dipole_magnitude_debye([1.0, 2.0], in_atomic_units=False) is None
+
+
+def test_engine_result_dipole_defaults_to_none():
+    res = EngineResult("xtb", "GFN2-xTB", -1.0, -6.0, -2.0)
+    assert res.dipole_debye is None
+    res2 = EngineResult("xtb", "GFN2-xTB", -1.0, -6.0, -2.0, dipole_debye=3.14)
+    assert res2.dipole_debye == 3.14
 
 
 def test_imaginary_mode_returns_none_at_a_minimum():

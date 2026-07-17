@@ -78,6 +78,12 @@ def analyse_molecule(mol: Molecule, metal: str = "Fe(110)",
     # Total SCF energy (for pKa cycles)
     row["e_total_ev"] = res.e_total_ev
     row["tnc"] = total_negative_charge(res.charges)
+    # Molecular dipole magnitude (Debye), a polarity descriptor from xTB/PySCF.
+    # The dipole is origin-independent only for a neutral molecule; for a
+    # charged species it is gauge-dependent, so the descriptor is defined only
+    # for the neutral form (None for a cation, or a HOMO/LUMO-only backend that
+    # reports no dipole).
+    row["dipole_debye"] = res.dipole_debye if mol.charge == 0 else None
     if adsorption:
         metal_symbol = metal_element(metal)
         try:
