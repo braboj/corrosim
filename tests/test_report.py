@@ -20,6 +20,26 @@ def _descr_row(name, gap, hardness):
     }
 
 
+def test_results_dataframe_includes_dipole_when_present():
+    from corrosim.report.report import descriptor_matrix
+
+    row = _descr_row("quercetin", 3.6, 1.8)
+    row["dipole_debye"] = 5.12
+    df = report.results_dataframe([row])
+    assert "dipole_debye" in df.columns
+    labels = [r[0] for r in descriptor_matrix(df)[1]]
+    assert "Dipole (D)" in labels
+
+
+def test_results_dataframe_omits_dipole_when_absent():
+    from corrosim.report.report import descriptor_matrix
+
+    df = report.results_dataframe([_descr_row("quercetin", 3.6, 1.8)])
+    assert "dipole_debye" not in df.columns
+    labels = [r[0] for r in descriptor_matrix(df)[1]]
+    assert "Dipole (D)" not in labels
+
+
 def test_top_donor_sites_of_element_picks_highest_f_minus():
     rows = [
         {"idx": 0, "symbol": "O", "f_minus": 0.02},

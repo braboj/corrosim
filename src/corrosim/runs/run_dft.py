@@ -493,7 +493,8 @@ def _write_outputs(rows: list[dict], args: argparse.Namespace) -> None:
     show = [c for c in ["name", "form", "phase", "charge", "homo_ev",
                         "lumo_ev", "gap_ev", "hardness_ev", "softness_inv_ev",
                         "electronegativity_ev", "electrophilicity_ev",
-                        "delta_n", "back_donation_ev", "tnc", "n_imag"]
+                        "delta_n", "back_donation_ev", "dipole_debye", "tnc",
+                        "n_imag"]
             if c in df.columns]
     print()
     print_table(df, show, round_to=3)

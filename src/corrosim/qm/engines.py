@@ -29,6 +29,10 @@ Coords = Sequence[Sequence[float]]
 HARTREE_TO_EV = 27.211386245988
 ANG_TO_BOHR = 1.8897259886
 
+# One atomic unit of dipole moment (e·a0) in Debye (CODATA), used to report the
+# xTB dipole (returned in atomic units) on the same Debye scale as PySCF.
+AU_TO_DEBYE = 2.541746473
+
 # ddCOSMO's built-in water dielectric; set explicitly so a solvent change is
 # visible at the call site rather than buried in a PySCF default.
 WATER_EPS = 78.3553
@@ -36,6 +40,33 @@ WATER_EPS = 78.3553
 # An orbital counts as occupied above this occupation number — 0.5 cleanly
 # splits filled (~2 e-) from empty for both the xTB and ORCA outputs.
 OCCUPIED_MIN = 0.5
+
+
+def dipole_magnitude_debye(
+    vector: Sequence[float] | None,
+    *,
+    in_atomic_units: bool,
+) -> float | None:
+    """Magnitude of a dipole-moment vector, in Debye.
+
+    Args:
+        vector: The (x, y, z) dipole components, or None when the engine did
+            not report a dipole.
+        in_atomic_units: True when ``vector`` is in atomic units (e·a0, as
+            tblite returns it) and must be scaled by :data:`AU_TO_DEBYE`; False
+            when it is already in Debye (as PySCF's ``dip_moment`` returns it).
+
+    Returns:
+        The dipole magnitude in Debye, or None when ``vector`` is missing or has
+        fewer than three components.
+    """
+    if vector is None:
+        return None
+    arr = np.asarray(vector, dtype=float).ravel()
+    if arr.size < 3:
+        return None
+    magnitude = float(np.linalg.norm(arr[:3]))
+    return magnitude * AU_TO_DEBYE if in_atomic_units else magnitude
 
 # PySCF encodes an imaginary vibrational mode as a negative real part or a
 # non-zero imaginary part; this tolerance rejects the numerical-noise imaginary
@@ -91,6 +122,10 @@ class EngineResult:
 
     # Per-atom Mulliken partial charges, if the engine provides them
     charges: list[float] | None = None
+
+    # Ground-state dipole-moment magnitude (Debye), if the engine reports it —
+    # a polarity descriptor independent of the HOMO-LUMO gap.
+    dipole_debye: float | None = None
 
     @property
     def gap_ev(self) -> float:
@@ -434,11 +469,19 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
         charges = [float(q) for q in np.asarray(res.get("charges"))]
     except (KeyError, TypeError, ValueError):
         charges = None
+    # tblite reports the dipole in atomic units; a missing property (older
+    # tblite) degrades to None rather than failing the single point.
+    try:
+        dipole_debye = dipole_magnitude_debye(res.get("dipole"),
+                                              in_atomic_units=True)
+    except (KeyError, TypeError, ValueError):
+        dipole_debye = None
     return EngineResult("xtb", "GFN2-xTB",
                         e_total * HARTREE_TO_EV,
                         homo * HARTREE_TO_EV,
                         lumo * HARTREE_TO_EV,
-                        charges=charges)
+                        charges=charges,
+                        dipole_debye=dipole_debye)
 
 
 def run_pyscf(symbols: Sequence[str], coords: Coords,
@@ -484,11 +527,20 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
         charges = [float(q) for q in mf.mulliken_pop(verbose=0)[1]]
     except (IndexError, TypeError, ValueError):
         charges = None
+    # PySCF's dip_moment returns the (nuclear + electronic) dipole already in
+    # Debye; a solvent-wrapped mean field that lacks the method degrades to None
+    # rather than losing the whole single point.
+    try:
+        dipole_debye = dipole_magnitude_debye(
+            mf.dip_moment(unit="Debye", verbose=0), in_atomic_units=False)
+    except (AttributeError, TypeError, ValueError):
+        dipole_debye = None
     return EngineResult("pyscf", level,
                         float(e_total) * HARTREE_TO_EV,
                         float(homo) * HARTREE_TO_EV,
                         float(lumo) * HARTREE_TO_EV,
-                        charges=charges)
+                        charges=charges,
+                        dipole_debye=dipole_debye)
 
 
 def optimize_geometry(symbols: Sequence[str], coords: Coords,
