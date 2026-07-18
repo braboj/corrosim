@@ -77,7 +77,7 @@ class MCResult:
 
     # Heavy artefacts kept for plotting/analysis but out of the repr, so a
     # printed MCResult does not dump whole coordinate tables
-    slab: Atoms = field(repr=False, default=None)
+    slab: Atoms | None = field(repr=False, default=None)
     energies: list[float] = field(repr=False, default_factory=list)
 
     # Search diagnostics
@@ -90,7 +90,14 @@ class MCResult:
 
         Returns:
             The combined slab+adsorbate cell for plot_adsorption_pose.
+
+        Raises:
+            ValueError: If this result carries no slab (default-constructed).
         """
+        if self.slab is None:
+            raise ValueError(
+                "MCResult.combined needs a slab, but this result was built "
+                "without one.")
         molecule = Atoms(symbols=self.mol_symbols,
                          positions=self.best_positions)
         combined = self.slab + molecule

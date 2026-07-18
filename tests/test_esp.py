@@ -8,6 +8,7 @@ matplotlib.use("Agg")
 import numpy as np
 from ase import Atoms
 from ase.io.cube import write_cube
+from matplotlib.figure import Figure
 
 from corrosim.report import figures
 
@@ -33,7 +34,7 @@ def test_render_esp_writes_png(tmp_path):
     dens, esp = _write_synthetic_cubes(tmp_path)
     out = tmp_path / "esp.png"
     res = figures.render_esp(dens, esp, out=str(out), iso=0.3, title="synthetic")
-    assert res == str(out)
+    assert isinstance(res, Figure)             # returns the figure, not the path
     assert out.exists() and out.stat().st_size > 1000
 
 
@@ -65,5 +66,5 @@ def test_render_orbital_writes_png(tmp_path):
     cube = _write_orbital_cube(tmp_path)
     out = tmp_path / "orb.png"
     res = figures.render_orbital(cube, out=str(out), iso=0.2, title="synthetic")
-    assert res == str(out)
+    assert isinstance(res, Figure)             # returns the figure, not the path
     assert out.exists() and out.stat().st_size > 1000

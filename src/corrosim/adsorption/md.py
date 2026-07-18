@@ -87,9 +87,9 @@ class MDResult:
 
     # Off-repr trajectory extras, for the combined-pose plot and inspection
     energies: list[float] = field(repr=False, default_factory=list)
-    final_positions: np.ndarray = field(repr=False, default=None)
+    final_positions: np.ndarray | None = field(repr=False, default=None)
     mol_symbols: list[str] = field(repr=False, default_factory=list)
-    slab: Atoms = field(repr=False, default=None)
+    slab: Atoms | None = field(repr=False, default=None)
 
     @property
     def combined(self) -> Atoms:
@@ -97,7 +97,15 @@ class MDResult:
 
         Returns:
             The combined slab+adsorbate cell for plot_adsorption_pose.
+
+        Raises:
+            ValueError: If this result carries no slab / final positions
+                (default-constructed).
         """
+        if self.slab is None or self.final_positions is None:
+            raise ValueError(
+                "MDResult.combined needs a slab and final positions, but this "
+                "result was built without them.")
         mol = Atoms(symbols=self.mol_symbols, positions=self.final_positions)
         c = self.slab + mol
         c.set_cell(self.slab.get_cell())

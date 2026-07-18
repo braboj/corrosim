@@ -10,6 +10,7 @@ tests/test_surface_refactor.py).
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from corrosim.adsorption.mc import (
     MCResult,
@@ -19,6 +20,16 @@ from corrosim.adsorption.mc import (
     _Search,
 )
 from corrosim.adsorption.surface import Substrate
+
+
+def test_mcresult_combined_requires_a_slab():
+    # #268: a default-constructed result carries no slab, so .combined must
+    # raise a clear error rather than TypeError on `None + Atoms`.
+    res = MCResult(metal="Fe", surface="Fe(110)", e_ads_ev=0.0,
+                   e_ads_kjmol=0.0, best_height_A=2.5, mol_symbols=["O"],
+                   best_positions=np.zeros((1, 3)))
+    with pytest.raises(ValueError, match="needs a slab"):
+        _ = res.combined
 
 
 def _pdist(p: np.ndarray) -> np.ndarray:
