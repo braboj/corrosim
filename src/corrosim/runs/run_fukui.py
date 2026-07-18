@@ -22,6 +22,7 @@ from corrosim.runs._cli import (
     default_output,
     iter_molecules,
     resolve_case,
+    safe_path_component,
     stderr_log,
     write_json,
 )
@@ -58,7 +59,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     for name, m in iter_molecules(args):
         stderr_log(f"[{name}] computing Fukui ({args.method}) ...")
         fk = compute_fukui(m, basis=args.basis, xc=args.xc, method=args.method)
-        write_json(f"{args.outdir}/{name}_fukui.json", fk.as_json())
+        write_json(f"{args.outdir}/{safe_path_component(name)}_fukui.json",
+                   fk.as_json())
         stderr_log("  top donor (f-) sites — the metal-binding atoms:")
         for r in fk.top_donor_sites(6):
             stderr_log("    %2s%-2d  f-=%+.3f  dual=%+.3f"

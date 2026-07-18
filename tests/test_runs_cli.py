@@ -21,6 +21,25 @@ def test_parse_molecules_strips_and_drops_blanks():
     assert _cli.parse_molecules("") == []
 
 
+def test_safe_path_component_replaces_separators_in_smiles():
+    # #261: isomeric SMILES carry / and \ (E/Z stereo); used verbatim as a path
+    # component they inject nested dirs and crash the write. Sanitise to a
+    # single safe component.
+    out = _cli.safe_path_component(r"C/C=C\C")
+    assert "/" not in out and "\\" not in out
+    assert out == "C_C=C_C"
+
+
+def test_safe_path_component_is_noop_for_library_names():
+    # a plain library name (no unsafe chars) is unchanged, so shipped per-case
+    # outputs keep their filenames.
+    assert _cli.safe_path_component("kaempferol") == "kaempferol"
+
+
+def test_safe_path_component_falls_back_when_empty():
+    assert _cli.safe_path_component("/\\:") == "molecule"
+
+
 def test_resolve_case_fills_unset_molecules_from_the_case():
     p = argparse.ArgumentParser()
     _cli.add_case_arg(p)

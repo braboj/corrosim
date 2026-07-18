@@ -71,6 +71,7 @@ from corrosim.runs._cli import (
     print_table,
     read_json,
     resolve_case,
+    safe_path_component,
     stderr_log,
     write_json,
 )
@@ -190,7 +191,9 @@ def _optimize_species(
     mol = dataclasses.replace(mol, coords=cast(list, opt_coords))
     if opt_geom_dir is not None:
         path = write_xyz(
-            mol, os.path.join(opt_geom_dir, f"{mol.name}_opt.xyz"))
+            mol,
+            os.path.join(opt_geom_dir,
+                         f"{safe_path_component(mol.name)}_opt.xyz"))
         print(f"  opt geometry -> {path}", file=sys.stderr)
 
     # A residual imaginary mode means the geometry is a saddle, not a minimum.

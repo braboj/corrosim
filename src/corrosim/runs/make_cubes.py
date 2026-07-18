@@ -20,7 +20,7 @@ from collections.abc import Sequence
 
 from corrosim import build_molecule
 from corrosim.qm import cubes
-from corrosim.runs._cli import parse_molecules
+from corrosim.runs._cli import parse_molecules, safe_path_component
 from corrosim.runs._cli import stderr_log as log
 
 
@@ -55,7 +55,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     for name in names:
         m = build_molecule(name)
-        prefix = os.path.join(args.outdir, name)
+        prefix = os.path.join(args.outdir, safe_path_component(name))
         if "orbital" in what:
             log(f"[{name}] HOMO/LUMO cubes ...")
             paths = cubes.write_orbital_cubes(
