@@ -28,6 +28,16 @@ def test_rank_inhibitors_orders_smallest_gap_first():
     assert list(ranked["name"]) == ["A", "B", "C"]
 
 
+def test_rank_inhibitors_breaks_score_ties_by_name():
+    # Two molecules with identical descriptors score identically (a 3-dp tie);
+    # the deterministic name tie-break must order them A before B regardless of
+    # input row order, so the highlighted lead never flips across runs.
+    ranked = ranking.rank_inhibitors(pd.DataFrame(
+        [_row("B", 4.0), _row("A", 4.0), _row("C", 4.6)]))
+    assert list(ranked["name"]) == ["A", "B", "C"]
+    assert ranked.iloc[0]["score"] == ranked.iloc[1]["score"]
+
+
 def test_canonical_prefers_relaxed_and_blended():
     neutral = [_row("A", 4.0), _row("B", 4.4)]
     prot = [_row("A+H+", 3.3), _row("B+H+", 3.6)]

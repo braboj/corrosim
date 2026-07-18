@@ -61,7 +61,16 @@ def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
         zscore(ranked["softness_inv_ev"]),
     ]
     ranked["score"] = (sum(components) / len(components)).round(3)
-    return ranked.sort_values("score", ascending=False).reset_index(drop=True)
+
+    # Scores are rounded to 3 dp, so exact ties are plausible for symmetric or
+    # near-identical molecules. A stable mergesort plus a deterministic name
+    # tie-break keeps the lead (row 0) reproducible across pandas/numpy versions
+    # and input row order, rather than letting an unstable quicksort pick it.
+    return ranked.sort_values(
+        ["score", "name"],
+        ascending=[False, True],
+        kind="mergesort",
+    ).reset_index(drop=True)
 
 
 @dataclass(frozen=True)
