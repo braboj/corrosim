@@ -173,7 +173,7 @@ def write_json(path: str, obj: object) -> None:
         path: Destination file path.
         obj: Any JSON-serialisable object.
     """
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(obj, fh, indent=2)
 
 
@@ -192,7 +192,7 @@ def read_json(path: str, default: object = _REQUIRED) -> Any:  # noqa: ANN401
     """
     if default is not _REQUIRED and not os.path.exists(path):
         return default
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         return json.load(fh)
 
 

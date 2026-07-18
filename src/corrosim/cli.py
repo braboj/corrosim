@@ -37,7 +37,7 @@ def _nonempty_rows(path: str) -> list[list[str]]:
     Returns:
         The retained rows (each a list of raw cell strings), in file order.
     """
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         return [r for r in csv.reader(f) if any(c.strip() for c in r)]
 
 

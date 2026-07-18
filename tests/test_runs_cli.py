@@ -40,6 +40,15 @@ def test_safe_path_component_falls_back_when_empty():
     assert _cli.safe_path_component("/\\:") == "molecule"
 
 
+def test_write_read_json_roundtrips_non_ascii(tmp_path):
+    # #270: JSON is UTF-8 by spec; a non-ASCII value must round-trip whatever
+    # the platform default encoding is (cp1252 on the Windows host).
+    path = str(tmp_path / "note.json")
+    payload = {"note": "µ-scale Ångström β-carotene", "metal": "Fe(110)"}
+    _cli.write_json(path, payload)
+    assert _cli.read_json(path) == payload
+
+
 def test_resolve_case_fills_unset_molecules_from_the_case():
     p = argparse.ArgumentParser()
     _cli.add_case_arg(p)

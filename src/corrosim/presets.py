@@ -475,7 +475,7 @@ def load_study(path: str) -> CaseStudy:
     Raises:
         ValueError: If the file is structurally malformed.
     """
-    with open(path) as fh:
+    with open(path, encoding="utf-8") as fh:
         return CaseStudy.from_dict(json.load(fh))
 
 
@@ -489,7 +489,7 @@ def save_study(case: CaseStudy, path: str) -> None:
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(case.to_dict(), fh, indent=2)
 
 
