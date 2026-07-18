@@ -345,9 +345,12 @@ it on a green `main`, then tag that commit:
 
 ```bash
 # 1. bump `version` in pyproject.toml to X.Y.Z, land it on main (PR)
-# 2. tag the merge commit and push the tag
-git tag vX.Y.Z && git push origin vX.Y.Z
+# 2. tag the merge commit (annotated) and push the tag
+git tag -a vX.Y.Z -m "corrosim vX.Y.Z" && git push origin vX.Y.Z
 ```
+
+Use an **annotated** tag (`-a`), not a lightweight one: it carries a tagger,
+date, and message, and it is what every shipped release has used.
 
 The GHCR package inherits the public repo's visibility, so it publishes
 **Public** automatically — no manual visibility toggle is needed.
