@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from collections.abc import Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any
@@ -123,6 +124,37 @@ def parse_molecules(spec: str) -> list[str]:
         The non-empty, stripped molecule names/SMILES, order preserved.
     """
     return [m.strip() for m in spec.split(",") if m.strip()]
+
+
+# Filesystem-unsafe characters for a single path component: the path
+# separators, the Windows-reserved set, and control characters.
+_UNSAFE_PATH_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
+
+
+def safe_path_component(name: str) -> str:
+    r"""Sanitise a molecule name/SMILES for use as a filesystem path component.
+
+    A non-library ``--molecules`` entry is used verbatim as its own name, and
+    isomeric SMILES routinely carry ``/`` and ``\\`` (E/Z stereo, e.g.
+    ``C/C=C/C``), so a raw name can inject path separators — or Windows-reserved
+    characters — into an output path and break the write with a
+    ``FileNotFoundError`` on a directory that was never created. Replace every
+    unsafe character with ``_`` so the name stays a single, safe component; a
+    name that sanitises to nothing falls back to ``"molecule"``.
+
+    Args:
+        name: The molecule library name or SMILES.
+
+    Returns:
+        A safe single path component (never empty, never a separator).
+    """
+    safe = _UNSAFE_PATH_CHARS.sub("_", name).strip()
+
+    # An all-unsafe name collapses to underscores only (or nothing); fall back
+    # to a stable stub rather than yield a separator-free but meaningless "___".
+    if not safe.strip("_"):
+        return "molecule"
+    return safe
 
 
 def stderr_log(msg: str) -> None:
@@ -257,6 +289,7 @@ __all__ = [
     "resolve_case",
     "default_output",
     "parse_molecules",
+    "safe_path_component",
     "stderr_log",
     "write_json",
     "read_json",
