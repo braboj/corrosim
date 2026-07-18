@@ -2709,4 +2709,41 @@ as an independent axis for that rework). Project otherwise at rest.
 refresh, tech-debt, non-blocking) and standalone #40 (LAMMPS/periodic-DFT E_ads,
 deliberately out of scope per ADR 0029). Project at rest.
 
+## 2026-07-18 (session 42): figure-styling refresh (#287) — backlog cleared
+
+- **Scope: the one open backlog item, #287.** Regenerated `make_figures` for the
+  five validation cases (phytic-acid, pyrazolo-pyrimidine, pyrazolylnucleosides,
+  tetrazoles, tmp-smx), refreshing fig2b (orbital isosurfaces), fig4 (Fukui), and
+  fig7 (ESP) whose committed PNGs predated a later label-styling change —
+  sentence-cased subplot titles and axis labels, capitalized display names
+  (`sulfamethoxazole` → `Sulfamethoxazole`). arghel already carried the current
+  styling. Re-ran `make_report` so each `report.html` + `report.docx` re-embeds
+  the refreshed figures. Shipped as PR #289 (squash-merged, auto-closed #287);
+  70 files (60 PNGs + 5 report.html + 5 report.docx). Backlog is now empty.
+- **Verified styling-only, three ways.** (1) A control regen of arghel produced a
+  *zero* diff, proving PNG output is byte-deterministic here and matches the
+  committed baseline — so every diff on the rest is genuine drift, not
+  environment noise. (2) Visual old-vs-new on fig2b/fig4/fig7: isosurfaces, ESP
+  maps, and Fukui bar data pixel-identical; only titles/labels re-cased. (3)
+  Masking the base64 blobs and the `Generated` timestamp out of each report.html
+  left an identical remainder — no table, descriptor, or ranking moved. The
+  `ranking.csv` working-tree churn was pure CRLF and normalized away on staging
+  (excluded from the commit).
+- **CLAUDE.md §5.2 command fix.** The wrap gate surfaced that `complexipy .`
+  (as §5.2 instructed) overrides the `[tool.complexipy] paths = ["src/corrosim"]`
+  scope and false-fails on the vendored submodule and the test tree, whereas CI
+  runs `complexipy --color no` (no path). Corrected §5.2 to invoke `complexipy`
+  with no path so the local gate actually matches CI.
+- **Gates:** pytest 364 passed / 1 skipped, ruff clean, mypy clean (44 files),
+  complexipy clean (via the no-path invocation); CI/Pages/CodeQL green on the
+  #289 merge.
+- **Upstream.** Distilled the verification workflow — regenerate a known-current
+  control to prove determinism, then diff on a canonical form (mask embedded
+  blobs and timestamps) to prove scope — into `engineering-know-how.md`
+  ("Packaging and reproducibility") and filed it against `scope.md`'s
+  tooling-scope-creep guidance as solid-ai-templates#834.
+
+**Pending:** none. Backlog is empty (standalone #40 is CLOSED/won't-do per ADR
+0029, not an open item). Project at rest.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

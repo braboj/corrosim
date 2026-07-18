@@ -839,6 +839,36 @@ the runtime path. Never make a reproducible artifact depend on something
 non-deterministic, paid, or network-bound at run time. Generate, review, commit;
 the artifact then rebuilds byte-for-byte from committed inputs.
 
+#### Prove a "regeneration changed only X" with a control and a canonical diff
+
+When you regenerate a set of committed artifacts believing the change is scoped
+— a styling refresh, a label rename — two cheap checks turn that belief into
+evidence before you commit a large diff:
+
+- **Regenerate a known-current control first.** Pick one artifact you expect
+  *not* to change and regenerate it alone. A zero diff proves the generator is
+  byte-deterministic in this environment and already matches the committed
+  baseline, so any diff on the rest is genuine drift, not environment noise (a
+  tool-version bump, a font, a locale). A non-zero control diff means your
+  environment disagrees with whatever produced the committed files — stop and
+  reconcile, or you ship a spurious mass rewrite disguised as the intended
+  change.
+- **Mask the known-volatile parts, then diff the remainder.** Self-contained
+  bundles carry pieces that legitimately change every run — embedded base64
+  blobs, a `generated …` timestamp line, a build id. Mask those and diff what
+  is left; a clean remainder proves the data, tables, and prose are untouched
+  and the change lives only where you intended.
+
+```bash
+# prove the non-blob content of a self-contained bundle is unchanged
+mask() { sed -E 's/base64,[A-Za-z0-9+/=]+/base64,#/g' "$1"; }
+diff <(mask old.html) <(mask new.html) | grep -v 'generated '
+```
+
+A regenerator also emits churn a VCS normalizes away — a line-ending flip on
+text output is the common one. Stage it and re-read the diff: if it vanishes
+after normalization it is not a real change and does not belong in the commit.
+
 ## Infrastructure
 
 Build, CI/CD mechanics, and containers.
