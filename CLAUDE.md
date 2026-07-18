@@ -240,9 +240,12 @@ and `python-lib.md` as the standard.
 ### 5.2 Structure audit
 
 - Run `pytest -q`, `ruff check .`, `mypy`, and `complexipy` before every
-  PR/merge. On a Windows console `complexipy` crashes with a `UnicodeEncodeError`
-  on its `✅` output under the cp1252/cp1251 default; run it as
-  `PYTHONIOENCODING=utf-8 complexipy .` so the local gate matches CI.
+  PR/merge. Invoke `complexipy` with NO path so it reads the `[tool.complexipy]`
+  `paths = ["src/corrosim"]` scope (what CI runs); a bare `complexipy .` overrides
+  that scope and false-fails on the vendored submodule and the test tree. On a
+  Windows console `complexipy` also crashes with a `UnicodeEncodeError` on its
+  `✅` output under the cp1252/cp1251 default, so run it as
+  `PYTHONIOENCODING=utf-8 complexipy` to match CI.
 - Confirm docs are in their home (see 1.4): decisions in `docs/decisions/`, a
   session entry added to `docs/dev-journal.md`, structure changes in `README.md`.
 
