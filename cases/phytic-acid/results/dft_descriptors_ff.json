@@ -24,7 +24,8 @@
     "tnc": -14.5885,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 5.8844047719070876
   },
   {
     "name": "phytic acid",
@@ -51,6 +52,7 @@
     "tnc": -14.9272,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 7.257233881881187
   }
 ]

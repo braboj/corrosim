@@ -24,7 +24,8 @@
     "tnc": -2.0452,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 6.27149579914272
   },
   {
     "name": "pyrazolylnucleoside methyl",
@@ -51,7 +52,8 @@
     "tnc": -2.1252,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 7.805916812282237
   },
   {
     "name": "pyrazolylnucleoside methyl+H+",
@@ -78,7 +80,8 @@
     "tnc": -1.6991,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside methyl+H+",
@@ -105,7 +108,8 @@
     "tnc": -1.7969,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside methoxy",
@@ -132,7 +136,8 @@
     "tnc": -2.3964,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 7.9664413459210826
   },
   {
     "name": "pyrazolylnucleoside methoxy",
@@ -159,7 +164,8 @@
     "tnc": -2.4773,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 9.530960188027983
   },
   {
     "name": "pyrazolylnucleoside methoxy+H+",
@@ -186,7 +192,8 @@
     "tnc": -2.0335,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside methoxy+H+",
@@ -213,7 +220,8 @@
     "tnc": -2.1425,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside fluoro",
@@ -240,7 +248,8 @@
     "tnc": -2.1796,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 6.3417096397374895
   },
   {
     "name": "pyrazolylnucleoside fluoro",
@@ -267,7 +276,8 @@
     "tnc": -2.2623,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 7.284199166968009
   },
   {
     "name": "pyrazolylnucleoside fluoro+H+",
@@ -294,7 +304,8 @@
     "tnc": -1.9337,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside fluoro+H+",
@@ -321,7 +332,8 @@
     "tnc": -1.9854,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside chloro",
@@ -348,7 +360,8 @@
     "tnc": -2.0153,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 4.702874163901533
   },
   {
     "name": "pyrazolylnucleoside chloro",
@@ -375,7 +388,8 @@
     "tnc": -2.0653,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 5.582287950318692
   },
   {
     "name": "pyrazolylnucleoside chloro+H+",
@@ -402,7 +416,8 @@
     "tnc": -1.7181,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside chloro+H+",
@@ -429,7 +444,8 @@
     "tnc": -1.7673,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside bromo",
@@ -456,7 +472,8 @@
     "tnc": -1.9626,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 4.697847769373904
   },
   {
     "name": "pyrazolylnucleoside bromo",
@@ -483,7 +500,8 @@
     "tnc": -2.0309,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 5.526157304219124
   },
   {
     "name": "pyrazolylnucleoside bromo+H+",
@@ -510,7 +528,8 @@
     "tnc": -1.6673,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolylnucleoside bromo+H+",
@@ -537,6 +556,7 @@
     "tnc": -1.7224,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   }
 ]

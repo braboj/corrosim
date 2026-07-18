@@ -24,7 +24,8 @@
     "tnc": -0.5599,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.300671803094879
   },
   {
     "name": "tetrazole",
@@ -51,7 +52,8 @@
     "tnc": -0.6077,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.946499585582848
   },
   {
     "name": "tetrazole+H+",
@@ -78,7 +80,8 @@
     "tnc": -0.2731,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "tetrazole+H+",
@@ -105,7 +108,8 @@
     "tnc": -0.2994,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "5-aminotetrazole",
@@ -132,7 +136,8 @@
     "tnc": -0.8681,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.441694492848959
   },
   {
     "name": "5-aminotetrazole",
@@ -159,7 +164,8 @@
     "tnc": -1.0001,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 3.108843948131474
   },
   {
     "name": "5-aminotetrazole+H+",
@@ -186,7 +192,8 @@
     "tnc": -0.7925,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "5-aminotetrazole+H+",
@@ -213,7 +220,8 @@
     "tnc": -0.8434,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "5-phenyltetrazole",
@@ -240,7 +248,8 @@
     "tnc": -3.0213,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.0744321444092164
   },
   {
     "name": "5-phenyltetrazole",
@@ -267,7 +276,8 @@
     "tnc": -3.0306,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.7724046550624326
   },
   {
     "name": "5-phenyltetrazole+H+",
@@ -294,7 +304,8 @@
     "tnc": -3.1209,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "5-phenyltetrazole+H+",
@@ -321,7 +332,8 @@
     "tnc": -3.2279,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "1-phenyl-5-mercaptotetrazole",
@@ -348,7 +360,8 @@
     "tnc": -1.7069,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 5.093280031992121
   },
   {
     "name": "1-phenyl-5-mercaptotetrazole",
@@ -375,7 +388,8 @@
     "tnc": -1.8303,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 6.831728303920272
   },
   {
     "name": "1-phenyl-5-mercaptotetrazole+H+",
@@ -402,7 +416,8 @@
     "tnc": -1.2929,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "1-phenyl-5-mercaptotetrazole+H+",
@@ -429,6 +444,7 @@
     "tnc": -1.487,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   }
 ]

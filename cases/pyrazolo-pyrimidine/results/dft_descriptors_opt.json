@@ -24,7 +24,8 @@
     "tnc": -3.7629,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 2.7338429836872176
   },
   {
     "name": "pyrazolopyrimidine propanoic acid",
@@ -51,7 +52,8 @@
     "tnc": -3.9469,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 3.6301007945258132
   },
   {
     "name": "pyrazolopyrimidine propanoic acid+H+",
@@ -78,7 +80,8 @@
     "tnc": -4.0054,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanoic acid+H+",
@@ -105,7 +108,8 @@
     "tnc": -4.3291,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanamide",
@@ -132,7 +136,8 @@
     "tnc": -3.9936,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 4.960784095197774
   },
   {
     "name": "pyrazolopyrimidine propanamide",
@@ -159,7 +164,8 @@
     "tnc": -4.1999,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 6.541637050572554
   },
   {
     "name": "pyrazolopyrimidine propanamide+H+",
@@ -186,7 +192,8 @@
     "tnc": -4.1274,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanamide+H+",
@@ -213,7 +220,8 @@
     "tnc": -4.4583,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine ethyl ester",
@@ -240,7 +248,8 @@
     "tnc": -4.2588,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 3.6601203861133444
   },
   {
     "name": "pyrazolopyrimidine ethyl ester",
@@ -267,7 +276,8 @@
     "tnc": -4.4324,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": 4.601771209507229
   },
   {
     "name": "pyrazolopyrimidine ethyl ester+H+",
@@ -294,7 +304,8 @@
     "tnc": -4.4462,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine ethyl ester+H+",
@@ -321,6 +332,7 @@
     "tnc": -4.9026,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)"
+    "geometry": "DFT-opt b3lyp/6-31G(d) (gas)",
+    "dipole_debye": null
   }
 ]
