@@ -70,4 +70,4 @@ A composite score's components must be genuinely independent variables, not
 algebraic restatements of one another; averaging correlated components silently
 re-weights the shared axis while the interface claims independence. Filed as a
 review-heuristic candidate for `templates/base/core/review.md`
-(composite-metric independence check) — issue: none yet.
+(composite-metric independence check) — solid-ai-templates#833.

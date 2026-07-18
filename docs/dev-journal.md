@@ -2658,4 +2658,55 @@ PR #275 (merged) and the follow-on wrap items are handled in session 40 below.
 (ranking composite double-weights the HOMO-LUMO gap; the dipole is now available
 as an independent axis for that rework). Project otherwise at rest.
 
+## 2026-07-18 (session 41): epic #272 cleared end-to-end — 17 review findings across nine PRs
+
+- **Scope: the whole 2026-07-16 code-review epic (#272).** One session took all
+  17 findings from open to merged, in nine focused PRs. Batched by concern so
+  each PR stayed reviewable and each shipped its own tests; every PR was gated
+  (pytest + ruff + mypy) and CI-green before merge.
+- **Correctness/robustness batches (artifact-neutral):** #278 (report/driver
+  correctness: run_dft partial-forms merge #256, run_pka persist-by-default
+  #260, HTML escaping #264, stable ranking sort #265); #279 (protonation
+  non-finite-energy guard #257, output-path sanitize #261); #280 (edge-case
+  guards #267, utf-8 opens #270, dockerignore #258); #281 (type contracts #268,
+  docs hygiene #271); #282 (metal-explicit, drop the silent Fe default #259);
+  #283 (metal/basis figure slips + figure↔table drift #269); #285 (make_pages
+  smoke test #266).
+- **Science-sensitive PRs (regenerated artifacts + re-validated):**
+  - **#284 (MD physics, #262 + #263).** Added a lateral clamp so the Brownian
+    MD adsorbate can no longer diffuse off the finite slab (mirrors the MC pose
+    clamp; applied after the Langevin step so a bound run is byte-identical) and
+    generalised the RDF donor set from hardcoded {O,N} to every heteroatom the
+    molecule carries (O/N/S/P/halogen). The confinement *improved* the science —
+    quercetin's Fe–O contact moved closer to the experimental 3.35 Å — and the
+    donor generalisation now measures phytic-acid's P, SMX's and the
+    mercaptotetrazole's S, and the nucleosides' halogens. Regenerated all six
+    md_rdf.json + fig6 + reports; updated validation.md; every case stays
+    physisorption. O/N kept as backward-compat MDResult properties over the new
+    per-element dicts.
+  - **#286 (ranking composite, #255) — the consequential one.** The old
+    gap/hardness/softness trio was algebraically the gap thrice (η = gap/2, σ =
+    2/gap), double-weighting it while claiming three axes. Reworked to genuinely
+    independent axes; the dipole's efficiency-direction is disputed, so we worked
+    the trade-off through together and kept it as an equal-weighted,
+    near-tie-breaking axis **because it is the only version reproducing both
+    experimentally-validated leads** (arghel→quercetin, tetrazoles→mercapto)
+    that gap+ΔN alone miss. Two computational-paper comparisons shifted honestly
+    (pyrazolo→amide on near-degenerate isomers, tmp-smx→SMX not a tie);
+    validation.md, pipeline.md, score_note, and the summary table all corrected.
+    **ADR 0034** (independent ranking composite; Upstream: solid-ai-templates#833,
+    a composite-metric independence review heuristic).
+- **Process notes.** Held #286 for explicit review before merge (it changes the
+  scientific record). Reverted pre-existing stale figure *styling* (fig2b/fig4/
+  fig7 on the validation cases) out of #283/#284 to keep them scoped, and the
+  ranking.csv dipole-column lag — the latter resolved as a side effect of the
+  #286 bundle regen. Filed the figure-styling drift as **#287** (cosmetic,
+  data-unaffected).
+- **Gates:** pytest 364 passed / 1 skipped, ruff clean, mypy clean (44 files);
+  Docker QM suite green where the guarded QM paths were touched (#280).
+
+**Pending:** none — epic #272 is closed. Backlog is #287 (cosmetic figure-style
+refresh, tech-debt, non-blocking) and standalone #40 (LAMMPS/periodic-DFT E_ads,
+deliberately out of scope per ADR 0029). Project at rest.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
