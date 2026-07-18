@@ -2746,4 +2746,40 @@ deliberately out of scope per ADR 0029). Project at rest.
 **Pending:** none. Backlog is empty (standalone #40 is CLOSED/won't-do per ADR
 0029, not an open item). Project at rest.
 
+## 2026-07-18 (session 43): v0.4.0 released; README badges; fetch.prune hygiene
+
+- **Cut the v0.4.0 release.** First release since v0.3.0 (27 commits). Bumped
+  `pyproject.toml` 0.3.0 -> 0.4.0 on a branch, landed it via PR #292 (squash),
+  then pushed an annotated `v0.4.0` tag on the release commit. `release.yml`
+  fired on the tag: built the all-in-one image, smoke-ran it standalone, pushed
+  `ghcr.io/braboj/corrosim:0.4.0` + `:latest`, and cut the GitHub Release
+  (marked Latest). Minor bump chosen (over patch) because the range carries a
+  new feature plus behavior/API changes: the dipole descriptor (#274/#275), the
+  independent-axis ranking rework gap + ΔN + dipole (ADR 0034, #286), MD lateral
+  confinement + heteroatom RDF donor set (#284), the explicit-metal refactor
+  dropping the silent Fe default (#282), and the whole #272 review epic. Release
+  run 29655881643 succeeded (4m25s); both GHCR tags verified anonymously
+  pullable.
+- **README badges moved directly under the title** (PR #291). The CI/License/
+  Python row sat below the description paragraph, splitting the prose; moved it
+  under `# corrosim` so the tagline + description read as one block and the
+  badges sit in the conventional at-a-glance spot.
+- **Enabled `fetch.prune` globally.** Ran down why branches "never delete": the
+  `--delete-branch` merge does remove the server branch and the local branch,
+  but leaves a stale local remote-tracking ref (`origin/<branch>`) that a plain
+  fetch never prunes. Set `git config --global fetch.prune true` (a machine
+  setting, not a repo rule) so every fetch reconciles — verified live when the
+  #292 release branch auto-pruned on the next pull. Distilled the pattern into
+  `engineering-know-how.md` (Repository and commit hygiene) and filed it upstream
+  against `git.md` as the client-side complement to its existing "auto-delete
+  head branches" rule (solid-ai-templates#836).
+- **Gates:** pytest exit 0 (364 passed / 1 skipped, unchanged — only docs moved),
+  ruff clean, mypy clean (44 files), complexipy clean.
+- **Submodule:** `docs/solid-ai-templates` is behind upstream (local 6969ccd vs
+  remote 19facb5); left un-bumped since no template work this session.
+
+**Pending:** none. Backlog empty, v0.4.0 shipped, project at rest. Optional next:
+bump the `solid-ai-templates` submodule pointer if/when a template refresh is
+wanted.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

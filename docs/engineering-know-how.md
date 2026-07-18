@@ -42,6 +42,20 @@ Some hosts auto-close an issue when a commit or PR body contains its number as a
 bare substring, even inside a negation like "does not close #12". Write it as
 "part of #12" to link without closing.
 
+#### Prune stale remote-tracking refs automatically
+
+Merging with a delete-the-remote-branch option removes the branch on the server
+and your local branch, but leaves a third thing behind: the local
+remote-tracking ref (`origin/<branch>`) — a cached bookmark of what the remote
+had last time you fetched. A plain `fetch`/`pull` never removes it, so deleted
+branches appear to linger in `branch -r` indefinitely. They are not real
+branches, just dangling pointers; set `fetch.prune` once so every fetch
+reconciles them against the server.
+
+```bash
+git config --global fetch.prune true   # every fetch/pull now auto-prunes
+```
+
 ### Documentation and decisions
 
 #### Record decisions, and the alternatives you rejected
