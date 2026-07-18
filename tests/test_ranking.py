@@ -29,6 +29,42 @@ def test_rank_inhibitors_orders_smallest_gap_first():
     assert list(ranked["name"]) == ["A", "B", "C"]
 
 
+def test_rank_inhibitors_uses_delta_n_as_an_independent_axis():
+    # #255: with the gap held equal, a larger Lukovits ΔN (a genuinely
+    # independent axis) lifts the composite — the old gap/hardness/softness trio
+    # could not, being algebraically the single gap axis.
+    df = pd.DataFrame([
+        {**_row("A", 4.0), "delta_n": 0.10},
+        {**_row("B", 4.0), "delta_n": 0.30},
+    ])
+    ranked = ranking.rank_inhibitors(df)
+    assert list(ranked["name"]) == ["B", "A"]      # the larger ΔN wins
+
+
+def test_rank_inhibitors_uses_dipole_as_an_independent_axis():
+    # #255: with the gap and ΔN held equal, a larger dipole (the third
+    # independent axis) lifts the composite; the old gap/hardness/softness trio
+    # could not, being algebraically the single gap axis.
+    df = pd.DataFrame([
+        {**_row("A", 4.0), "dipole_debye": 2.0},
+        {**_row("B", 4.0), "dipole_debye": 8.0},
+    ])
+    ranked = ranking.rank_inhibitors(df)
+    assert list(ranked["name"]) == ["B", "A"]      # the larger dipole wins
+
+
+def test_rank_inhibitors_drops_dipole_when_not_all_rows_have_it():
+    # dipole joins only when every row carries it, so a partial column never
+    # leaks NaN into the score (older matrices / fixtures fall back to gap + ΔN).
+    df = pd.DataFrame([
+        {**_row("A", 4.0), "dipole_debye": 5.0},
+        {**_row("B", 4.4), "dipole_debye": float("nan")},
+    ])
+    ranked = ranking.rank_inhibitors(df)
+    assert ranked["score"].notna().all()
+    assert list(ranked["name"]) == ["A", "B"]      # falls back to gap + ΔN
+
+
 def test_rank_inhibitors_breaks_score_ties_by_name():
     # Two molecules with identical descriptors score identically (a 3-dp tie);
     # the deterministic name tie-break must order them A before B regardless of

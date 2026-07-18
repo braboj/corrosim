@@ -50,7 +50,7 @@ def inline_runs(text: str) -> list[tuple[str, bool]]:
 def score_note(metal_element: str, basis_label: str) -> str:
     """One-line note under the ranking table (the scoring essay moved out).
 
-    The z-score / gap / hardness / softness derivation now lives once in
+    The z-score / gap / ΔN / dipole derivation now lives once in
     ``docs/pipeline.md`` (the Ranking section); the report just points there.
 
     Args:
@@ -62,8 +62,10 @@ def score_note(metal_element: str, basis_label: str) -> str:
         The note with ``**bold**`` markup.
     """
     return (
-        "Scored on the HOMO–LUMO gap, hardness and softness of the canonical "
-        f"basis (**{basis_label}**; z-scored; **higher = stronger**). The "
+        "Scored on three independent axes of the canonical basis "
+        f"(**{basis_label}**; z-scored; **higher = stronger**): the HOMO–LUMO "
+        "gap, the Lukovits ΔN (electron donation to the metal) and the dipole "
+        "(a weak tie-breaker — its direction vs efficiency is disputed). The "
         "geometry / protonation panels below are a sensitivity check, not "
         f"separate rankings. E_ads and the {metal_element}–O distance validate "
         "the lead, they do not enter the score. Full method: docs/pipeline.md."
@@ -115,9 +117,10 @@ def bottom_line(n_molecules: int, lead: str, score: float, gap_ev: float,
     return (
         f"Of the {n_molecules} molecules screened, "
         f"**{lead}** ranks highest on the composite electronic score "
-        f"({score:+.2f}), combining the smallest HOMO–LUMO gap "
-        f"({gap_ev:.2f} eV) with the highest softness — the most readily "
-        f"polarised, electron-donating candidate of the set.{eads}{robust} "
+        f"({score:+.2f}), which averages three independent axes — a small "
+        f"HOMO–LUMO gap ({gap_ev:.2f} eV), the Lukovits ΔN and the molecular "
+        f"dipole — the strongest all-round electron-donating profile of the "
+        f"set.{eads}{robust} "
         "This is a computational screening prediction requiring "
         "electrochemical confirmation (see the Method section and caveats)."
     )

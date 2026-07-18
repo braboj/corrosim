@@ -442,13 +442,9 @@ def descriptor_matrix(df: pd.DataFrame) -> tuple[list[str], list[list[str]]]:
 # summary frame), whichever names the column.
 _RANKING_BETTER = {
     "gap_ev": "min",
-    "hardness_ev": "min",
-    "softness_inv_ev": "max",
     "e_ads_kjmol": "min",
     "score": "max",
     "Gap (eV)": "min",
-    "Hardness η (eV)": "min",
-    "Softness σ (1/eV)": "max",
     "E_ads (kJ/mol)": "min",
     "Score": "max",
 }
@@ -700,9 +696,8 @@ class PreparedReport(NamedTuple):
 _SUMMARY_LABELS = {
     "name": "Inhibitor",
     "gap_ev": "Gap (eV)",
-    "hardness_ev": "Hardness η (eV)",
-    "softness_inv_ev": "Softness σ (1/eV)",
     "delta_n": "ΔN",
+    "dipole_debye": "Dipole (D)",
     "e_ads_kjmol": "E_ads (kJ/mol)",
     "score": "Score",
 }
@@ -818,7 +813,11 @@ def canonical_summary(prep: PreparedReport,
         zip(prep.df["name"], prep.df["ads_dist_A"]))
     ranked["e_ads_kjmol"] = ranked["name"].map(eads)
     ranked["ads_dist_A"] = ranked["name"].map(dist)
-    cols = ["name", "gap_ev", "hardness_ev", "softness_inv_ev", "delta_n",
+    # The ranking axes (gap, ΔN, and the dipole when present) plus the
+    # adsorption corroboration columns; hardness/softness are dropped from the
+    # headline since they are algebraically the gap and no longer score.
+    dipole = ["dipole_debye"] if "dipole_debye" in ranked.columns else []
+    cols = ["name", "gap_ev", "delta_n", *dipole,
             "e_ads_kjmol", "ads_dist_A", "score"]
     return ranked[cols].round(3).rename(
         columns={**_SUMMARY_LABELS, "ads_dist_A": f"{prep.m_elem}–O (Å)"})
