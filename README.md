@@ -1,5 +1,9 @@
 # corrosim
 
+![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+
 *Density-functional-theory reactivity, adsorption dynamics, and a shareable
 report for green corrosion inhibitors. Free software, end to end.*
 
@@ -9,10 +13,6 @@ candidates, and writes a self-contained report, all on free, open-source
 software. It began as a case study of the **Arghel (*Solenostemma argel*)
 flavonoids** on mild steel in 1 M HCl, and now screens any molecule on any
 supported substrate.
-
-![CI](https://github.com/braboj/corrosim/actions/workflows/ci.yml/badge.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
 ## Features
 
