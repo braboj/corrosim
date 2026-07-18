@@ -3,15 +3,15 @@
     "name": "tetrazole",
     "metal": "Cu",
     "surface": "Cu(111)",
-    "e_mean_kjmol": -0.69,
+    "e_mean_kjmol": -1.32,
     "metal_O_peak_A": null,
-    "metal_N_peak_A": 3.3500000000000005
+    "metal_N_peak_A": 3.45
   },
   {
     "name": "5-aminotetrazole",
     "metal": "Cu",
     "surface": "Cu(111)",
-    "e_mean_kjmol": -1.18,
+    "e_mean_kjmol": -1.58,
     "metal_O_peak_A": null,
     "metal_N_peak_A": 3.3500000000000005
   },
@@ -19,16 +19,17 @@
     "name": "5-phenyltetrazole",
     "metal": "Cu",
     "surface": "Cu(111)",
-    "e_mean_kjmol": -1.28,
+    "e_mean_kjmol": -2.63,
     "metal_O_peak_A": null,
-    "metal_N_peak_A": 3.95
+    "metal_N_peak_A": 3.3500000000000005
   },
   {
     "name": "1-phenyl-5-mercaptotetrazole",
     "metal": "Cu",
     "surface": "Cu(111)",
-    "e_mean_kjmol": -2.16,
+    "e_mean_kjmol": -2.9,
     "metal_O_peak_A": null,
-    "metal_N_peak_A": 3.55
+    "metal_N_peak_A": 3.3500000000000005,
+    "metal_S_peak_A": 3.75
   }
 ]

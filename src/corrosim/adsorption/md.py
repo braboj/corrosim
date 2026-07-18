@@ -56,12 +56,17 @@ _MAX_DRIFT = 0.15
 _RDF_MAX_A = 6.0
 _RDF_BIN_WIDTH_A = 0.1
 
+# Heteroatom donor elements the metal–donor RDF tracks: the atoms an inhibitor
+# physisorbs through. All carry UFF parameters, so the energy/pose already see
+# them; the RDF measures the metal contact for each donor the molecule carries.
+_DONOR_ELEMENTS = ("O", "N", "S", "P", "F", "Cl", "Br")
+
 
 @dataclass
 class MDResult:
-    """Brownian-MD outputs: the metal–O/N RDFs and their first-peak adsorption
-    distances (Å), the thermal-mean interaction energy (eV/kJ·mol⁻¹), and the
-    final pose.
+    """Brownian-MD outputs: the per-donor metal RDFs and their first-peak
+    adsorption distances (Å), the thermal-mean interaction energy
+    (eV/kJ·mol⁻¹), and the final pose.
     """
 
     # Slab identity: metal symbol and its low-index facet
@@ -76,14 +81,13 @@ class MDResult:
     e_mean_kjmol: float
 
     # Metal–donor RDF: shared bin-centre distances (Å) and the per-frame
-    # O/N closest-contact distributions
+    # closest-contact distribution for each heteroatom donor the molecule
+    # carries (O/N/S/P/halogen), keyed by element
     rdf_r: list[float]
-    rdf_metal_O: list[float]
-    rdf_metal_N: list[float]
+    rdf_metal: dict[str, list[float]]
 
-    # First-shell adsorption distances (Å) via the O and N donors
-    first_peak_metal_O: float | None
-    first_peak_metal_N: float | None
+    # First-shell adsorption distance (Å) for each donor element
+    first_peak_metal: dict[str, float | None]
 
     # Off-repr trajectory extras, for the combined-pose plot and inspection
     energies: list[float] = field(repr=False, default_factory=list)
@@ -111,6 +115,44 @@ class MDResult:
         c.set_cell(self.slab.get_cell())
         c.set_pbc(self.slab.get_pbc())
         return c
+
+    @property
+    def rdf_metal_O(self) -> list[float]:
+        """Metal–O RDF (backward-compatible accessor into ``rdf_metal``).
+
+        Returns:
+            The oxygen-donor RDF, or an empty list when the molecule carries no
+            oxygen.
+        """
+        return self.rdf_metal.get("O", [])
+
+    @property
+    def rdf_metal_N(self) -> list[float]:
+        """Metal–N RDF (backward-compatible accessor into ``rdf_metal``).
+
+        Returns:
+            The nitrogen-donor RDF, or an empty list when the molecule carries
+            no nitrogen.
+        """
+        return self.rdf_metal.get("N", [])
+
+    @property
+    def first_peak_metal_O(self) -> float | None:
+        """First-shell metal–O adsorption distance.
+
+        Returns:
+            The oxygen first-peak distance (Å), or None when absent.
+        """
+        return self.first_peak_metal.get("O")
+
+    @property
+    def first_peak_metal_N(self) -> float | None:
+        """First-shell metal–N adsorption distance.
+
+        Returns:
+            The nitrogen first-peak distance (Å), or None when absent.
+        """
+        return self.first_peak_metal.get("N")
 
     @classmethod
     def from_run(
@@ -141,7 +183,7 @@ class MDResult:
             :class:`MDResult`.
         """
         r = rdf.bin_centres()
-        rdf_o, rdf_n = rdf.normalized()
+        rdf_by_donor = rdf.normalized()
         e_mean = _mean_energy(energies, equil)
         return cls(
             metal=metal,
@@ -150,10 +192,11 @@ class MDResult:
             e_mean_ev=round(e_mean, 4),
             e_mean_kjmol=round(e_mean * EV_TO_KJMOL, 2),
             rdf_r=r.tolist(),
-            rdf_metal_O=rdf_o.tolist(),
-            rdf_metal_N=rdf_n.tolist(),
-            first_peak_metal_O=_first_peak(r, rdf_o, RDF_PEAK_WINDOW_A),
-            first_peak_metal_N=_first_peak(r, rdf_n, RDF_PEAK_WINDOW_A),
+            rdf_metal={e: g.tolist() for e, g in rdf_by_donor.items()},
+            first_peak_metal={
+                e: _first_peak(r, g, RDF_PEAK_WINDOW_A)
+                for e, g in rdf_by_donor.items()
+            },
             energies=energies,
             final_positions=final_positions,
             mol_symbols=mol_symbols,
@@ -194,18 +237,25 @@ def _langevin_step(pos: np.ndarray, forces: np.ndarray, kT: float,
     return (pos - com) @ R.T + com + trans
 
 
-def _confine_z(pos: np.ndarray, top: float, min_height: float,
-               max_height: float) -> np.ndarray:
-    """Clamp the molecule's lowest atom into the adsorbed-state window.
+def _confine(pos: np.ndarray, top: float, min_height: float,
+             max_height: float, cell: np.ndarray) -> np.ndarray:
+    """Confine the molecule to the adsorbed state over the finite slab.
 
-    Shifts the whole molecule in z so its nearest atom sits within
-    ``[top + min_height, top + max_height]`` (Å).
+    Clamps the lowest atom into the z-window ``[top + min_height,
+    top + max_height]`` (Å) and the centroid over the slab footprint
+    ``[0, cell[0,0]] x [0, cell[1,1]]``, mirroring the Monte Carlo pose clamp.
+    Without the lateral clamp the adsorbate random-walks off the finite patch —
+    the vdW field uses raw distances with no periodic wrapping — and the RDF is
+    then measured against a slab edge. Applied after the Langevin step, so the
+    seeded RNG draw order and a bound run's trajectory are unchanged.
 
     Args:
         pos: Atom positions ``(natom, 3)``, Å; shifted in place.
         top: Slab-top z coordinate (Å).
         min_height: Lower bound above the slab top (Å).
         max_height: Upper bound above the slab top (Å).
+        cell: The slab cell (3x3); ``cell[0,0]`` / ``cell[1,1]`` give the
+            lateral footprint.
 
     Returns:
         The (in-place shifted) positions.
@@ -215,6 +265,12 @@ def _confine_z(pos: np.ndarray, top: float, min_height: float,
         pos[:, 2] += top + min_height - zmin
     elif zmin > top + max_height:
         pos[:, 2] += top + max_height - zmin
+
+    # Keep the centroid over the slab footprint so the adsorbate cannot diffuse
+    # off the finite patch (no minimum-image wrapping in the vdW field).
+    com = pos.mean(0)
+    pos[:, 0] += np.clip(com[0], 0.0, cell[0, 0]) - com[0]
+    pos[:, 1] += np.clip(com[1], 0.0, cell[1, 1]) - com[1]
     return pos
 
 
@@ -288,22 +344,22 @@ def _mean_energy(energies: list[float], equil: int) -> float:
 class _RdfAccumulator:
     """Running metal–donor closest-contact histograms over recorded frames.
 
-    Holds the O and N donor-atom indices, the metal positions and the shared
-    bin edges, and adds one closest-contact count per frame via :meth:`record`;
-    :meth:`normalized` divides the histograms by the recorded-frame count.
+    Holds a per-element map of the molecule's donor-atom indices (every
+    heteroatom donor it carries — O/N/S/P/halogen), the metal positions and the
+    shared bin edges, and adds one closest-contact count per donor per frame via
+    :meth:`record`; :meth:`normalized` divides each histogram by the
+    recorded-frame count.
     """
 
-    # Donor-atom indices into the molecule (the O and N sets)
-    o_idx: list[int]
-    n_idx: list[int]
+    # Donor-atom indices into the molecule, keyed by element
+    donor_idx: dict[str, list[int]]
 
     # Fixed slab metal positions (Å) and the shared histogram bin edges (Å)
     metal_positions: np.ndarray
     edges: np.ndarray
 
-    # Running O/N closest-contact histograms, one count added per frame
-    hist_o: np.ndarray
-    hist_n: np.ndarray
+    # Running per-donor closest-contact histograms, one count added per frame
+    hist: dict[str, np.ndarray]
 
     # Frames recorded so far (the normalisation divisor)
     nframes: int = 0
@@ -314,44 +370,43 @@ class _RdfAccumulator:
         mol_symbols: list[str],
         substrate: Substrate,
     ) -> _RdfAccumulator:
-        """Build a zeroed accumulator for a molecule's O/N donors over a slab.
+        """Build a zeroed accumulator for a molecule's heteroatom donors.
+
+        The donor set is derived from the molecule's own heteroatoms — every
+        element of ``_DONOR_ELEMENTS`` it carries — so a sulfur/phosphorus/
+        halogen inhibitor gets its actual binding atom measured, not just O/N.
 
         Args:
             mol_symbols: The molecule's element symbols, in order.
             substrate: The slab context whose metal atoms are measured against.
 
         Returns:
-            An accumulator keyed to the O and N donor indices, on the shared
+            An accumulator keyed to the present donor elements, on the shared
             0..6 Å contact grid.
         """
-        o_idx = [i for i, s in enumerate(mol_symbols) if s == "O"]
-        n_idx = [i for i, s in enumerate(mol_symbols) if s == "N"]
+        donor_idx = {
+            e: [i for i, s in enumerate(mol_symbols) if s == e]
+            for e in _DONOR_ELEMENTS
+            if e in mol_symbols
+        }
         # The +ε stop keeps the closing 6.0 edge (np.arange excludes the stop)
         edges = np.arange(
             0.0, _RDF_MAX_A + _RDF_BIN_WIDTH_A / 10, _RDF_BIN_WIDTH_A
         )
         nbins = len(edges) - 1
-        return cls(
-            o_idx,
-            n_idx,
-            substrate.metal_positions,
-            edges,
-            np.zeros(nbins),
-            np.zeros(nbins),
-        )
+        hist = {e: np.zeros(nbins) for e in donor_idx}
+        return cls(donor_idx, substrate.metal_positions, edges, hist)
 
     def record(self, pos: np.ndarray) -> None:
-        """Add this frame's closest O– and N–metal contacts to the histograms.
+        """Add this frame's closest donor–metal contacts to each histogram.
 
         Args:
             pos: The molecule's atom positions this frame ``(natom, 3)``, Å.
         """
-        self.hist_o += _closest_contact_hist(
-            pos, self.o_idx, self.metal_positions, self.edges
-        )
-        self.hist_n += _closest_contact_hist(
-            pos, self.n_idx, self.metal_positions, self.edges
-        )
+        for e, idx in self.donor_idx.items():
+            self.hist[e] += _closest_contact_hist(
+                pos, idx, self.metal_positions, self.edges
+            )
         self.nframes += 1
 
     def bin_centres(self) -> np.ndarray:
@@ -362,15 +417,15 @@ class _RdfAccumulator:
         """
         return 0.5 * (self.edges[:-1] + self.edges[1:])
 
-    def normalized(self) -> tuple[np.ndarray, np.ndarray]:
-        """Per-frame-averaged O and N contact distributions.
+    def normalized(self) -> dict[str, np.ndarray]:
+        """Per-frame-averaged contact distribution for each donor element.
 
         Returns:
-            ``(rdf_o, rdf_n)``, each histogram divided by the recorded-frame
+            ``{element: rdf}``, each histogram divided by the recorded-frame
             count (or by 1 when no frames were recorded).
         """
         norm = max(self.nframes, 1)
-        return self.hist_o / norm, self.hist_n / norm
+        return {e: h / norm for e, h in self.hist.items()}
 
 
 def run_md(molecule: Molecule, metal: str,
@@ -430,7 +485,8 @@ def run_md(molecule: Molecule, metal: str,
         E, forces = uff_vdw_forces(pos, substrate.positions, x_mix, D_mix)
         energies.append(E)
         pos = _langevin_step(pos, forces, kT, D_t, D_r, rng)
-        pos = _confine_z(pos, substrate.top, min_height, max_height)
+        pos = _confine(pos, substrate.top, min_height, max_height,
+                       substrate.cell)
         if step >= equil:
             rdf.record(pos)
 

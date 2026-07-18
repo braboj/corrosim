@@ -3,15 +3,15 @@
     "name": "kaempferol",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.71,
-    "metal_O_peak_A": 3.1500000000000004,
+    "e_mean_kjmol": -2.7,
+    "metal_O_peak_A": 2.95,
     "metal_N_peak_A": null
   },
   {
     "name": "quercetin",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.88,
+    "e_mean_kjmol": -2.65,
     "metal_O_peak_A": 3.25,
     "metal_N_peak_A": null
   },
@@ -19,8 +19,8 @@
     "name": "isorhamnetin",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.8,
-    "metal_O_peak_A": 3.75,
+    "e_mean_kjmol": -2.53,
+    "metal_O_peak_A": 3.1500000000000004,
     "metal_N_peak_A": null
   }
 ]

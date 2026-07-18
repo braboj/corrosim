@@ -3,8 +3,9 @@
     "name": "phytic acid",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.97,
+    "e_mean_kjmol": -3.02,
     "metal_O_peak_A": 3.25,
-    "metal_N_peak_A": null
+    "metal_N_peak_A": null,
+    "metal_P_peak_A": 3.95
   }
 ]

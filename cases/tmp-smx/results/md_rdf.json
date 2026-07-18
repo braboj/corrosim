@@ -13,6 +13,7 @@
     "surface": "Al(111)",
     "e_mean_kjmol": -75.92,
     "metal_O_peak_A": 3.55,
-    "metal_N_peak_A": 3.75
+    "metal_N_peak_A": 3.75,
+    "metal_S_peak_A": 3.95
   }
 ]
