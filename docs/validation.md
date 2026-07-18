@@ -123,7 +123,7 @@ Full DFT at the adopted production level (ADR 0002), neutral form, gas and aqueo
 (ddCOSMO). All three flavonoids show a **physical, positive ΔN (0.16–0.24)** inside
 the Lukovits 0 < ΔN < 3.6 window; DFT corrects the spurious negative ΔN that xTB
 gives (its orbital energies sit off the Koopmans scale). **Quercetin** has the
-smallest gap and highest softness (the composite-ranking lead), while
+smallest gap and the largest dipole (the composite-ranking lead), while
 **isorhamnetin** leads on charge transfer (ΔN) and electron richness (TNC) via its
 methoxy group; kaempferol is third. The three are close on gap/η/σ, but ΔN and ω
 separate them.
@@ -396,17 +396,19 @@ the flavonoids does not apply to this class; the oxygen count (TNC) carries it.
 ## Case 3: Pyrazolo-pyrimidine derivatives (carbon steel, Fe(110) / HCl)
 
 > **Status: 🟡 Partial *(quantitative)*.** Reproduces the absolute frontier
-> descriptors and the reported lead (ethyl ester), but not the full 3 > 2 > 1
-> order; the separating margins sit below the noise floor. A DFT-geometry rerun
-> closes the absolute offset to ≈ 0.05 eV but confirms the order is noise-limited
-> (the gap-lead flips ester → acid with geometry), not geometry-limited.
+> descriptors, but the three derivatives are electronically near-degenerate
+> (aqueous gaps within ~0.01 eV, ΔN within noise), so the composite lead is not
+> robust. On the reworked gap/ΔN/dipole score (ADR 0034) the dipole tips the
+> lead to the **propanamide**, not the paper's ethyl ester — the electronic
+> ordering of these near-identical isomers is below the method's resolution
+> either way (the old gap-only score picked the ester by a 0.4 meV margin).
 
 | What we check | corrosim | Reported (Awad 2025) | Match |
 |---|---|---|:-:|
 | Absolute HOMO / LUMO | −6.18 to −6.22 eV | −6.21 to −6.26 eV | ✅ |
 | Reactivity regime | χ ≈ 4 eV, ΔN > 0, physisorption | same | ✅ |
-| Lead compound | ester tops composite ranking | ethyl ester | ✅ |
-| Full order (3 > 2 > 1) | 3 > 1 > 2 | 3 > 2 > 1 | ❌ |
+| Lead compound | amide tops composite (dipole-tipped; isomers near-degenerate) | ethyl ester | ❌ |
+| Full order (3 > 2 > 1) | noise-limited | 3 > 2 > 1 | ❌ |
 | Adsorption order | 1 > 2 > 3 (single-molecule MC) | ester max (periodic COMPASS) | ❌ |
 
 **Preset:** `pyrazolo-pyrimidine` · **Source:** Awad, Abdel Halim, Atlam & Fawzy,
@@ -455,7 +457,7 @@ column below):
 | η / σ / χ (gas) | 2.200 / 0.454 / 4.023 eV | 2.212 / 0.452 / 3.964 eV | 2.200 / 0.454 / 4.017 eV |
 | ΔN → Fe (gas) | +0.181 | +0.194 | +0.182 |
 | E_back-donation (gas) | −0.550 eV | −0.553 eV | −0.550 eV |
-| Composite rank (aqueous score) | 2nd (+0.66) | 3rd (−1.41) | **1st (+0.76)** |
+| Composite rank (canonical score) | 3rd (−0.36) | **1st (+0.44)** | 2nd (−0.08) |
 
 - **MC adsorption** (Fe(110), UFF van-der-Waals): E_ads −20.4 kJ/mol (acid) >
   −15.6 (amide) > −8.8 (ester), each lying ≈ 2.2 Å above the slab. Ranking
@@ -469,17 +471,19 @@ absolute frontier levels reproduce the paper (computed HOMO −6.18 to −6.22 e
 against reported −6.21 to −6.26 eV), and the reactivity regime matches: χ ≈ 4 eV,
 all three ΔN between +0.18 and +0.19 (below 3.6, i.e. net electron donation to
 Fe), back-donation negative, and MD metal–O/N contact at 3.75 to 3.95 Å (outer-
-sphere physisorption). On the composite descriptor score (aqueous electro-
-negativity, hardness, softness, z-scored), corrosim ranks **3 > 1 > 2** and so
-picks the **ethyl ester (cmpd 3) as the lead, matching the paper's reported
-lead** (the ester is marginally the softest: lowest η, lowest aqueous gap). It
-does *not* reproduce the paper's full **3 > 2 > 1** order, though: corrosim puts
-the amide (2) last, not the acid. And every margin here is tiny. The aqueous gaps
+sphere physisorption). On the reworked composite descriptor score (gap, ΔN and
+dipole, z-scored; ADR 0034), corrosim now picks the **propanamide (cmpd 2) as
+the lead, not the paper's ethyl ester**: the three isomers are near-degenerate
+on the gap and ΔN (see below), so the dipole term — the amide is the most polar
+— tips the order. The old gap-only score picked the ester by a 0.4 meV margin,
+so neither reproduces the paper's lead robustly. And every margin here is tiny.
+The aqueous gaps
 span 4.471 to 4.480 eV (ester lowest by 0.4 meV over the acid), the reported gaps
 span just 0.011 eV, and the raw gas-phase gap actually orders the acid marginally
-ahead of the ester (**1 < 3 < 2**). So corrosim identifies the lead correctly but
-on sub-0.01 eV differences that are below the noise floor of an FF-geometry single
-point.
+ahead of the ester (**1 < 3 < 2**). So the isomers are electronically
+indistinguishable — the lead call rests on sub-0.01 eV gap/ΔN differences below
+the noise floor of an FF-geometry single point, and the reworked composite lets
+the dipole break that tie toward the amide.
 
 Two further mismatches are worth stating plainly. The computed LUMO sits ≈ 0.2 eV
 deeper than the reported one, so every gap comes out ≈ 0.24 eV narrower (a near-
@@ -490,11 +494,12 @@ van-der-Waals E_ads does not reward the ester's larger footprint the way the
 paper's periodic COMPASS Adsorption-Locator slab does.
 
 **Verdict.** corrosim confirms the authored structures (clean SCF, absolute
-descriptors matching the paper), the physisorption regime, and the reported
-**lead compound**: the ethyl ester tops the composite descriptor ranking. It
-does not reproduce the full **3 > 2 > 1** order (the acid and amide swap), and the
-margins separating the three sit below what a single point on MMFF geometry can
-resolve, so the lead call is directional rather than robust.
+descriptors matching the paper) and the physisorption regime, but the three
+isomers are electronically near-degenerate, so it does **not** robustly
+reproduce the paper's ethyl-ester **lead**: the reworked gap/ΔN/dipole composite
+(ADR 0034) crowns the amide via its larger dipole, while the old gap-only score
+picked the ester by a 0.4 meV margin. The lead call sits below what a single
+point on MMFF geometry can resolve — directional at best.
 
 That open test has now been run. A full `--optimize` DFT-geometry rerun
 (B3LYP/6-31G(d) relaxation, then descriptors at the production basis;
@@ -619,7 +624,7 @@ gas/neutral:**
 | ω (gas) | 2.895 eV | 2.863 eV |
 | ΔN → Al (gas) | +0.100 | +0.071 |
 | E_back-donation (gas) | −0.614 eV | −0.660 eV |
-| Canonical composite rank | tie | tie |
+| Canonical composite rank | 2nd (−0.33) | **1st (+0.33)** |
 
 - **MC adsorption** (Al(111), UFF van-der-Waals): E_ads −130.2 kJ/mol (TMP) >
   −99.7 (SMX), lying 2.81 Å and 3.13 Å above the slab. Ranking **TMP > SMX**.
@@ -639,8 +644,9 @@ gas/neutral:**
   a qualitative site comparison (the same heteroatom-centred donor picture), not
   a digit-by-digit one.
 
-**Reading it: the DFT picture and the tie reproduce; the adsorption ordering is
-observable-dependent.** The absolute frontier levels reproduce the paper
+**Reading it: the DFT picture reproduces; the electronic lead now sides with
+SMX; the adsorption ordering is observable-dependent.** The absolute frontier
+levels reproduce the paper
 (computed HOMO −6.22 / −6.53 eV against reported −5.94 / −6.29 eV, both ≈ 0.25 to
 0.28 eV deeper, the near-uniform offset expected from a single point on MMFF
 geometry). The better-donor identity reproduces too: **TMP** has the shallower
@@ -649,15 +655,17 @@ small positive ΔN to aluminium (+0.10, +0.07, i.e. net electron donation, well
 inside the Lukovits window). So the electronic regime and the donor ordering
 match.
 
-The interesting part is the lead. corrosim discriminates on the gap where the
-paper is degenerate, but the discrimination *flips with protonation*: on the
-neutral form TMP has the smaller gap (4.908 vs 5.279 eV) and leads the composite,
-while on the protonated / pH-weighted form (the acid-medium species) SMX has the
-smaller gap (4.020 vs 4.154 eV) and leads. Because the composite lead changes
-across the two bases, the ADR 0021 robustness gate asserts **no single lead and
-reports a tie**. That independently reproduces the paper's own posture: it never
-crowns a winner either, splitting TMP (better donor) against SMX (stronger
-adsorption) and presenting the two as a synergistic pair.
+The interesting part is the lead. On the reworked gap/ΔN/dipole composite (ADR
+0034) **SMX** now leads on every basis (+0.33 vs −0.33 for TMP): the two are
+close on the gap and ΔN, and SMX's markedly larger dipole (9.3 vs 5.5 D) carries
+it, so the robustness gate asserts a robust SMX lead. That is a change from the
+earlier gap-only score, which flipped TMP↔SMX across the neutral/protonated
+bases and reported a *tie* — a tie that happened to mirror the paper's
+synergistic non-crowning (the paper splits TMP as the better donor against SMX
+as the stronger adsorber and presents them as a pair). corrosim's electronic
+score now sides with the more polar SMX, while its single-molecule MC still
+favours TMP (below), so the "stronger adsorber" answer stays observable-dependent
+— but the tidy tie/synergy correspondence is lost to the dipole term.
 
 The adsorption side is the partial match. corrosim's single-molecule UFF Monte
 Carlo makes **TMP** the stronger binder (−130 vs −100 kJ/mol), the *opposite* of
@@ -700,10 +708,11 @@ is exercised and validated on a non-iron surface.
 ## Case 5: Tetrazoles (copper, Cu(111) / acidic medium)
 
 > **Status: ✅ Validated *(qualitative)*.** corrosim reproduces the paper's
-> complete inhibition ordering, PMTZ > PTZ > ATZ > TZ, on all three pipeline
-> stages at once (the DFT gap/hardness/softness composite, the Monte Carlo
-> adsorption energy, and the MD mean interaction energy), and that ordering is
-> the measured one: the experimental inhibition efficiencies rise 6 / 32 / 42.5 /
+> inhibition ordering, PMTZ > PTZ > ATZ > TZ, on the Monte Carlo adsorption
+> energy and the MD mean interaction energy; the reworked DFT gap/ΔN/dipole
+> composite (ADR 0034) reproduces the lead (PMTZ) and laggard (TZ) but transposes
+> the near-degenerate middle pair (ATZ/PTZ). The ordering is the measured one:
+> the experimental inhibition efficiencies rise 6 / 32 / 42.5 /
 > 94.5 % in exactly this sequence. The robustness gate asserts a robust PMTZ lead
 > (both speciation bases agree). The comparison is of the ordering and its
 > correlation with the efficiencies, not the absolute descriptors: the paper's
@@ -782,7 +791,7 @@ aqueous, neutral:**
 | η / softness | 3.591 / 0.278 | 2.728 / 0.367 | 2.647 / 0.378 | 2.554 / 0.392 |
 | χ | 5.164 eV | 4.056 eV | 4.330 eV | 4.472 eV |
 | ΔN → Cu | -0.031 | +0.162 | +0.115 | +0.092 |
-| Composite score | -1.71 | +0.35 | +0.58 | +0.79 |
+| Composite score | -1.31 | +0.32 | +0.11 | +0.88 |
 
 - **MC adsorption** (Cu(111), UFF van-der-Waals): E_ads -3.8 (TZ), -4.5 (ATZ),
   -9.1 (PTZ), -10.3 (PMTZ) kJ/mol, lying 2.9 to 3.1 Å above the slab. Ranking
@@ -795,14 +804,17 @@ aqueous, neutral:**
   ESP lobe localise on the ring nitrogens and, for PMTZ, the mercapto sulfur (its
   extra soft-donor site), consistent with the paper's reactive-site analysis.
 
-**Reading it: the ordering reproduces on every stage, and it is the measured
-ordering.** corrosim's composite ranking (smaller gap, lower hardness, higher
-softness) puts the four molecules in the order PMTZ > PTZ > ATZ > TZ, PMTZ well
-clear (composite +0.79 against -1.71 for TZ). The Monte Carlo adsorption energy on
-copper and the MD mean interaction energy independently give the same order. All
-three therefore agree with the paper's descriptor and adsorption orderings, and
-all three agree with the experimental inhibition efficiencies (6 / 32 / 42.5 /
-94.5 %). Because the medium is only weakly ionising for these tetrazoles (they are
+**Reading it: the lead and laggard reproduce on every stage; the reworked
+composite swaps the two middle molecules.** corrosim's composite ranking
+(smaller gap, larger ΔN and dipole; ADR 0034) puts PMTZ first and TZ last
+(composite +0.88 against -1.31), but with the middle two — ATZ and PTZ — swapped
+versus the paper's order, because the gap/ΔN/dipole score favours ATZ's larger
+ΔN. The Monte Carlo adsorption energy on copper and the MD mean interaction
+energy independently give the paper's full PMTZ > PTZ > ATZ > TZ. So the lead and
+laggard agree across all three stages and with the experimental inhibition
+efficiencies (6 / 32 / 42.5 / 94.5 %), while the electronic score alone now
+transposes the near-degenerate middle pair. Because the medium is only weakly
+ionising for these tetrazoles (they are
 weak bases), the neutral and pH-weighted bases name the same lead, so the ADR
 0021 robustness gate reports a **robust PMTZ lead** rather than a tie.
 
@@ -810,9 +822,10 @@ Two honest mismatches sit under the clean ranking. First, the absolute frontier
 levels do not compare: corrosim's HOMO (-6.8 to -8.8 eV) is physical while the
 paper's (-1.8 to -2.0 eV) is not, so only the ordering is meaningful. Second,
 corrosim's ΔN does not track the efficiency the way the paper's does: its largest
-value falls on ATZ, not PMTZ, and TZ even comes out slightly negative. But ΔN is
-not a component of the composite, and the gap / hardness / softness that are do
-recover the order. The physical driver is intact: PMTZ carries the polarisable
+value falls on ATZ, not PMTZ, and TZ even comes out slightly negative. Because ΔN
+is now a scored axis, that is exactly what lifts ATZ over PTZ in the composite
+(the middle transposition above); the gap and dipole still recover the PMTZ lead
+and the TZ laggard. The physical driver is intact: PMTZ carries the polarisable
 mercapto sulfur and the conjugating phenyl, giving it the smallest gap and the
 softest electron cloud, which is why it leads on both the DFT screen and the
 van-der-Waals adsorption.

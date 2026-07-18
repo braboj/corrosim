@@ -3,22 +3,20 @@ Substrate: Fe(110)  |  Medium: 1 M HCl  |  DFT level: B3LYP/6-311++G(d,p) (ddCOS
 The molecules modelled here are screened in silico as representative candidates, not a verified analysis of any real sample. Confirm the actual composition experimentally (e.g. by LC-MS/GC-MS) before drawing firm conclusions.
 1. Overview
 2. Summary & ranking
-Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+1.34), combining the smallest HOMO–LUMO gap (3.68 eV) with the highest softness — the most readily polarised, electron-donating candidate of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). The lead holds across all 4 descriptor bases evaluated (geometry and protonation). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
+Of the 3 molecules screened, quercetin ranks highest on the composite electronic score (+0.17), which averages three independent axes — a small HOMO–LUMO gap (3.68 eV), the Lukovits ΔN and the molecular dipole — the strongest all-round electron-donating profile of the set. It adsorbs flat on Fe in the physisorption regime (E_ads ≈ -16 kJ/mol). The lead holds across all 4 descriptor bases evaluated (geometry and protonation). This is a computational screening prediction requiring electrochemical confirmation (see the Method section and caveats).
  | Quercetin | Kaempferol | Isorhamnetin
 Gap (eV) | 3.682 ✓ | 4.078 | 4.278
-Hardness η (eV) | 1.839 ✓ | 2.039 | 2.139
-Softness σ (1/eV) | 0.544 ✓ | 0.491 | 0.468
 ΔN | 0.2 | 0.2 | 0.2
 E_ads (kJ/mol) | -16.0 | -16.5 | -16.7 ✓
 Fe–O (Å) | 3.65 | 3.35 | 3.45
-Score | 1.341 ✓ | -0.283 | -1.058
+Score | 0.168 ✓ | -0.632 | -1.035
 Ranking basis | Top candidate
 force-field geometry, neutral | Quercetin
 force-field geometry, pH-weighted | Quercetin
 DFT-relaxed geometry, neutral | Quercetin
 DFT-relaxed geometry, pH-weighted | Quercetin
 Lead robust: the same candidate tops all 4 descriptor bases (geometry and protonation).
-Scored on the HOMO–LUMO gap, hardness and softness of the canonical basis (DFT-relaxed geometry, pH-weighted; z-scored; higher = stronger). The geometry / protonation panels below are a sensitivity check, not separate rankings. E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
+Scored on three independent axes of the canonical basis (DFT-relaxed geometry, pH-weighted; z-scored; higher = stronger): the HOMO–LUMO gap, the Lukovits ΔN (electron donation to the metal) and the dipole (a weak tie-breaker — its direction vs efficiency is disputed). The geometry / protonation panels below are a sensitivity check, not separate rankings. E_ads and the Fe–O distance validate the lead, they do not enter the score. Full method: docs/pipeline.md.
 3. DFT electronic descriptors
 3.1 Frontier-orbital isosurfaces (HOMO / LUMO)
 3.2 Full descriptor table (neutral, aqueous)

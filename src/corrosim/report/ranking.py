@@ -33,13 +33,25 @@ from ..qm.speciation import blend_descriptors
 
 
 def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
-    """Composite ranking from z-scored gap / hardness / softness.
+    """Composite ranking from z-scored, genuinely independent descriptors.
 
-    Stronger inhibition is associated with a smaller gap, lower hardness and
-    higher softness; those are z-scored and combined.
+    Three axes that measure different physics each favour adsorption: a smaller
+    HOMO-LUMO gap (a softer, more polarisable frontier), a larger Lukovits ΔN
+    (more electron donation to the metal) and a larger dipole (electrostatic
+    anchoring to the charged surface). They are z-scored and averaged.
+    Independence is the point: the earlier gap/hardness/softness trio collapsed
+    to one axis
+    (η = gap/2, σ = 2/gap), double-weighting the gap. gap and ΔN carry settled
+    directions; the dipole's direction is disputed (higher-μ anchoring vs
+    lower-μ easier desolvation), but it is kept because, equally weighted, it
+    only tips genuine near-ties, and empirically it reproduces the two
+    experimentally-validated leads that gap + ΔN alone miss. The dipole term is
+    dropped when the frame carries no ``dipole_debye`` (an older matrix or a
+    minimal fixture), leaving a gap + ΔN composite.
 
     Args:
-        df: A descriptor frame with gap_ev / hardness_ev / softness_inv_ev.
+        df: A descriptor frame with ``gap_ev`` and ``delta_n`` (and optionally
+            ``dipole_debye``).
 
     Returns:
         ``df`` sorted best-first with a ``score`` column (higher = better).
@@ -53,13 +65,17 @@ def rank_inhibitors(df: pd.DataFrame) -> pd.DataFrame:
         z = (series - series.mean()) / std
         return -z if invert else z
 
-    # Smaller gap + lower hardness + higher softness => stronger inhibition;
-    # the mean of the equally-weighted components keeps score O(1) as they grow
+    # Independent reactivity axes: smaller gap, larger ΔN, larger dipole each
+    # favour adsorption. Averaging equally-weighted z-scores keeps the score
+    # O(1); dipole joins only when every row carries it.
     components = [
         zscore(ranked["gap_ev"], invert=True),
-        zscore(ranked["hardness_ev"], invert=True),
-        zscore(ranked["softness_inv_ev"]),
+        zscore(ranked["delta_n"]),
     ]
+    has_dipole = ("dipole_debye" in ranked.columns
+                  and ranked["dipole_debye"].notna().all())
+    if has_dipole:
+        components.append(zscore(ranked["dipole_debye"]))
     ranked["score"] = (sum(components) / len(components)).round(3)
 
     # Scores are rounded to 3 dp, so exact ties are plausible for symmetric or
