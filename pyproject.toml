@@ -137,6 +137,16 @@ module = [
 follow_imports = "skip"
 follow_imports_for_stubs = true
 
+[tool.pyright]
+# Pylance (pyright) is the editor's IntelliSense engine; its type checking is
+# deferred to mypy above, so the editor is never stricter than CI. Live mypy
+# diagnostics come from the Mypy Type Checker extension (see .vscode/). The
+# scientific stack ships no usable stubs and the QM engines (pyscf, tblite,
+# geometric) are Docker-only, so their imports do not resolve in the venv and
+# are left unflagged; syntax and undefined-name checks stay on.
+typeCheckingMode = "off"
+reportMissingImports = "none"
+
 [tool.ruff]
 # 80-col readability standard (ADR 0012 / issue #52).
 line-length = 80

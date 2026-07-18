@@ -47,8 +47,12 @@ g16_*/
 # OS / editor
 .DS_Store
 .idea/
-.vscode/
 ~$*.docx        # Word lock/owner files
+
+# VSCode: share the project setup (mypy/ruff/Pylance wiring), ignore the rest
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Claude Code per-user settings (shared .claude/settings.json stays trackable)
 .claude/settings.local.json

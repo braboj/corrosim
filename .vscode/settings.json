@@ -1,0 +1,9 @@
+{
+  // mypy is corrosim's type gate (config in pyproject.toml [tool.mypy]).
+  // Surface it live in the editor via the Mypy Type Checker extension so the
+  // Problems panel matches CI. Pylance's own type checking is turned off in
+  // pyproject.toml [tool.pyright], leaving mypy the single type authority.
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.reportingScope": "workspace",
+  "mypy-type-checker.preferDaemon": true
+}
