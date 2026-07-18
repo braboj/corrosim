@@ -48,6 +48,14 @@ def test_from_rows_round_trips_as_rows():
     assert back.s_minus == pytest.approx(original.s_minus, abs=1e-4)
 
 
+def test_from_rows_empty_reconstructs_empty_result():
+    # #267: a persisted empty *_fukui.json must reconstruct an empty result,
+    # not raise on max(()) over no rows.
+    res = FukuiResult.from_rows([])
+    assert res.symbols == []
+    assert res.f_plus == [] and res.f_minus == []
+
+
 def test_as_json_carries_basis_and_round_trips():
     # as_json/from_json keep the basis label the bare-row form drops
     original = FukuiResult.from_populations(

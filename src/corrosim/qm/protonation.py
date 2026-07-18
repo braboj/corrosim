@@ -54,13 +54,17 @@ def best_protonation_site(
     emit = log if log is not None else _silent
     best: tuple[int, float, Molecule] | None = None
     n_ran = 0
+    last_exc: Exception | None = None
     for idx in enumerate_protonation_sites(name):
         try:
             mol = build_protonated(name, idx)
             res = run_engine(mol.symbols, mol.coords, engine=select_engine,
                              charge=mol.charge)
         except Exception as exc:
-            # Skip sites RDKit / the engine reject
+            # Skip sites RDKit / the engine reject; keep the last cause so a
+            # systematic failure (e.g. an engine import/config error) surfaces
+            # in the traceback rather than vanishing with no log sink.
+            last_exc = exc
             emit(f"    site {idx}: skipped ({exc})")
             continue
         n_ran += 1
@@ -82,5 +86,6 @@ def best_protonation_site(
                 f"energy for {name!r}, so the most stable protonation site "
                 "cannot be chosen; use an engine that reports a total energy "
                 "(e.g. xtb) for site selection.")
-        raise RuntimeError(f"No usable protonation site for {name!r}")
+        raise RuntimeError(
+            f"No usable protonation site for {name!r}") from last_exc
     return best[0], best[2]

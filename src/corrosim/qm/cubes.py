@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .engines import build_rks, run_scf
+from .engines import build_rks, require_virtual_orbital, run_scf
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -58,6 +58,7 @@ def write_orbital_cubes(symbols: Sequence[str], coords: npt.ArrayLike,
     from . import _backend_pyscf as _pyscf
     mol, mf = _cube_scf(symbols, coords, basis, xc, charge)
     occ = mf.mo_occ
+    require_virtual_orbital(occ)
     homo = int(np.where(occ > 0)[0].max())
     lumo = int(np.where(occ == 0)[0].min())
     paths = {"homo": f"{prefix}_homo.cube", "lumo": f"{prefix}_lumo.cube"}

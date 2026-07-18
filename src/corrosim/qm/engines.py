@@ -42,6 +42,27 @@ WATER_EPS = 78.3553
 OCCUPIED_MIN = 0.5
 
 
+def require_virtual_orbital(occ: object) -> None:
+    """Fail loud when a molecule has no virtual (LUMO) orbital.
+
+    A fully occupied system — a single atom in a minimal basis, or any case
+    where every orbital is filled — has no unoccupied orbital, so referencing
+    the LUMO (``homo + 1`` on the sorted energies, ``mo[occ == 0]``, the LUMO
+    cube) would otherwise raise an opaque IndexError/ValueError deep in the
+    engine. Guard it once with a message that names the cause.
+
+    Args:
+        occ: The per-orbital occupation numbers (any array-like).
+
+    Raises:
+        ValueError: If no orbital is unoccupied.
+    """
+    if not np.any(np.asarray(occ) <= OCCUPIED_MIN):
+        raise ValueError(
+            "no virtual (LUMO) orbital: the molecule is fully occupied at "
+            "this basis, so no LUMO-derived quantity can be computed.")
+
+
 def dipole_magnitude_debye(
     vector: Sequence[float] | None,
     *,
@@ -458,6 +479,7 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
     orb = np.asarray(res.get("orbital-energies"))
     occ = np.asarray(res.get("orbital-occupations"))
     e_total = float(res.get("energy"))
+    require_virtual_orbital(occ)
     homo_i = np.where(occ > OCCUPIED_MIN)[0].max()
     homo = orb[homo_i]
     lumo = orb[homo_i + 1]
@@ -529,6 +551,7 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
     e_total = mf.e_tot
     occ = mf.mo_occ
     mo = mf.mo_energy
+    require_virtual_orbital(occ)
     homo = mo[occ > 0].max()
     lumo = mo[occ == 0].min()
     # mulliken_pop returns (pop, charges); guard only the narrow Mulliken
@@ -918,6 +941,7 @@ def parse_orca_output(text: str) -> tuple[float, float]:
             break
     if not energies_ev:
         raise ValueError("Could not parse orbital energies from ORCA output.")
+    require_virtual_orbital(occ)
     homo_i = max(k for k, occ_val in enumerate(occ) if occ_val > OCCUPIED_MIN)
     return energies_ev[homo_i], energies_ev[homo_i + 1]
 
