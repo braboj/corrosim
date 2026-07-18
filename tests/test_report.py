@@ -146,6 +146,31 @@ def test_pipeline_report_reads_legacy_md_key(tmp_path):
     assert "3.71" in out.read_text(encoding="utf-8")
 
 
+def test_pipeline_report_reads_metal_specific_legacy_md_key(tmp_path):
+    # #269: the legacy per-metal RDF key is derived from the case metal, not
+    # hardcoded to iron, so a Cu case's CuO_peak_A is read, not silently None.
+    rows = [_descr_row("quercetin", 4.0, 2.0)]
+    md = [{"name": "quercetin", "CuO_peak_A": 3.55}]
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(rows, [], md, {}, figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), metal="Cu(111)",
+                                 order=["quercetin"])
+    assert "3.55" in out.read_text(encoding="utf-8")
+
+
+def test_pipeline_report_tolerates_fukui_row_without_f_minus(tmp_path):
+    # #269: a Fukui donor row missing f_minus must render (f- = 0.000) rather
+    # than KeyError in the donor-site caption (the sort already tolerates it).
+    rows = [_descr_row("quercetin", 4.0, 2.0)]
+    fukui = {"quercetin": [{"idx": 0, "symbol": "O"}]}       # no f_minus key
+    out = tmp_path / "report.html"
+    report.build_pipeline_report(rows, [], [], fukui,
+                                 figdir=str(tmp_path / "nope"),
+                                 out_path=str(out), order=["quercetin"])
+    html = out.read_text(encoding="utf-8")
+    assert "O0" in html and "0.000" in html
+
+
 def test_pipeline_report_surfaces_acid_cation_section(tmp_path):
     # given protonated-cation rows (acidic medium), a labelled in-acid comparison
     # appears — but the neutral lead is unchanged (ADR 0003).

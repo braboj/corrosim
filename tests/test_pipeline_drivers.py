@@ -150,7 +150,7 @@ def test_run_pka_persists_to_case_results_by_default(tmp_path, monkeypatch):
 
     def fake_resolve(args, *a, **kw):
         args.molecules = "kaempferol"
-        return SimpleNamespace(results_dir=str(tmp_path))
+        return SimpleNamespace(results_dir=str(tmp_path), basis="6-311++G(d,p)")
 
     monkeypatch.setattr(run_pka, "resolve_case", fake_resolve)
     monkeypatch.setattr(run_pka, "compute_pka_rows",
@@ -163,3 +163,28 @@ def test_run_pka_persists_to_case_results_by_default(tmp_path, monkeypatch):
     out = tmp_path / "pka.json"
     assert out.exists()
     assert json.loads(out.read_text())[0]["name"] == "kaempferol"
+
+
+def test_run_pka_opt_basis_inherits_case_basis(tmp_path, monkeypatch):
+    # #269: an unset --opt-basis inherits the case basis so a halogen case runs
+    # a bromine-capable set, not the light-element 6-31G(d) that lacks Br.
+    from types import SimpleNamespace
+
+    from corrosim.runs import run_pka
+
+    def fake_resolve(args, *a, **kw):
+        args.molecules = "x"
+        return SimpleNamespace(results_dir=str(tmp_path), basis="def2-SVP")
+
+    seen: dict = {}
+
+    def fake_compute(*a, **kw):
+        seen.update(kw)
+        return [{"name": "x", "pkah_electronic": 3.0,
+                 "proton_affinity_aq_ev": 5.0}]
+
+    monkeypatch.setattr(run_pka, "resolve_case", fake_resolve)
+    monkeypatch.setattr(run_pka, "compute_pka_rows", fake_compute)
+
+    assert run_pka.main([]) == 0
+    assert seen["opt_basis"] == "def2-SVP"

@@ -36,6 +36,7 @@ from corrosim.runs._cli import (
     resolve_case,
 )
 from corrosim.runs._cli import stderr_log as log
+from corrosim.runs.run_md import MC_WARMUP_STEPS
 
 if TYPE_CHECKING:
     from corrosim.presets import CaseStudy
@@ -79,9 +80,11 @@ def _fig_descriptors(
     # speciation/pKa story; the FF matrix is the fallback.
     opt_csv = f"{args.datadir}/dft_descriptors_opt.csv"
     if os.path.exists(opt_csv):
+        # Derive the level from the case rather than hardcoding B3LYP/
+        # 6-311++G(d,p): a halogen case runs a different basis (def2-SVP).
         figures.plot_protonation_effect(
             pd.read_csv(opt_csv), order, out=out("fig3b_protonation.png"),
-            geometry_label="DFT-optimised, B3LYP/6-311++G(d,p)")
+            geometry_label=f"DFT-optimised, {case.xc.upper()}/{case.basis}")
     else:
         figures.plot_protonation_effect(
             df, order, out=out("fig3b_protonation.png"))
@@ -113,15 +116,29 @@ def _fig_adsorption(
     order: list[str],
     out: _Out,
 ) -> None:
-    """Fig 5/6: MC pose + annealing trace and MD RDF (re-runs MC/MD)."""
+    """Fig 5/6: MC pose + annealing trace and MD RDF (re-runs MC/MD).
+
+    The re-runs mirror the run_mc / run_md drivers exactly — same steps, seed,
+    warm-up, equilibration and temperature — so the figures agree with the
+    persisted mc_adsorption.json / md_rdf.json rather than drifting from them.
+    """
     log("Fig 5/6: MC pose + annealing, MD RDF (re-running)")
     for name in order:
         m = build_molecule(name)
-        mc = run_mc(m, metal=case.metal_element, n_steps=args.steps_mc)
+
+        # Fig 5: the full MC pose search, matching the run_mc driver.
+        mc = run_mc(m, metal=case.metal_element, n_steps=args.steps_mc,
+                    seed=args.seed)
         figures.plot_adsorption_pose(mc, out=out(f"fig5_{name}_mc_pose.png"))
         figures.plot_mc_energy(mc, out=out(f"fig5_{name}_mc_energy.png"))
+
+        # Fig 6: the MD RDF, matching the run_md driver — its short MC warm-up
+        # seeds the MD, run with the driver's equilibration and temperature.
+        warmup = run_mc(m, metal=case.metal_element, n_steps=MC_WARMUP_STEPS,
+                        seed=args.seed)
         md = run_md(m, metal=case.metal_element, n_steps=args.steps_md,
-                    start_positions=mc.best_positions)
+                    equil=args.equil, temperature=args.temperature,
+                    seed=args.seed, start_positions=warmup.best_positions)
         figures.plot_rdf(md, out=out(f"fig6_{name}_rdf.png"))
 
 
@@ -171,8 +188,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "case's cases/<case>/results subtree.")
     p.add_argument("--cubedir", default="cubes",
                    help="Where the volumetric cubes live.")
-    p.add_argument("--steps-mc", type=int, default=5000)
+    # The adsorption re-run defaults mirror the run_mc / run_md drivers so the
+    # figures match the persisted tables (run_mc --steps 4000; run_md --steps
+    # 6000 --equil 1500 --temperature 298 --seed 0).
+    p.add_argument("--steps-mc", type=int, default=4000)
     p.add_argument("--steps-md", type=int, default=6000)
+    p.add_argument("--equil", type=int, default=1500)
+    p.add_argument("--temperature", type=float, default=298.0)
+    p.add_argument("--seed", type=int, default=0)
     args = p.parse_args(argv)
     case = resolve_case(args)
     default_output(args, "outdir", f"{case.report_dir}/figures")

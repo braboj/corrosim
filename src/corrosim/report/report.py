@@ -665,9 +665,11 @@ class PreparedReport(NamedTuple):
         md_by = {r["name"]: r for r in md_rows}
 
         def _md_peak(n):
-            # Generic key, legacy fallback
+            # The metal-O RDF first peak: the current metal-agnostic key, then
+            # the pre-rename per-metal legacy key (FeO_peak_A / CuO_peak_A / …)
+            # derived from this case's element rather than hardcoded to iron.
             row = md_by.get(n) or {}
-            return row.get("metal_O_peak_A", row.get("FeO_peak_A"))
+            return row.get("metal_O_peak_A", row.get(f"{m_elem}O_peak_A"))
 
         df["e_ads_kjmol"] = df["name"].map(lambda n: (mc_by.get(n) or {}).get("e_ads_kjmol"))
         df["ads_dist_A"] = df["name"].map(_md_peak)
@@ -684,7 +686,10 @@ class PreparedReport(NamedTuple):
             if not rows:
                 continue
             tops = top_donor_sites_of_element(rows, "O", 3)
-            sites = ", ".join(f"O{t['idx']} (f⁻={t['f_minus']:.3f})" for t in tops)
+            sites = ", ".join(
+                f"{t.get('symbol', 'O')}{t['idx']} "
+                f"(f⁻={t.get('f_minus', 0.0):.3f})"
+                for t in tops)
             fukui_items.append((display_name(name), sites))
         return cls(df, full, level, m_elem, fukui_items)
 
