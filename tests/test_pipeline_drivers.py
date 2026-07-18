@@ -136,3 +136,30 @@ def test_run_md_writes_rdf_json(tmp_path):
     ])
     assert rc == 0
     assert (tmp_path / "md_rdf.json").exists()
+
+
+def test_run_pka_persists_to_case_results_by_default(tmp_path, monkeypatch):
+    # #260: a bare run (no --out-json) must persist the aqueous SCF pKa cycle to
+    # the case results dir, like every other stage driver, rather than
+    # compute-print-discard it. The DFT cycle is stubbed to keep the test
+    # QM-light; only the persist-by-default wiring is exercised.
+    import json
+    from types import SimpleNamespace
+
+    from corrosim.runs import run_pka
+
+    def fake_resolve(args, *a, **kw):
+        args.molecules = "kaempferol"
+        return SimpleNamespace(results_dir=str(tmp_path))
+
+    monkeypatch.setattr(run_pka, "resolve_case", fake_resolve)
+    monkeypatch.setattr(run_pka, "compute_pka_rows",
+                        lambda *a, **kw: [{"name": "kaempferol",
+                                          "pkah_electronic": 3.2,
+                                          "proton_affinity_aq_ev": 5.0}])
+
+    rc = run_pka.main([])
+    assert rc == 0
+    out = tmp_path / "pka.json"
+    assert out.exists()
+    assert json.loads(out.read_text())[0]["name"] == "kaempferol"

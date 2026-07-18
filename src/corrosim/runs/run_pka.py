@@ -51,6 +51,7 @@ from corrosim.qm.protonation import best_protonation_site
 from corrosim.runs._cli import (
     add_case_arg,
     add_molecules_arg,
+    default_output,
     parse_molecules,
     resolve_case,
     stderr_log,
@@ -211,9 +212,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "DFT grid (level 4) + imaginary-mode restarts. Clears "
                         "a floppy-rotor imaginary mode.")
     p.add_argument("--temperature", type=float, default=298.15)
-    p.add_argument("--out-json", default=None)
+    p.add_argument("--out-json", default=None,
+                   help="Write the pKaH rows to this JSON file; unset persists "
+                        "to the case's results dir (pka.json) so the expensive "
+                        "aqueous SCF cycle is never computed-and-discarded.")
     args = p.parse_args(argv)
-    resolve_case(args)
+    case = resolve_case(args)
+
+    # Persist by default, like every other stage driver: an unset --out-json
+    # routes to the case's own results dir so a bare run does not lose the
+    # aqueous SCF pKa cycle when the container exits.
+    default_output(args, "out_json", f"{case.results_dir}/pka.json")
 
     molecules = parse_molecules(args.molecules)
     rows = compute_pka_rows(molecules, basis=args.basis, xc=args.xc,
@@ -221,9 +230,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                             opt_basis=args.opt_basis, opt_xc=args.opt_xc,
                             temperature=args.temperature, tight=args.tight)
 
-    if args.out_json:
-        write_json(args.out_json, rows)
-        print(f"JSON: {args.out_json}", file=sys.stderr)
+    write_json(args.out_json, rows)
+    print(f"JSON: {args.out_json}", file=sys.stderr)
 
     if args.freq:
         print("\nname            pKaH(corr)  pKaH(elec)   PA_aq(eV)")
