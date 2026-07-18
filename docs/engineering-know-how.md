@@ -1121,6 +1121,26 @@ module = ["nativelib.*", "someuntyped.*"]
 follow_imports = "skip"
 ```
 
+#### The editor's type-checker defers to the CI type gate
+
+If CI runs a type-checker at a chosen strictness, do not let the editor's bundled
+type-checker run a second, stricter analysis beside it. The editor then flags
+diagnostics the gate is configured to ignore, contradicts CI, and buries real
+problems in stub noise. Turn the editor checker's type evaluation off so the CI
+checker is the single authority, silence the imports it already ignores, and
+surface the CI checker's own diagnostics live through its editor extension.
+
+```toml
+# the editor's checker (pyright/Pylance) defers to the CI one (mypy)
+[tool.pyright]
+typeCheckingMode = "off"        # mypy is the type authority, editor and CI alike
+reportMissingImports = "none"   # imports the gate ignores (native/optional deps)
+```
+
+Share only the CI-mirroring editor config, never per-user editor state: a
+`.vscode/*` ignore plus `!settings.json` / `!extensions.json` allowlists the
+shared setup and ignores the rest.
+
 #### Pre-commit: exempt generated files, pin every rev
 
 A global exclude keeps tracked-but-generated files out of the whitespace fixers,
