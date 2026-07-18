@@ -1,4 +1,4 @@
-"""corrosim.runs.make_report  (M5).
+"""corrosim.runs.make_report.
 
 Build one self-contained HTML report consolidating the full multiscale pipeline
 (DFT descriptors + Fukui + Monte Carlo + MD) and the committed figure set into a

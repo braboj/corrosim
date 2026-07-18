@@ -1,4 +1,4 @@
-"""corrosim.runs.run_mc  (M3 driver).
+"""corrosim.runs.run_mc.
 
 Monte Carlo adsorption pose search (simulated annealing) for the flavonoids on
 the metal slab. Writes a summary JSON to the case's cases/<case>/results dir;
@@ -27,7 +27,7 @@ from corrosim.runs._cli import (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: run the Monte Carlo adsorption pose search (M3).
+    """CLI entry point: run the Monte Carlo adsorption pose search.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).
@@ -37,7 +37,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(prog="corrosim-run-mc",
                                 description="Monte Carlo adsorption pose "
-                                            "search (M3).")
+                                            "search.")
     add_molecules_arg(p)
     add_case_arg(p)
     p.add_argument("--metal", default=None, help="Fe | Cu | Al")

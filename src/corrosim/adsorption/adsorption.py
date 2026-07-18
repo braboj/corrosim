@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -103,10 +103,29 @@ def build_adsorption_system(molecule: Molecule, metal: str = "Fe",
 
 
 # --- UFF van-der-Waals physisorption estimate -----------------------------
+class AdsorptionEstimate(TypedDict):
+    """The fixed-key result of :func:`estimate_adsorption_energy`.
+
+    Attributes:
+        metal: Slab metal symbol.
+        method: The estimation method label.
+        e_ads_ev: Minimum vdW interaction energy (eV).
+        e_ads_kjmol: The same in kJ/mol.
+        best_height_A: Height of the minimum (Å), or None if no scan ran.
+    """
+
+    metal: str
+    method: str
+    e_ads_ev: float
+    e_ads_kjmol: float
+    best_height_A: float | None
+
+
 def estimate_adsorption_energy(molecule: Molecule, metal: str = "Fe",
                                size: tuple[int, int, int] = (5, 5, 3),
                                vacuum: float = 10.0,
-                               heights: npt.ArrayLike | None = None) -> dict:
+                               heights: npt.ArrayLike | None = None,
+                               ) -> AdsorptionEstimate:
     """Fast, bounded physisorption estimate.
 
     The rigid-body UFF van-der-Waals interaction energy of the (flat-oriented)

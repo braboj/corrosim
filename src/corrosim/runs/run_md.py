@@ -1,4 +1,4 @@
-"""corrosim.runs.run_md  (M4 driver).
+"""corrosim.runs.run_md.
 
 Brownian (overdamped-Langevin) rigid-body MD of the inhibitor over the metal
 slab at 298 K -> metal-X radial distribution (adsorption distance) +
@@ -32,7 +32,7 @@ MC_WARMUP_STEPS = 2000
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: run Brownian MD to the metal-X RDF (M4).
+    """CLI entry point: run Brownian MD to the metal-X RDF.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).
@@ -41,7 +41,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         The process exit code (0 on success).
     """
     p = argparse.ArgumentParser(prog="corrosim-run-md",
-                                description="Brownian MD -> RDF (M4).")
+                                description="Brownian MD -> RDF.")
     add_molecules_arg(p)
     add_case_arg(p)
     p.add_argument("--metal", default=None)

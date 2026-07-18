@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import pandas as pd
+from matplotlib.figure import Figure
 
 from corrosim.report import figures
 
@@ -23,5 +24,5 @@ def test_plot_geometry_comparison_writes_png(tmp_path):
     opt = _frame({"kaempferol": 3.69, "quercetin": 3.60})
     out = tmp_path / "fig8.png"
     res = figures.plot_geometry_comparison(ff, opt, order, out=str(out))
-    assert res == str(out)
+    assert isinstance(res, Figure)             # returns the figure, not the path
     assert out.exists() and out.stat().st_size > 1000

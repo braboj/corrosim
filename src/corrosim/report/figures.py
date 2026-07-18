@@ -116,10 +116,17 @@ def _atom_color_legend(fig: Any, symbols: Sequence[str],
 
 
 def _save(fig, out, dpi=150):
+    """Save the figure to ``out`` (closing it) when a path is given; return it.
+
+    Always returns the figure so callers honour their "Returns: the rendered
+    figure" contract. With ``out`` the figure is written and closed (no leak in
+    a batch loop); with ``out=None`` a live figure is returned for the caller to
+    display or close.
+    """
     if out:
         fig.savefig(out, dpi=dpi, bbox_inches="tight")
         plt.close(fig)
-    return out
+    return fig
 
 
 def _read_cube_grid(path):
@@ -257,7 +264,7 @@ def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
     ax.plot([], [], color=C_LUMO, lw=2.5, label="LUMO")
     ax.legend(loc="upper right", fontsize=8, frameon=False)
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- Global reactivity-descriptor comparison -------------------------------
@@ -289,7 +296,7 @@ def plot_descriptor_comparison(rows: list[dict],
         ax.tick_params(axis="x", rotation=30, labelsize=8)
         ax.axhline(0, color="grey", lw=0.6)
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- Neutral vs protonated descriptor effect --------------------------------
@@ -329,7 +336,7 @@ def plot_protonation_effect(df: pd.DataFrame, order: Sequence[str],
         ax.legend(fontsize=8)
     fig.suptitle(f"Neutral vs protonated (aqueous, {geometry_label})")
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
@@ -378,7 +385,7 @@ def plot_geometry_comparison(ff_df: pd.DataFrame, opt_df: pd.DataFrame,
     fig.suptitle(f"Force-field vs DFT-optimised geometry "
                  f"(neutral, {phase}, B3LYP/6-311++G(d,p))")
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- Adsorption pose (template MC-config analog) ---------------------------
@@ -414,7 +421,7 @@ def plot_adsorption_pose(system: Any, out: str | None = None) -> object:
     # Drop the legend below the axes so it clears the side view's low-hanging
     # simulation-cell box.
     _atom_color_legend(fig, syms, y=-0.08)
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- Monte Carlo annealing energy trace -------------------------------------
@@ -441,7 +448,7 @@ def plot_mc_energy(result: MCResult, out: str | None = None) -> object:
                  f"{result.metal}{result.surface}")
     ax.legend(fontsize=8, loc="upper right")
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- MD radial distribution function (adsorption distance) -------------------
@@ -479,7 +486,7 @@ def plot_rdf(result: MDResult, out: str | None = None) -> object:
     ax.legend(fontsize=8)
     ax.set_xlim(0, 6)
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- Fukui / dual-descriptor map (template local-reactivity figure) ---------
@@ -549,7 +556,7 @@ def plot_fukui(fukui: Any, molecule: Any = None, out: str | None = None,
                   fontsize=11)
     ax1.legend(fontsize=8)
     fig.tight_layout()
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 # --- isosurface renderer (needs scikit-image; runs anywhere) ----------------
@@ -605,7 +612,7 @@ def render_orbital(cubefile: str, out: str | None = None, iso: float = 0.03,
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
     _atom_color_legend(fig, syms)
-    return _save(fig, out) or fig
+    return _save(fig, out)
 
 
 def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
@@ -690,4 +697,4 @@ def render_esp(density_cube: str, esp_cube: str, out: str | None = None,
         ax.set_title(title, fontsize=11)
     fig.tight_layout()
     _atom_color_legend(fig, syms)
-    return _save(fig, out) or fig
+    return _save(fig, out)

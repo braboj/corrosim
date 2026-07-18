@@ -1,4 +1,4 @@
-"""corrosim.runs.run_fukui  (M2 driver).
+"""corrosim.runs.run_fukui.
 
 Condensed Fukui functions / dual descriptor for the flavonoids — local
 reactivity (which atoms bind the metal). Writes per-molecule JSON to the case's
@@ -29,7 +29,7 @@ from corrosim.runs._cli import (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: compute condensed Fukui / dual descriptors (M2).
+    """CLI entry point: compute condensed Fukui / dual descriptors.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).
@@ -39,7 +39,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     p = argparse.ArgumentParser(
         prog="corrosim-run-fukui",
-        description="Condensed Fukui / dual descriptor (M2).")
+        description="Condensed Fukui / dual descriptor.")
     add_molecules_arg(p)
     add_case_arg(p)
     p.add_argument("--basis", default="6-31G(d)",

@@ -68,6 +68,18 @@ def test_build_html_report_escapes_metal_and_medium(tmp_path):
     assert "Fe<b>" not in html                 # raw tag not injected
 
 
+def test_plot_returns_figure_when_out_is_none():
+    # #268: with out=None a plot returns the rendered Figure (not the path
+    # string), honouring its "Returns: the rendered figure" docstring.
+    from matplotlib.figure import Figure
+
+    from corrosim.report import figures
+
+    fig = figures.plot_descriptor_comparison(
+        [_descr_row("quercetin", 4.0, 2.0), _descr_row("kaempferol", 4.4, 2.2)])
+    assert isinstance(fig, Figure)
+
+
 def test_top_donor_sites_of_element_picks_highest_f_minus():
     rows = [
         {"idx": 0, "symbol": "O", "f_minus": 0.02},

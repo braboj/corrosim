@@ -412,6 +412,11 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
     Returns:
         The configured (unkerneled) PySCF RKS mean-field object; call its
         ``.kernel()`` to run the SCF.
+
+    Raises:
+        MemoryError: With ``density_fit``, when the density-fitting tensor
+            exceeds the hard memory ceiling (propagated from
+            :func:`plan_scf_memory`); use a smaller basis.
     """
     from . import _backend_pyscf as _pyscf
     mol = _pyscf.gto.M(atom=[[s, tuple(c)] for s, c in zip(symbols, coords)],
@@ -430,7 +435,7 @@ def build_rks(symbols: Sequence[str], coords: Coords, basis: str, xc: str,
         # Keep the _cderi tensor in RAM only if it fits; else spill it to disk
         plan = plan_scf_memory(mol.nao_nr(), budget, density_fit=True)
         mf = mf.density_fit()
-        mf.with_df.max_memory = budget
+        mf.with_df.max_memory = plan.max_memory_mb
         if plan.cderi_to_disk:
             mf.with_df._cderi_to_save = _cderi_scratch_path()
     if solvent:

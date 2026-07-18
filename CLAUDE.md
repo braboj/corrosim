@@ -33,12 +33,13 @@ Project-specific overrides and additions follow below.
 ### 1.2 Project structure
 
 Layout is a `src/` layout with subsystem sub-packages — `src/corrosim/` keeps
-the facade (`__init__`, `cli`) and the input/config leaves at the top and groups
-the rest into `qm/`, `adsorption/`, and `report/`, with drivers in `runs/`
-(**ADR 0011**, executed in ticket #78). **[`README.md` § Project
-structure](README.md) is the single source of truth** — the annotated
-module/driver map lives there; read it rather than duplicating it here. Agent-relevant facts that
-tree does not carry:
+the facade (`__init__`, `cli`, `app`/`__main__` — the unified `corrosim
+<command>` front door, ADR 0030) and the input/config leaves at the top and
+groups the rest into `qm/`, `adsorption/`, and `report/`, with drivers in
+`runs/` (**ADR 0011**, executed in ticket #78). **[`README.md` § Project
+structure](README.md) is the single source of truth** — the subsystem-level
+path→contents map lives there; read it rather than duplicating it here.
+Agent-relevant facts that tree does not carry:
 
 - `cubes/` — regenerable volumetric `.cube` files; `logs/` gitignored
   detached-job monitoring logs; `docs/local/` — private notes/literature
@@ -239,7 +240,9 @@ and `python-lib.md` as the standard.
 ### 5.2 Structure audit
 
 - Run `pytest -q`, `ruff check .`, `mypy`, and `complexipy` before every
-  PR/merge.
+  PR/merge. On a Windows console `complexipy` crashes with a `UnicodeEncodeError`
+  on its `✅` output under the cp1252/cp1251 default; run it as
+  `PYTHONIOENCODING=utf-8 complexipy .` so the local gate matches CI.
 - Confirm docs are in their home (see 1.4): decisions in `docs/decisions/`, a
   session entry added to `docs/dev-journal.md`, structure changes in `README.md`.
 

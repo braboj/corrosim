@@ -19,35 +19,8 @@ bare-command behaviour; and the standalone ``corrosim-run-study`` /
 from __future__ import annotations
 
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TextIO
-
-# The subcommands, in help order. Each maps to a module main() resolved lazily
-# in :func:`main` so an unused command's imports never load.
-_COMMANDS = ("screen", "run-study", "add-inhibitor")
-
-_USAGE = """\
-corrosim - automated corrosion-inhibitor screening (free/open-source)
-
-usage: corrosim <command> [options]
-
-commands:
-  screen          quick reactivity screen + ranking of a molecule set
-  run-study       full multiscale study (DFT -> MC -> MD -> report) for a case
-  add-inhibitor   fetch a compound from PubChem into the inhibitor library
-
-Run 'corrosim <command> --help' for a command's own options. A leading option
-('corrosim --inhibitors ...') is shorthand for the screen.
-"""
-
-
-def _print_usage(stream: TextIO | None = None) -> None:
-    """Write the top-level command list to ``stream`` (stdout by default).
-
-    ``stream`` is resolved at call time, not bound as a default, so a
-    redirected ``sys.stdout`` (a test's capture, a pipe) is honoured.
-    """
-    (stream or sys.stdout).write(_USAGE)
 
 
 def _screen(rest: Sequence[str]) -> int:
@@ -69,6 +42,48 @@ def _add_inhibitor(rest: Sequence[str]) -> int:
     from .fetch import main as add_main
 
     return add_main(rest)
+
+
+# The subcommands, in help order: name -> (handler, one-line help). Both the
+# dispatcher and the usage text derive from this single mapping, and each
+# handler imports its module lazily so an unused command's imports never load.
+_COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
+    "screen": (_screen,
+               "quick reactivity screen + ranking of a molecule set"),
+    "run-study": (_run_study,
+                  "full multiscale study (DFT -> MC -> MD -> report) "
+                  "for a case"),
+    "add-inhibitor": (_add_inhibitor,
+                      "fetch a compound from PubChem into the inhibitor "
+                      "library"),
+}
+
+
+def _usage_text() -> str:
+    """The top-level help, with the command list rendered from _COMMANDS."""
+    lines = [
+        "corrosim - automated corrosion-inhibitor screening (free/open-source)",
+        "",
+        "usage: corrosim <command> [options]",
+        "",
+        "commands:",
+        *(f"  {name:<15} {help_text}"
+          for name, (_handler, help_text) in _COMMANDS.items()),
+        "",
+        "Run 'corrosim <command> --help' for a command's own options. A "
+        "leading",
+        "option ('corrosim --inhibitors ...') is shorthand for the screen.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _print_usage(stream: TextIO | None = None) -> None:
+    """Write the top-level command list to ``stream`` (stdout by default).
+
+    ``stream`` is resolved at call time, not bound as a default, so a
+    redirected ``sys.stdout`` (a test's capture, a pipe) is honoured.
+    """
+    (stream or sys.stdout).write(_usage_text())
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -96,13 +111,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _screen(argv)
 
     # Otherwise the first token selects a subcommand; the rest are its own args.
-    rest = argv[1:]
-    if first == "screen":
-        return _screen(rest)
-    if first == "run-study":
-        return _run_study(rest)
-    if first == "add-inhibitor":
-        return _add_inhibitor(rest)
+    command = _COMMANDS.get(first)
+    if command is not None:
+        handler, _help = command
+        return handler(argv[1:])
 
     # Unknown command: name it, then show the valid ones.
     sys.stderr.write(f"corrosim: unknown command {first!r}\n\n")
