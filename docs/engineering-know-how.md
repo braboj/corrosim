@@ -545,6 +545,15 @@ lives with the code.
 precisely what you relaxed and why, so the gap is a documented choice, not a
 surprise.
 
+**A composite score's components must be independent variables.** When a
+ranking or score averages (or sums) several "independent" metrics, verify none
+is an algebraic transform of another — `x`, `x/2`, `1/x`. Scale-invariant
+aggregation (z-scores, ranks, min-max normalisation) makes the duplication
+invisible: the score silently multi-weights the shared axis while the code and
+the UI both claim N independent contributions, and any downstream margin/tie
+logic inherits the distortion. Either drop the redundant components or state the
+real weighting honestly.
+
 ## Language
 
 Per-language structure, dependency isolation, typing, and packaging.
@@ -714,6 +723,17 @@ subprocess.run([tool, input_path], stdout=out, check=True)  # nosec B603
 - A type alias for a repeated shape improves readability.
 - Put the unit in the name, never a bare number: `timeout_s`, `size_bytes`,
   `first_peak`.
+
+#### A convenience default that every real caller overrides is a latent bug
+
+A parameter defaulted "for convenience" but supplied explicitly by every
+production call site is a foot-gun, not a convenience: the default is dead in
+practice, so a later refactor or a new caller that drops the argument silently
+computes against the wrong value with no error. Make the parameter **required**
+in the low-level functions, and keep the documented default only at the top,
+user-facing entry points where a default is genuinely intended. A type checker
+then flags every missed caller for you, turning a silent wrong-answer into a
+compile-time error.
 
 #### Split the enforcement: format to the linter, presence to a test
 
