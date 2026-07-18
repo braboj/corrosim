@@ -69,6 +69,7 @@ from corrosim.runs._cli import (
     default_output,
     parse_molecules,
     print_table,
+    read_json,
     resolve_case,
     stderr_log,
     write_json,
@@ -474,18 +475,83 @@ def _default_descriptor_outputs(
     default_output(args, "out_csv", f"{results_dir}/{stem}.csv")
 
 
-def _write_outputs(rows: list[dict], args: argparse.Namespace) -> None:
+def _read_existing_rows(
+    json_path: str | None,
+    csv_path: str | None,
+) -> list[dict]:
+    """Load a descriptor matrix already on disk, from its JSON else its CSV.
+
+    Args:
+        json_path: The matrix JSON path, or None.
+        csv_path: The matrix CSV path, or None.
+
+    Returns:
+        The existing rows, or an empty list when neither file is present.
+    """
+    if json_path:
+        rows = read_json(json_path, default=[])
+        if rows:
+            return cast("list[dict]", rows)
+    if csv_path and os.path.exists(csv_path):
+        return cast("list[dict]", pd.read_csv(csv_path).to_dict("records"))
+    return []
+
+
+def _merge_descriptor_rows(
+    new_rows: list[dict],
+    args: argparse.Namespace,
+) -> list[dict]:
+    """Complete an existing descriptor matrix with a partial-forms run.
+
+    A ``--forms neutral``/``protonated`` run computes only some species. Any
+    matrix already at the output path has its rows sharing a ``(name, form)``
+    key with the fresh rows replaced, and every other existing row kept, so
+    'protonated' alone finishes a neutral-only matrix instead of overwriting
+    it. Columns that differ across the two runs (an older matrix lacking a
+    later descriptor) NaN-fill when the union is framed for CSV.
+
+    Args:
+        new_rows: The rows computed by this run.
+        args: Parsed CLI arguments (for the output paths to read back).
+
+    Returns:
+        The merged rows: the kept existing rows, then the new rows.
+    """
+    existing = _read_existing_rows(args.out_json, args.out_csv)
+    if not existing:
+        return new_rows
+    superseded = {(r.get("name"), r.get("form")) for r in new_rows}
+    kept = [r for r in existing
+            if (r.get("name"), r.get("form")) not in superseded]
+    return kept + new_rows
+
+
+def _write_outputs(
+    rows: list[dict],
+    args: argparse.Namespace,
+    forms: str,
+) -> None:
     """Cache rows to JSON/CSV and print the descriptor summary table.
 
     Args:
         rows: The descriptor rows from :func:`analyse_matrix`.
         args: Parsed CLI arguments (for the output paths).
+        forms: The resolved species selection this run computed; a partial run
+            (not "both") merges into an existing matrix rather than overwriting
+            it, a full run overwrites cleanly.
     """
     # Ensure the target dir exists so a first run into a fresh case persists
     # rather than raising after the whole (expensive) matrix has finished.
     for path in (args.out_json, args.out_csv):
         if path:
             os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+
+    # A partial-forms run completes an existing matrix instead of destroying it:
+    # 'protonated' alone must keep the neutral rows the --forms help promises it
+    # completes, which a full overwrite would silently discard.
+    if forms != "both":
+        rows = _merge_descriptor_rows(rows, args)
+
     if args.out_json:
         write_json(args.out_json, rows)
         print(f"JSON: {args.out_json}", file=sys.stderr)
@@ -546,7 +612,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                           check_minimum=check_minimum, to_minimum=to_minimum,
                           density_fit=bool(args.density_fit))
 
-    _write_outputs(rows, args)
+    _write_outputs(rows, args, forms)
     return 0
 
 

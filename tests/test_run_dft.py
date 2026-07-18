@@ -56,6 +56,46 @@ def test_default_descriptor_outputs_skips_xtb_smoke_engine():
     assert args.out_json is None and args.out_csv is None
 
 
+def test_write_outputs_merges_partial_forms_into_existing_matrix(tmp_path):
+    # #256: `--forms protonated` must COMPLETE an existing neutral-only matrix,
+    # not overwrite it (the --forms help contract). Seed neutral rows, write
+    # protonated-only rows with forms="protonated", assert both survive.
+    import json
+
+    json_path = tmp_path / "dft_descriptors_ff.json"
+    csv_path = tmp_path / "dft_descriptors_ff.csv"
+    json_path.write_text(json.dumps(
+        [{"name": "kaempferol", "form": "neutral", "homo_ev": -6.0}]))
+
+    args = argparse.Namespace(out_json=str(json_path), out_csv=str(csv_path))
+    run_dft._write_outputs(
+        [{"name": "kaempferol+H+", "form": "protonated", "homo_ev": -9.0}],
+        args, forms="protonated")
+
+    merged = json.loads(json_path.read_text())
+    assert {r["form"] for r in merged} == {"neutral", "protonated"}
+    assert {r["name"] for r in merged} == {"kaempferol", "kaempferol+H+"}
+
+
+def test_write_outputs_full_run_overwrites_stale_rows(tmp_path):
+    # A full 'both' run replaces the matrix cleanly rather than accumulating a
+    # stale row from a prior run.
+    import json
+
+    json_path = tmp_path / "dft_descriptors_ff.json"
+    csv_path = tmp_path / "dft_descriptors_ff.csv"
+    json_path.write_text(json.dumps(
+        [{"name": "stale", "form": "neutral", "homo_ev": -6.0}]))
+
+    args = argparse.Namespace(out_json=str(json_path), out_csv=str(csv_path))
+    run_dft._write_outputs(
+        [{"name": "kaempferol", "form": "neutral", "homo_ev": -6.1}],
+        args, forms="both")
+
+    rows = json.loads(json_path.read_text())
+    assert [r["name"] for r in rows] == ["kaempferol"]
+
+
 def _fake_mol(name: str = "kaempferol", charge: int = 0) -> Molecule:
     return Molecule(name=name, smiles="O", symbols=["O", "H"],
                     coords=[(0.0, 0.0, 0.0), (0.0, 0.0, 0.97)], charge=charge)
