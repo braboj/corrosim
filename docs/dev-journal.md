@@ -2621,10 +2621,41 @@ the 5-case data on a branch, then write the dipole/checkpoint ADR (part of #273)
 - **Gates:** engines.py carried unchanged from session 38 (which reported 333
   passed, ruff + mypy clean); re-ran before staging (see below).
 
-**Pending:** commit the `run_pyscf` chkfile param + the five-case dipole data +
-regenerated report bundles + ADRs 0031/0032 on a branch and open a PR for #273
-(awaiting go-ahead). End-of-session audit still owes: judge/file the ADR 0031
-"report only where well-defined, blank otherwise" upstream candidate against the
-`base/core/quality.md` issues, and close #273 on merge.
+**Pending:** none open at the time of writing; all of the above shipped in
+PR #275 (merged) and the follow-on wrap items are handled in session 40 below.
+
+## 2026-07-18 (session 40): Pylance defers to mypy; both PRs merged; wrap
+
+- **Editor type-checking now defers to mypy (PR #276).** Pylance (pyright)
+  flagged ~85 diagnostics in `src/` that mypy is configured to ignore: ~79 from
+  pandas/numpy inline-type strictness, and 6 unresolved imports (the Docker-only
+  pyscf/tblite engines and rdkit's stub-less `Chem.Draw`). None are real defects
+  (mypy/ruff/tests clean). Added `[tool.pyright]` (`typeCheckingMode = "off"`,
+  `reportMissingImports = "none"`) so mypy is the single type authority, and
+  wired the Mypy Type Checker extension via a tracked `.vscode/settings.json` +
+  `.vscode/extensions.json` so mypy runs live in the editor. Shared those two
+  files through a `.vscode/*` + allowlist gitignore idiom, mirroring the existing
+  `.claude/settings.json` handling. Verified pyright drops 85 -> 0, mypy stays
+  clean. ADR 0033.
+- **Both PRs merged to main.** PR #275 (dipole 5-case backfill + density
+  checkpoint) and PR #276 (editor config) squash-merged; branches deleted.
+- **#273 closed.** The dipole descriptor is fully shipped (implemented in #274,
+  backfilled + surfaced in reports in #275). Its one remaining item — whether the
+  dipole enters the ranking composite — belongs to #255 (the composite rework);
+  cross-linked there and closed #273 rather than leaving it open on a #255-scoped
+  decision.
+- **Upstream filed (three, all task/P3):** `solid-ai-templates#826` (the editor
+  type-checker defers to the CI type gate, + the `.vscode` allowlist idiom for
+  git.md), `#827` (report a derived quantity only where well-defined, blank it
+  otherwise — the deferred ADR 0031 candidate), `#828` (persist the expensive
+  intermediate, not just its derived scalar — the ADR 0032 pattern). ADR 0031 /
+  0032 / 0033 Upstream lines now name the filed issues.
+- **Know-how:** added the editor-defers-to-CI-type-gate pattern to
+  `engineering-know-how.md` (genericised).
+- **Gates:** pytest 333 passed / 1 skipped, ruff clean, mypy clean (44 files).
+
+**Pending:** none — backlog remains #40 (LAMMPS/periodic-DFT E_ads) and #255
+(ranking composite double-weights the HOMO-LUMO gap; the dipole is now available
+as an independent axis for that rework). Project otherwise at rest.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

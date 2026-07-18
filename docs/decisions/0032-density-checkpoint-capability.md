@@ -60,5 +60,5 @@ to a checkpoint (opt-in, default off; stored with regenerable artifacts) once yo
 are already paying for the computation.* Recorded in
 `docs/engineering-know-how.md` ("Persist the expensive intermediate, not just its
 derived scalar"), together with the sibling text-append pattern the backfill used
-to inject the column without churning the serialized matrices. No new upstream
-issue filed beyond the know-how entry; re-judged in the end-of-session audit.
+to inject the column without churning the serialized matrices. Filed upstream
+against `base/data` as `solid-ai-templates#828`.

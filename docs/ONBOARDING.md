@@ -40,6 +40,15 @@ docker compose build qm
 On Linux or macOS you may instead install the QM engines natively with the
 `qm` extra (`pip install -e ".[qm]"`); on Windows use the Docker image.
 
+### Editor (optional)
+
+Open the repo in VS Code and accept the prompt to install the recommended
+extensions (`.vscode/extensions.json`). Type errors then come from mypy live in
+the Problems panel via the Mypy Type Checker extension — the same gate CI runs.
+Pylance's own type-checking is turned off in `pyproject.toml [tool.pyright]` so
+the editor is never stricter than CI (ADR 0033); its completion and navigation
+are unaffected.
+
 ## 3. Verify the setup
 
 Run the fast checks. The test suite is QM-light, so it needs no Docker.

@@ -57,6 +57,6 @@ holds only at zero net charge) should be reported only where the condition holds
 and left empty — not zero, not a condition-violating value — everywhere else; an
 empty cell states "undefined here" honestly, whereas a fabricated number is a
 silent artifact downstream consumers cannot distinguish from a real measurement.*
-A candidate for `base/core/quality.md` (the same fail-honest-not-silent family as
-ADR 0025's convergence guard); to be judged against the existing quality-doc
-issues in the end-of-session upstream audit rather than filed blind.
+The same fail-honest-not-silent family as ADR 0025's convergence guard, applied
+to reporting rather than computing. Filed upstream against `base/core/quality.md`
+as `solid-ai-templates#827`.
