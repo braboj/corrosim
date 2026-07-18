@@ -1,0 +1,11 @@
+{
+  // Extensions that make the editor mirror corrosim's CI gates: mypy and ruff
+  // as live diagnostics, on the standard Python + Pylance base. VSCode prompts
+  // to install these on first open.
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.mypy-type-checker",
+    "charliermarsh.ruff"
+  ]
+}
