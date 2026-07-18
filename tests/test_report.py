@@ -40,6 +40,34 @@ def test_results_dataframe_omits_dipole_when_absent():
     assert "Dipole (D)" not in labels
 
 
+def test_transposed_table_html_escapes_free_text():
+    # #264: molecule-name headers and cell values are free text and must be
+    # HTML-escaped at the render boundary, not injected as raw markup.
+    from corrosim.report.report import _transposed_table_html
+
+    html = _transposed_table_html(["Descriptor", "a<b>&c"], [["Formula", "x<y&z"]])
+    assert "a&lt;b&gt;&amp;c" in html          # header escaped
+    assert "x&lt;y&amp;z" in html              # cell escaped
+    assert "a<b>&c" not in html                # no raw free text injected
+
+
+def test_build_html_report_escapes_metal_and_medium(tmp_path):
+    # #264: a substrate/medium carrying HTML-special characters is escaped in the
+    # header rather than injected as raw markup (defense-in-depth, gallery
+    # parity). Escaping is a no-op on the real case data (no name/medium contains
+    # < > &), so this pins the behaviour without changing any shipped bundle.
+    df = pd.DataFrame([_descr_row("quercetin", 4.0, 2.0),
+                       _descr_row("kaempferol", 4.4, 2.2)])
+    out = tmp_path / "screen.html"
+    report.build_html_report(df, metal="Fe<b>", medium="HCl & H2O",
+                             level="B3LYP", out_path=str(out),
+                             generated_at="2026-01-01 00:00")
+    html = out.read_text(encoding="utf-8")
+    assert "Fe&lt;b&gt;" in html
+    assert "HCl &amp; H2O" in html
+    assert "Fe<b>" not in html                 # raw tag not injected
+
+
 def test_top_donor_sites_of_element_picks_highest_f_minus():
     rows = [
         {"idx": 0, "symbol": "O", "f_minus": 0.02},

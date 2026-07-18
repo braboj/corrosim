@@ -10,6 +10,7 @@ import datetime
 import io
 import os
 import re
+from html import escape
 from typing import Any, NamedTuple
 
 # Backend auto-selected: inline in Jupyter, Agg when headless
@@ -144,7 +145,7 @@ def build_html_report(df: pd.DataFrame, metal: str, medium: str, level: str,
     ranked = rank_inhibitors(df)
     html = _HTML.format(
         style=_REPORT_CSS,
-        metal=metal, medium=medium, level=level,
+        metal=escape(metal), medium=escape(medium), level=escape(level),
         ts=generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
         caveat=("These molecules are documented major constituents of the extract, "
                 "simulated as representatives — not a verified profile of your specific "
@@ -187,13 +188,19 @@ def _img_block(figdir: str, fname: str, caption: str = "") -> str:
     b64 = _img_b64_file(figure_path(figdir, fname))
     if not b64:
         return f'<p class="meta">[figure not found: {fname}]</p>'
-    cap = f"<figcaption>{caption}</figcaption>" if caption else ""
+    cap = f"<figcaption>{escape(caption)}</figcaption>" if caption else ""
     return (f'<figure><img src="data:image/png;base64,{b64}">{cap}</figure>')
 
 
 def _inline(text: str) -> str:
-    """Render the shared content's ``**bold**`` markup to inline HTML."""
-    return "".join(f"<b>{t}</b>" if b else t for t, b in _content.inline_runs(text))
+    """Render the shared content's ``**bold**`` markup to inline HTML.
+
+    The shared prose is HTML-agnostic and weaves in free text (molecule names,
+    the metal), so escape each run here — this is the HTML boundary for that
+    prose, the way the Word renderer's ``add_run`` is its own escaping boundary.
+    """
+    return "".join(f"<b>{escape(t)}</b>" if b else escape(t)
+                   for t, b in _content.inline_runs(text))
 
 
 def _number_headings(html: str) -> str:
@@ -244,7 +251,7 @@ def _acid_cation_block(acid_cation_rows: list[dict] | None, medium: str) -> list
     return [
         "<h3>Species in the acidic medium (protonated cation)</h3>",
         _descriptor_table_html(results_dataframe(acid_cation_rows)),
-        f'<p class="meta">Protonated +1 cation descriptors in {medium}; a '
+        f'<p class="meta">Protonated +1 cation descriptors in {escape(medium)}; a '
         "component of the pH-weighted canonical basis (see the Summary), shown "
         "here on its own.</p>",
     ]
@@ -295,7 +302,7 @@ def _computed_pka_block(computed_pkah: list[dict] | None,
     if not computed_pkah:
         return []
     head = "<th></th>" + "".join(
-        f"<th>{display_name(r['name'])}</th>" for r in computed_pkah)
+        f"<th>{escape(display_name(r['name']))}</th>" for r in computed_pkah)
     row_pkah = "<th>computed pKaH</th>" + "".join(
         f"<td>{r['pkah']:.1f}</td>" for r in computed_pkah)
     row_prot = "<th>% protonated @ this pH</th>" + "".join(
@@ -322,7 +329,7 @@ def _speciation_block(summary: dict | None, medium: str,
         return []
     spec = summary["speciation"]
     return [
-        f"<h3>Speciation in {medium} (pH ≈ {spec.ph:.1f})</h3>",
+        f"<h3>Speciation in {escape(medium)} (pH ≈ {spec.ph:.1f})</h3>",
         f'<p class="meta"><b>{spec.f_neutral:.0%} neutral / '
         f"{spec.f_protonated:.0%} protonated</b> at this pH — the "
         f"{spec.dominant} form dominates. Population-weighted descriptors "
@@ -525,15 +532,20 @@ def _transposed_table_html(
                 if highlight_col is not None and entity_idx == highlight_col
                 else "")
 
-    head = f"<th>{headers[0]}</th>" + "".join(
-        f"<th{cls(j)}>{h}</th>" for j, h in enumerate(headers[1:]))
+    # Escape the free-text cells (molecule-name headers, formula and value
+    # strings) here at the HTML boundary; the ``cls``/``mark`` spans are trusted
+    # markup added outside the escaped text. The shared descriptor_matrix /
+    # ranking_matrix builders stay un-escaped so the Word renderer, which
+    # escapes via python-docx, does not double-escape.
+    head = f"<th>{escape(headers[0])}</th>" + "".join(
+        f"<th{cls(j)}>{escape(h)}</th>" for j, h in enumerate(headers[1:]))
     body_rows = []
     for i, r in enumerate(rows):
         win = winners[i] if winners is not None else None
-        cells = "<th>" + r[0] + "</th>"
+        cells = "<th>" + escape(r[0]) + "</th>"
         for j, v in enumerate(r[1:]):
             mark = ' <span class="win">✓</span>' if j == win else ""
-            cells += f"<td{cls(j)}>{v}{mark}</td>"
+            cells += f"<td{cls(j)}>{escape(str(v))}{mark}</td>"
         body_rows.append(f"<tr>{cells}</tr>")
     return (f'<div class="tw"><table><thead><tr>{head}</tr></thead>'
             f"<tbody>{''.join(body_rows)}</tbody></table></div>")
@@ -759,8 +771,9 @@ def _header_section(metal: str, medium: str, prep: PreparedReport,
     ts = generated_at or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     return [
         "<h1>corrosim — multiscale corrosion-inhibitor report</h1>",
-        f'<p class="meta">Substrate <b>{metal}</b> &nbsp;|&nbsp; Medium <b>{medium}</b>'
-        f' &nbsp;|&nbsp; DFT level <b>{prep.level}</b>'
+        f'<p class="meta">Substrate <b>{escape(metal)}</b> &nbsp;|&nbsp; '
+        f"Medium <b>{escape(medium)}</b>"
+        f' &nbsp;|&nbsp; DFT level <b>{escape(prep.level)}</b>'
         f" &nbsp;|&nbsp; Generated {ts}</p>",
         f'<div class="note">{_content.HEADLINE_CAVEAT}</div>',
     ]
@@ -841,8 +854,10 @@ def _lead_by_basis_block(ensemble: RankingEnsemble) -> list[str]:
     v = ensemble.verdict
     if v.n_bases < 2:
         return []
-    body = "".join(f"<tr><th>{lbl}</th><td>{display_name(lead)}</td></tr>"
-                   for lbl, lead in ensemble.lead_by_basis())
+    body = "".join(
+        f"<tr><th>{escape(lbl)}</th>"
+        f"<td>{escape(display_name(lead))}</td></tr>"
+        for lbl, lead in ensemble.lead_by_basis())
     note = _content.robustness_note(v.robust, v.n_bases)
     return [
         '<div class="tw"><table><thead><tr><th>Ranking basis</th>'
@@ -908,7 +923,8 @@ def _fukui_section(prep: PreparedReport, figdir: str) -> list[str]:
     they are h3 subsections here, not separate pipeline stages.
     """
     fukui_summary = (
-        "<ul>" + "".join(f"<li><b>{n}</b>: {s}</li>" for n, s in prep.fukui_items)
+        "<ul>" + "".join(f"<li><b>{escape(n)}</b>: {s}</li>"
+                         for n, s in prep.fukui_items)
         + "</ul>" if prep.fukui_items else '<p class="meta">No Fukui data found.</p>')
     return [
         "<h3>Local reactivity (Fukui)</h3>",
@@ -953,7 +969,7 @@ def _method_section(level: str) -> list[str]:
     """Method & caveats footer."""
     return [
         "<h2>Method &amp; caveats</h2>",
-        f'<p class="meta">DFT level: {level}. {_content.METHOD_CAVEAT}</p>',
+        f'<p class="meta">DFT level: {escape(level)}. {_content.METHOD_CAVEAT}</p>',
     ]
 
 
