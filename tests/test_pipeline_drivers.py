@@ -165,6 +165,18 @@ def test_run_pka_persists_to_case_results_by_default(tmp_path, monkeypatch):
     assert json.loads(out.read_text())[0]["name"] == "kaempferol"
 
 
+def test_make_pages_builds_gallery_site(tmp_path):
+    # #266: the Pages driver wires the tracked case reports into a site with an
+    # index; smoke-test its arg parsing + wiring (no QM engine, reads the
+    # committed report bundles).
+    from corrosim.runs import make_pages
+
+    rc = make_pages.main(["--out", str(tmp_path)])
+    assert rc == 0
+    assert (tmp_path / "index.html").exists()
+    assert (tmp_path / "arghel.html").exists()   # the shipped study is copied
+
+
 def test_run_pka_opt_basis_inherits_case_basis(tmp_path, monkeypatch):
     # #269: an unset --opt-basis inherits the case basis so a halogen case runs
     # a bromine-capable set, not the light-element 6-31G(d) that lacks Br.
