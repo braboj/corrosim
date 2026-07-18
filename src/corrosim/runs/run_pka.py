@@ -204,8 +204,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--freq", action="store_true",
                    help="Add the ZPE/thermal/entropy correction from a "
                         "gas-phase opt+frequency calc (slow; QM container).")
-    p.add_argument("--opt-basis", default="6-31G(d)",
-                   help="Basis for the --freq gas opt+frequency step.")
+    p.add_argument("--opt-basis", default=None,
+                   help="Basis for the --freq gas opt+frequency step; unset "
+                        "uses the --case study's basis so a halogen case runs "
+                        "a bromine-capable set (the light-element 6-31G(d) "
+                        "lacks Br).")
     p.add_argument("--opt-xc", default="b3lyp")
     p.add_argument("--tight", action="store_true",
                    help="Drive each --freq geometry to a true minimum: finer "
@@ -218,6 +221,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "aqueous SCF cycle is never computed-and-discarded.")
     args = p.parse_args(argv)
     case = resolve_case(args)
+
+    # The gas opt+frequency basis inherits the case basis when unset, mirroring
+    # the --basis pass-through, so a halogen case runs a Br-capable set rather
+    # than the light-element 6-31G(d) default that has no bromine.
+    if args.opt_basis is None:
+        args.opt_basis = case.basis
 
     # Persist by default, like every other stage driver: an unset --out-json
     # routes to the case's own results dir so a bare run does not lose the
