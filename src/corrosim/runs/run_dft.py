@@ -1,7 +1,7 @@
-"""corrosim.runs.run_dft  (M1 driver).
+"""corrosim.runs.run_dft.
 
 Production DFT descriptor matrix for the Arghel flavonoids — the foundation for
-the article (see docs/local/article-plan.local.md, milestone M1).
+the article.
 
 Runs the adopted level (B3LYP/6-311++G(d,p) + ddCOSMO water) over
 
@@ -327,7 +327,7 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     p = argparse.ArgumentParser(
         prog="corrosim-run-dft",
-        description="Production DFT descriptor matrix (M1).",
+        description="Production DFT descriptor matrix.",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     add_molecules_arg(p)
     add_case_arg(p)
@@ -362,8 +362,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--select-engine", default="xtb",
                    help="Fast engine for protonation-site selection.")
     p.add_argument("--optimize", action="store_true",
-                   help="DFT-relax each geometry before the single point (M1 "
-                        "refinement).")
+                   help="DFT-relax each geometry before the single point.")
     p.add_argument("--check-minimum", action="store_true",
                    help="Verify each optimised geometry is a true minimum: run "
                         "a vibrational-frequency check and record n_imag "
@@ -573,7 +572,7 @@ def _write_outputs(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entry point: compute the production DFT descriptor matrix (M1).
+    """CLI entry point: compute the production DFT descriptor matrix.
 
     Args:
         argv: Command-line arguments (defaults to ``sys.argv``).

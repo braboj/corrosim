@@ -1,4 +1,4 @@
-"""corrosim.runs.make_figures  (M5).
+"""corrosim.runs.make_figures.
 
 Regenerate the full manuscript figure set into the case's
 cases/<case>/report/figures/ subtree. Reads the committed data

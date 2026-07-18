@@ -1,4 +1,4 @@
-"""corrosim.runs.compare_geometry  (M1 refinement — validation).
+"""corrosim.runs.compare_geometry.
 
 Quantify how the DFT geometry optimisation (run_dft --optimize) changes the
 descriptors relative to the force-field geometry, and check that the inhibitor

@@ -1,4 +1,4 @@
-"""corrosim.runs.make_cubes  (M5 — QM container step).
+"""corrosim.runs.make_cubes (QM container step).
 
 Generate the volumetric cubes the 3D figures need: HOMO/LUMO orbitals and the
 electron-density + electrostatic-potential pair for the ESP map. This is the

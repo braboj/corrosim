@@ -100,6 +100,9 @@ source = ["corrosim"]
 omit = [
     "src/corrosim/qm/engines.py",
     "src/corrosim/qm/fukui.py",
+    "src/corrosim/qm/cubes.py",
+    "src/corrosim/qm/_backend_pyscf.py",
+    "src/corrosim/qm/_backend_tblite.py",
     "src/corrosim/runs/run_dft.py",
     "src/corrosim/runs/run_fukui.py",
     "src/corrosim/runs/run_pka.py",
