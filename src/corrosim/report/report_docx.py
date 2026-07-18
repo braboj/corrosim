@@ -343,10 +343,10 @@ def _mc_section(d: _Doc, figdir: str, names: list[str]) -> None:
 
 def _md_section(d: _Doc, prep: PreparedReport, figdir: str,
                 names: list[str]) -> None:
-    """Brownian-MD metal-O RDF subsection."""
-    d.heading(f"Brownian MD ({prep.m_elem}-O RDF)", level=1)
+    """Brownian-MD metal-donor RDF subsection."""
+    d.heading(f"Brownian MD ({prep.m_elem}-donor RDF)", level=1)
     for n in names:
-        d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-O RDF")
+        d.figure(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}-donor RDF")
 
 
 def _method_section(d: _Doc, prep: PreparedReport) -> None:

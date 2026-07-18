@@ -65,11 +65,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         r = run_md(m, metal=args.metal, n_steps=args.steps, equil=args.equil,
                    temperature=args.temperature, seed=args.seed,
                    start_positions=mc.best_positions)
+        # metal_O/N_peak_A stay for backward compatibility; any other donor the
+        # molecule carries (S/P/halogen) adds its own metal_<elem>_peak_A key.
+        extra_donors = {f"metal_{e}_peak_A": p
+                        for e, p in r.first_peak_metal.items()
+                        if e not in ("O", "N")}
         summary.append(dict(name=name, metal=r.metal,
                             surface=f"{r.metal}{r.surface}",
                             e_mean_kjmol=r.e_mean_kjmol,
                             metal_O_peak_A=r.first_peak_metal_O,
-                            metal_N_peak_A=r.first_peak_metal_N))
+                            metal_N_peak_A=r.first_peak_metal_N,
+                            **extra_donors))
         stderr_log(f"  <E> = {r.e_mean_kjmol:.1f} kJ/mol | "
                    f"{r.metal}-O peak {r.first_peak_metal_O} Å")
 

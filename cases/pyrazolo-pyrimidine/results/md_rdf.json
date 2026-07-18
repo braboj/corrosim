@@ -3,23 +3,23 @@
     "name": "pyrazolopyrimidine propanoic acid",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.55,
-    "metal_O_peak_A": 3.8500000000000005,
+    "e_mean_kjmol": -2.13,
+    "metal_O_peak_A": 3.75,
     "metal_N_peak_A": 3.95
   },
   {
     "name": "pyrazolopyrimidine propanamide",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.29,
-    "metal_O_peak_A": 3.8500000000000005,
-    "metal_N_peak_A": 3.75
+    "e_mean_kjmol": -2.4,
+    "metal_O_peak_A": 3.95,
+    "metal_N_peak_A": 3.95
   },
   {
     "name": "pyrazolopyrimidine ethyl ester",
     "metal": "Fe",
     "surface": "Fe(110)",
-    "e_mean_kjmol": -1.58,
+    "e_mean_kjmol": -1.54,
     "metal_O_peak_A": 3.95,
     "metal_N_peak_A": 3.8500000000000005
   }

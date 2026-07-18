@@ -107,7 +107,7 @@ pitting (relevant to the *experiment*, not the simulation).
 | What we check | corrosim | Independent evidence | Match |
 |---|---|---|:-:|
 | Mechanism | physisorption (MC + MD) | Langmuir, physical adsorption (Mohammed 2014) | ✅ |
-| Contact regime | Fe–O RDF ≈ 3.5 Å | physisorption range | ✅ |
+| Contact regime | Fe–O RDF ≈ 3.0–3.25 Å | physisorption range | ✅ |
 | Efficacy | strong adsorber | IE up to 99.62 % (experiment) | ✅ |
 | Lead compound | quercetin | quercetin strongest (black-tea Fe(110) DFT) | ✅ |
 | Per-molecule order | quercetin > iso > kaempferol | not tested (extract only, no LC-MS) | ⏳ |
@@ -204,11 +204,11 @@ cheap proxy, and the production numbers tighten with the relaxed geometry (figur
 | Source | Method | Quercetin | Kaempferol |
 |---|---|---|---|
 | **corrosim (MC adsorption)** | UFF vdW, Metropolis/annealing pose search | −16.0 kJ/mol | −16.6 kJ/mol |
-| **corrosim (MD RDF)** | Brownian MD, Fe–O RDF first peak | 3.65 Å (physisorption) | 3.35 Å |
+| **corrosim (MD RDF)** | Brownian MD, Fe–O RDF first peak | 3.25 Å (physisorption) | 3.35 Å |
 | **Black tea extract study** (Mater. Chem. Phys., 2025) | DFT, periodic + dispersion | strongest constituent; ΔGads ≈ −20 kJ/mol (overall physicochemical ~−35) | weaker than quercetin |
 | **Lady's mantle study** (Results in Chemistry, 2025) | DFT/MC | — | strong adsorption confirmed (reference compound) |
 
-(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.75 Å. Full data: `cases/arghel/results/mc_adsorption.json`,
+(Isorhamnetin: MC −16.7 kJ/mol, RDF peak 3.15 Å. Full data: `cases/arghel/results/mc_adsorption.json`,
 `cases/arghel/results/md_rdf.json`; run `python -m corrosim.runs.run_mc` / `run_md`.)
 
 ### Experimental validation (Mohammed 2014)
@@ -241,7 +241,7 @@ thesis concludes **physical adsorption**.
 - **Medium and substrate** (1 M HCl on mild steel) match the corrosim model exactly.
 - **Mechanism** (physisorption with a Langmuir isotherm) is exactly what corrosim
   predicts independently (MC E_ads ≈ −16 kJ/mol; MD Fe–O RDF at
-  ~3.5 Å, the physisorption range).
+  ~3.0–3.25 Å, the physisorption range).
 - **Efficacy:** the extract is a genuinely strong inhibitor (up to 99.62 %),
   supporting Arghel flavonoids as effective mild-steel inhibitors in acid.
 
@@ -274,8 +274,9 @@ residual charge-transfer contribution that corrosim's classical vdW level omits
   (−20 to −35 kJ/mol); full rotational sampling finds the high-contact poses the
   height scan missed. It remains a *physisorption* proxy (UFF van der Waals, no
   charge transfer / water displacement), consistent with the Fe–O RDF peaking at
-  ~3.3–3.8 Å (the > 3.5 Å physisorption range) and with experimental reports of
-  physical adsorption. The residual gap to the DFT free energy is the
+  ~2.95–3.25 Å at a weak (few-kJ/mol) interaction energy — a close vdW contact,
+  not a chemical bond — and with experimental reports of physical adsorption.
+  The residual gap to the DFT free energy is the
   charge-transfer/chemisorption contribution, which the LAMMPS EAM+GAFF
   hand-off (or periodic DFT) would add.
 
@@ -346,8 +347,8 @@ below):
 
 - **MC adsorption** (Fe(110)): E_ads = −0.12 eV (−11.5 kJ/mol), lying flat ≈ 2.3 Å
   above the slab.
-- **MD Fe–O RDF**: first peak at 3.25 Å (no Fe–N peak; phytic acid carries no
-  nitrogen).
+- **MD Fe–donor RDF**: Fe–O first peak at 3.25 Å plus an Fe–P peak at 3.95 Å
+  from the phosphate cores (no Fe–N peak; phytic acid carries no nitrogen).
 
 **Reading it: a different inhibitor archetype from the flavonoids.** Phytic acid
 is *saturated* (no π system), so B3LYP gives it a large gap (7.3 eV) and a modest
@@ -459,15 +460,15 @@ column below):
 - **MC adsorption** (Fe(110), UFF van-der-Waals): E_ads −20.4 kJ/mol (acid) >
   −15.6 (amide) > −8.8 (ester), each lying ≈ 2.2 Å above the slab. Ranking
   **1 > 2 > 3**.
-- **MD metal–O RDF**: first peak 3.85 Å (acid, amide) or 3.95 Å (ester), with a
-  metal–N peak at 3.75 to 3.95 Å for all three. Outer-sphere, physisorption-range
-  contact.
+- **MD metal–donor RDF**: metal–O first peak 3.75 Å (acid) or 3.95 Å (amide,
+  ester), with a metal–N peak at 3.85 to 3.95 Å for all three. Outer-sphere,
+  physisorption-range contact.
 
 **Reading it: the lead reproduces, the full order and the margins do not.** The
 absolute frontier levels reproduce the paper (computed HOMO −6.18 to −6.22 eV
 against reported −6.21 to −6.26 eV), and the reactivity regime matches: χ ≈ 4 eV,
 all three ΔN between +0.18 and +0.19 (below 3.6, i.e. net electron donation to
-Fe), back-donation negative, and MD metal–O/N contact at 3.8 to 4.0 Å (outer-
+Fe), back-donation negative, and MD metal–O/N contact at 3.75 to 3.95 Å (outer-
 sphere physisorption). On the composite descriptor score (aqueous electro-
 negativity, hardness, softness, z-scored), corrosim ranks **3 > 1 > 2** and so
 picks the **ethyl ester (cmpd 3) as the lead, matching the paper's reported
@@ -622,9 +623,10 @@ gas/neutral:**
 
 - **MC adsorption** (Al(111), UFF van-der-Waals): E_ads −130.2 kJ/mol (TMP) >
   −99.7 (SMX), lying 2.81 Å and 3.13 Å above the slab. Ranking **TMP > SMX**.
-- **MD metal–O RDF**: first peak 3.55 Å for both (metal–N 3.65 to 3.75 Å); mean
-  interaction energy −67.1 kJ/mol (TMP) vs −75.9 (SMX). Outer-sphere,
-  physisorption-range contact by the classical field.
+- **MD metal–donor RDF**: Al–O first peak 3.55 Å for both (Al–N 3.65 to 3.75 Å,
+  plus an Al–S peak at 3.95 Å for SMX's sulfonamide sulfur); mean interaction
+  energy −67.1 kJ/mol (TMP) vs −75.9 (SMX). Outer-sphere, physisorption-range
+  contact by the classical field.
 - **Local reactivity (Fukui and ESP).** The condensed Fukui map (fmo,
   B3LYP/6-31G(d)) and the ESP-on-density isosurface, now both shipped in the
   bundle (figs 4, 7, and the 2b HOMO/LUMO isosurfaces), localise the
@@ -786,8 +788,9 @@ aqueous, neutral:**
   -9.1 (PTZ), -10.3 (PMTZ) kJ/mol, lying 2.9 to 3.1 Å above the slab. Ranking
   **PMTZ > PTZ > ATZ > TZ**.
 - **MD metal-heteroatom RDF**: no oxygen in these rings, so the contact is
-  metal-N at 3.35 to 3.95 Å (physisorption range); mean interaction energy -0.7
-  (TZ) to -2.2 (PMTZ) kJ/mol, deepening in the same order.
+  metal-N at 3.35 to 3.45 Å (physisorption range), plus a Cu-S peak at 3.75 Å
+  for the mercapto derivative (its thiol sulfur); mean interaction energy -1.3
+  (TZ) to -2.9 (PMTZ) kJ/mol, deepening in the same order.
 - **Local reactivity (Fukui / ESP)**: the f- donor density and the electron-rich
   ESP lobe localise on the ring nitrogens and, for PMTZ, the mercapto sulfur (its
   extra soft-donor site), consistent with the paper's reactive-site analysis.
@@ -917,9 +920,9 @@ neutral:**
 - **MC adsorption** (Cu(111), UFF): 5e binds strongest at −10.5 kJ/mol, then a
   near-degenerate cluster 5c ≈ 5d ≈ 5b (−9.2 to −9.1) and 5a weakest (−7.7),
   lying 2.0 to 2.4 Å above the slab. Ranking **5e > (5c ≈ 5d ≈ 5b) > 5a**.
-- **MD metal-heteroatom RDF**: Cu–O first peak 3.35 to 3.75 Å, Cu–N 3.45 to
-  3.95 Å (physisorption range); mean interaction energy −0.9 (5e) to −1.9 (5d)
-  kJ/mol.
+- **MD metal-heteroatom RDF**: Cu–O first peak 3.25 to 3.65 Å, Cu–N 3.65 to
+  3.95 Å (physisorption range), plus a per-derivative Cu–halogen contact (F/Cl/
+  Br); mean interaction energy −2.3 to −2.8 kJ/mol.
 
 **Reading it: the lead adsorber reproduces, the fine order does not.** The one
 firm agreement is the most important observable: the paper ranks by adsorption,

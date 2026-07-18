@@ -471,14 +471,17 @@ def plot_rdf(result: MDResult, out: str | None = None) -> object:
     ax.axvline(3.5, color="grey", ls=":", lw=1)
     ax.text(3.52, 0.95, "3.5 Å (chemisorption cutoff)", fontsize=8,
             color="grey")
-    mo = np.asarray(result.rdf_metal_O)
-    if mo.any():
-        ax.plot(r, mo / mo.max(), color=C_HOMO,
-                label=f"{m}–O (peak {result.first_peak_metal_O} Å)")
-    mn = np.asarray(result.rdf_metal_N)
-    if mn.any():
-        ax.plot(r, mn / mn.max(), color=C_LUMO,
-                label=f"{m}–N (peak {result.first_peak_metal_N} Å)")
+    # One normalised curve per heteroatom donor the molecule carries (O/N/S/P/
+    # halogen), so a sulfur/phosphorus binder shows its actual contact, not a
+    # blank O/N pair.
+    palette = [C_HOMO, C_LUMO, "#d97706", "#7c3aed", "#0891b2", "#be123c",
+               "#65a30d"]
+    for (elem, rdf), color in zip(result.rdf_metal.items(), palette):
+        g = np.asarray(rdf)
+        if g.any():
+            peak = result.first_peak_metal.get(elem)
+            ax.plot(r, g / g.max(), color=color,
+                    label=f"{m}–{elem} (peak {peak} Å)")
     ax.set_xlabel("r (Å)")
     ax.set_ylabel("g(r) (normalised)")
     ax.set_title(f"{m}–X radial distribution — {result.metal}{result.surface}, "

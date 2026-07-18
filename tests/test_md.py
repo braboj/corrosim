@@ -66,48 +66,71 @@ def test_substrate_build_caches_metal_positions_and_top():
 
 # --- _RdfAccumulator ---------------------------------------------------------
 
-def _accumulator(o_idx: list[int], n_idx: list[int]) -> _RdfAccumulator:
+def _accumulator(donor_idx: dict[str, list[int]]) -> _RdfAccumulator:
     """An accumulator with one metal atom at the origin on a 0..3 Å grid."""
     edges = np.array([0.0, 1.0, 2.0, 3.0])
-    return _RdfAccumulator(o_idx=o_idx, n_idx=n_idx,
+    hist = {e: np.zeros(3) for e in donor_idx}
+    return _RdfAccumulator(donor_idx=donor_idx,
                            metal_positions=np.zeros((1, 3)), edges=edges,
-                           hist_o=np.zeros(3), hist_n=np.zeros(3))
+                           hist=hist)
 
 
 def test_rdf_accumulator_records_closest_contact_per_frame():
-    acc = _accumulator(o_idx=[0], n_idx=[])
+    acc = _accumulator({"O": [0]})
     # donor O at z=1.5 above the metal -> distance 1.5 -> bin [1, 2)
     acc.record(np.array([[0.0, 0.0, 1.5]]))
     assert acc.nframes == 1
-    assert acc.hist_o.tolist() == [0.0, 1.0, 0.0]
-    assert acc.hist_n.tolist() == [0.0, 0.0, 0.0]   # empty N set -> no counts
+    assert acc.hist["O"].tolist() == [0.0, 1.0, 0.0]
+    assert "N" not in acc.hist               # only the present donor is tracked
 
 
 def test_rdf_accumulator_normalized_divides_by_frame_count():
-    acc = _accumulator(o_idx=[0], n_idx=[])
+    acc = _accumulator({"O": [0]})
     acc.record(np.array([[0.0, 0.0, 1.5]]))
     acc.record(np.array([[0.0, 0.0, 1.5]]))
-    rdf_o, _ = acc.normalized()
-    assert rdf_o.tolist() == [0.0, 1.0, 0.0]        # 2 counts / 2 frames
+    assert acc.normalized()["O"].tolist() == [0.0, 1.0, 0.0]   # 2 counts/2 frames
 
 
 def test_rdf_accumulator_normalized_no_frames_is_zero_not_nan():
-    acc = _accumulator(o_idx=[0], n_idx=[0])
-    rdf_o, rdf_n = acc.normalized()                 # divide by max(0, 1) = 1
-    assert not np.isnan(rdf_o).any() and rdf_o.sum() == 0.0
-    assert not np.isnan(rdf_n).any()
+    acc = _accumulator({"O": [0], "N": [0]})
+    rdf = acc.normalized()                          # divide by max(0, 1) = 1
+    assert not np.isnan(rdf["O"]).any() and rdf["O"].sum() == 0.0
+    assert not np.isnan(rdf["N"]).any()
 
 
 def test_rdf_accumulator_bin_centres_are_edge_midpoints():
-    acc = _accumulator(o_idx=[], n_idx=[])
+    acc = _accumulator({})
     assert acc.bin_centres().tolist() == [0.5, 1.5, 2.5]
 
 
-def test_rdf_accumulator_for_donors_keys_o_and_n_indices():
+def test_rdf_accumulator_for_donors_keys_present_heteroatoms():
+    # #263: the donor set is derived from the molecule's heteroatoms, so a
+    # sulfur inhibitor tracks S (not just O/N), while carbon is ignored.
     sub = Substrate.build("Fe", (3, 3, 2), 10.0)
-    acc = _RdfAccumulator.for_donors(["O", "C", "N", "O"], sub)
-    assert acc.o_idx == [0, 3] and acc.n_idx == [2]
-    assert acc.hist_o.shape == acc.hist_n.shape and acc.nframes == 0
+    acc = _RdfAccumulator.for_donors(["O", "C", "N", "O", "S"], sub)
+    assert acc.donor_idx == {"O": [0, 3], "N": [2], "S": [4]}
+    assert "C" not in acc.donor_idx
+    assert set(acc.hist) == {"O", "N", "S"} and acc.nframes == 0
+
+
+def test_confine_clamps_centroid_onto_slab_footprint():
+    # #262: an adsorbate whose centroid wanders past the slab edge is pulled
+    # back over the footprint so it cannot diffuse off the finite patch.
+    from corrosim.adsorption.md import _confine
+
+    cell = np.diag([10.0, 10.0, 30.0])
+    out = _confine(np.array([[25.0, 5.0, 3.0]]), top=0.0, min_height=1.6,
+                   max_height=4.0, cell=cell)
+    assert 0.0 <= out[:, 0].mean() <= 10.0          # x centroid clamped
+    assert out[:, 1].mean() == 5.0                  # y already within footprint
+
+
+def test_run_md_tracks_a_sulfur_donor():
+    # #263: a sulfur-bearing inhibitor gets its S–metal contact measured, not
+    # just O/N, so its actual binding atom has an adsorption distance.
+    m = build_molecule("NC(=S)N")                   # thiourea: S + N donors
+    res = run_md(m, metal="Fe", n_steps=120, equil=40, seed=0)
+    assert "S" in res.first_peak_metal and "S" in res.rdf_metal
 
 
 # --- MDResult.from_run -------------------------------------------------------

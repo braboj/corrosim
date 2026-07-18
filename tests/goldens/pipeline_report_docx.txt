@@ -100,6 +100,6 @@ Kaempferol: O0 (f⁻=0.090), O4 (f⁻=0.070)
 Isorhamnetin: O0 (f⁻=0.090), O4 (f⁻=0.070)
 3.7 Electrostatic-potential (ESP) map
 4. Monte Carlo adsorption
-5. Brownian MD (Fe-O RDF)
+5. Brownian MD (Fe-donor RDF)
 6. Method & caveats
 DFT level: B3LYP/6-311++G(d,p) (ddCOSMO:water). Global descriptors come from the frontier-orbital energies via Koopmans' theorem; ΔN uses the metal work function with η(metal) = 0. The Monte-Carlo and Brownian-MD stages use a classical van-der-Waals adsorption model — a physics-based screening surrogate, not a substitute for periodic DFT or for electrochemical validation. The composite ranking is a heuristic that orders candidates; it does not prove inhibition. Full methodology: docs/pipeline.md; validation record: docs/validation.md.

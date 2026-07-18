@@ -962,10 +962,11 @@ def _mc_section(prep: PreparedReport, figdir: str) -> list[str]:
 
 
 def _md_section(prep: PreparedReport, figdir: str) -> list[str]:
-    """Brownian-MD metal-O RDF subsection."""
+    """Brownian-MD metal-donor RDF subsection."""
     return [
-        f"<h2>Brownian MD — {prep.m_elem}–O RDF</h2>",
-        _grid([_img_block(figdir, f"fig6_{n}_rdf.png", f"{n} — {prep.m_elem}–O RDF")
+        f"<h2>Brownian MD — {prep.m_elem}–donor RDF</h2>",
+        _grid([_img_block(figdir, f"fig6_{n}_rdf.png",
+                          f"{n} — {prep.m_elem}–donor RDF")
                for n in prep.df["name"]]),
     ]
 
