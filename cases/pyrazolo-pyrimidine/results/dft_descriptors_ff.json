@@ -24,7 +24,8 @@
     "tnc": -3.8126,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.3789209761555687
   },
   {
     "name": "pyrazolopyrimidine propanoic acid",
@@ -51,7 +52,8 @@
     "tnc": -4.0007,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 3.251517714194045
   },
   {
     "name": "pyrazolopyrimidine propanoic acid+H+",
@@ -78,7 +80,8 @@
     "tnc": -3.9452,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanoic acid+H+",
@@ -105,7 +108,8 @@
     "tnc": -4.2474,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanamide",
@@ -132,7 +136,8 @@
     "tnc": -4.0454,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 4.648910847766196
   },
   {
     "name": "pyrazolopyrimidine propanamide",
@@ -159,7 +164,8 @@
     "tnc": -4.2685,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 6.197538361819941
   },
   {
     "name": "pyrazolopyrimidine propanamide+H+",
@@ -186,7 +192,8 @@
     "tnc": -4.2535,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine propanamide+H+",
@@ -213,7 +220,8 @@
     "tnc": -4.5621,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine ethyl ester",
@@ -240,7 +248,8 @@
     "tnc": -4.3743,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 2.605294055983447
   },
   {
     "name": "pyrazolopyrimidine ethyl ester",
@@ -267,7 +276,8 @@
     "tnc": -4.5646,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 3.350790736910115
   },
   {
     "name": "pyrazolopyrimidine ethyl ester+H+",
@@ -294,7 +304,8 @@
     "tnc": -4.321,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "pyrazolopyrimidine ethyl ester+H+",
@@ -321,6 +332,7 @@
     "tnc": -4.7036,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   }
 ]

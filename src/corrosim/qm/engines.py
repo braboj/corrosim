@@ -487,7 +487,8 @@ def run_xtb(symbols: Sequence[str], coords: Coords,
 def run_pyscf(symbols: Sequence[str], coords: Coords,
               basis: str = "6-311++G(d,p)", xc: str = "b3lyp",
               solvent: str | None = "water",
-              charge: int = 0, density_fit: bool = False) -> EngineResult:
+              charge: int = 0, density_fit: bool = False,
+              chkfile: str | None = None) -> EngineResult:
     """DFT single point with PySCF.
 
     The default level B3LYP/6-311++G(d,p) + ddCOSMO(water) is corrosim's
@@ -507,6 +508,9 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
         charge: Net molecular charge.
         density_fit: Speed the SCF with density fitting (off by default; the RI
             approximation shifts the numbers).
+        chkfile: Optional path to persist the converged wavefunction (a PySCF
+            checkpoint of MO coefficients + occupations). When given, a later
+            density-derived property reloads it instead of repeating the SCF.
 
     Returns:
         The single-point :class:`EngineResult`.
@@ -514,6 +518,13 @@ def run_pyscf(symbols: Sequence[str], coords: Coords,
     level = _level_label(xc, basis, solvent)
     mf = build_rks(symbols, coords, basis, xc, charge, solvent,
                    density_fit=density_fit)
+    # Persist the converged wavefunction when asked, so a later density-derived
+    # property reloads it rather than repeating the SCF. Set on the mean field
+    # run_scf kernels (the ddCOSMO wrapper under a solvent); run_scf writes the
+    # checkpoint on convergence.
+    if chkfile:
+        os.makedirs(os.path.dirname(chkfile) or ".", exist_ok=True)
+        mf.chkfile = chkfile
     mf = run_scf(mf, label=level)
     e_total = mf.e_tot
     occ = mf.mo_occ

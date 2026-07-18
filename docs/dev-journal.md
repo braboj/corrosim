@@ -2512,4 +2512,119 @@ global agent-config file.
   bumped, since it would pull unrelated upstream changes; corrosim enforces the
   rule locally via ADR 0012 regardless). No active thread to resume.
 
+## 2026-07-17 (session 38): full code review, figure-title fixes, dipole descriptor, scheduled backfill
+
+A large session: a whole-codebase review, a figure-legibility pass, a new
+descriptor, and an overnight-scheduled backfill left running. One PR merged
+(#274); the density-capture code and the 5-case backfill are still in flight.
+
+- **Full code review + structural audit.** Fanned out 5 parallel review agents
+  (qm, adsorption, report, facade+runs, structure/tests) plus a direct pass.
+  Two HIGH findings: the ranking composite silently double-weights the gap
+  (`hardness = gap/2`, `softness = 2/gap`, so the "three descriptors" are one
+  degree of freedom), and `run_dft --forms protonated` overwrites the neutral
+  matrix (data loss) against its own help. Plus ~10 MEDIUM and ~23 LOW. Filed
+  17 issues #255-271 grouped under epic #272; no code fixes applied (review
+  only). Verified the two HIGH findings by hand before filing.
+- **Figure-title capitalization.** The client spotted lowercase panel titles.
+  Fixed `side` to `Fe(110) - side`, `atom indices` to `Atom indices`, the
+  protonation legend to `Neutral`/`Protonated`, and the ESP colorbar to
+  `Electrostatic potential`. fig2b (orbitals) and fig7 (ESP) were stale, still
+  showing pre-`display_name` lowercase molecule names, so they were
+  regenerated. Left the Fukui `f-`/`f+` legend and the RDF `r`/`g(r)` axis
+  labels lowercase as standard scientific notation. Three regression tests.
+- **Dipole-moment descriptor (Debye), #273.** New `EngineResult.dipole_debye`
+  from xTB and PySCF, free from the already-converged density. Reported for
+  neutral molecules only: the dipole is origin-independent for a neutral
+  species but gauge-dependent for an ion, so cation rows are left blank rather
+  than carrying an origin artifact (the isorhamnetin cation's 16 D value was the
+  tell). Surfaced in the descriptor row / CSV / report table (`Dipole (D)` row)
+  and `DESCRIPTOR_META`.
+- **arghel backfilled and merged (PR #274).** Squash `0f9849b` bundled the
+  figure-title fixes and the dipole feature. The arghel matrices got the dipole
+  as a clean TEXT-appended column (only the column added; every other value
+  byte-identical, no pandas float-reformat churn). 8/8 CI checks green.
+- **Density-checkpoint capability (uncommitted).** Added an optional
+  `run_pyscf(chkfile=...)` so the converged wavefunction persists; smoke-tested
+  in the container (gas and ddCOSMO both write, reload, and reproduce the
+  dipole exactly). The point: re-running an expensive SCF to read one derived
+  value while discarding the density forces a full re-run for the next derived
+  value, so persist the reusable state once you are paying for the SCF.
+- **Overnight scheduled backfill (in flight).** A time-gated orchestrator runs
+  the QM container ONLY 23:00-07:00, `docker stop` at 07:00 and resume at 23:00
+  via a per-molecule cache (so a stop mid-case loses at most one molecule),
+  saving density chkfiles, until the 5 remaining cases have the column. Started
+  08:20; it is a session-owned background process the client chose to test
+  across a session clear (it likely will not survive; see memory).
+- **No ADR this session.** The neutral-only-dipole rule and the
+  density-checkpoint capability are real decisions, but the feature is
+  mid-flight and uncommitted; record them as an ADR when the dipole feature and
+  the 5-case data land (next session). Upstream: none new filed; the
+  checkpoint/text-append patterns went to `engineering-know-how.md` (below).
+- **Gates:** 333 passed / 1 skipped; ruff and mypy clean.
+- **Know-how:** added "Persist the expensive intermediate, not just its
+  derived scalar" and "Add a column to a serialized dataset by text-append, not
+  a parse-rewrite" to `engineering-know-how.md`.
+- **Memory:** new [[dipole-backfill-scheduled-run]] with the verify/resume
+  checklist for the overnight run.
+- **Not committed:** the `run_pyscf` chkfile param (working tree on `main`) and
+  the untracked runner `_backfill_dipole.py` are left in place deliberately, so
+  the mounted container keeps working overnight; committing/branching now would
+  disturb that. They land next session with the 5-case data.
+
+**Pending:** the 5-case dipole backfill (tetrazoles, phytic-acid, tmp-smx,
+pyrazolylnucleosides, pyrazolo-pyrimidine) is scheduled overnight (23:00-07:00)
+via a session-owned orchestrator that probably did NOT survive the session
+clear. Next session: verify via `logs/dipole_orchestrator.log` and the per-case
+`dipole_debye` column (see [[dipole-backfill-scheduled-run]]); if dead, relaunch
+`<scratchpad>/dipole_orchestrator.sh` or convert to Windows Task Scheduler
+(23:00 start / 07:00 stop). When all 5 finish: regenerate each report bundle so
+the `Dipole (D)` row shows, verify each diff adds ONLY the dipole column, remove
+`_backfill_dipole.py` + caches, and commit the `run_pyscf` chkfile param plus
+the 5-case data on a branch, then write the dipole/checkpoint ADR (part of #273).
+
+## 2026-07-18 (session 39): dipole backfill landed — 5-case data, report regen, ADRs 0031/0032
+
+- **Backfill was already complete.** The overnight mechanism did not matter in
+  the end: a manually-launched `corrosim_bf` container ran all five cases to
+  completion continuously well before the window, so the two Windows Task
+  Scheduler jobs were no-ops (the 23:00 start hit a name conflict against the
+  still-present container; the 07:00 stop found none). Every non-arghel case now
+  carries `dipole_debye`, and 36 density checkpoints sit under `cubes/chk/`
+  (every neutral, gas + ddCOSMO, plus the FF and opt matrices for
+  pyrazolo-pyrimidine).
+- **Data verified, not just present.** Neutrals populated with physical values
+  (2-9.5 D, the ddCOSMO value larger than gas as solvent polarization enhances
+  the moment); every protonated cation row blank (ADR 0031); the bromo
+  nucleoside computed fine on its heavier-element basis. Cross-checked the column
+  is the only descriptor change.
+- **Report bundles regenerated with `make_report` only, deliberately not
+  `make_figures`.** The dipole is a table-only descriptor (no figure reads it),
+  and `make_figures` re-runs the seeded-but-nonetheless-re-rendered MC/MD plots,
+  so running it would churn ~40 PNGs for zero dipole benefit and bury the real
+  change. Verified per case: the diff touches only `report.html`, `report.docx`,
+  and the two table CSVs; zero figures changed; and each `ranking.csv` is
+  byte-identical after dropping the dipole column (order and scores untouched,
+  since the dipole is a reported descriptor, not a ranking input).
+- **Scaffolding removed, density kept.** Deleted both scheduled tasks
+  (`corrosim_dipole_bf_start` / `_stop`), the untracked runner
+  `_backfill_dipole.py`, the scheduler wrappers under `logs/`, and the resume
+  caches. Kept `cubes/chk/` — it is the reusable persisted density, gitignored
+  and regenerable, the whole point of the checkpoint capability.
+- **Two ADRs, one concern each.** ADR 0031 (dipole reported for neutral species
+  only — the magnitude is origin-dependent for an ion, so a cation cell is left
+  empty rather than carrying a coordinate artifact) and ADR 0032 (the optional
+  `run_pyscf(chkfile=...)` that persists the converged wavefunction so a later
+  density-derived property reloads it instead of repeating the SCF). Both
+  Upstream lines point at the already-recorded know-how patterns and flag the
+  quality-doc candidate for the wrap audit.
+- **Gates:** engines.py carried unchanged from session 38 (which reported 333
+  passed, ruff + mypy clean); re-ran before staging (see below).
+
+**Pending:** commit the `run_pyscf` chkfile param + the five-case dipole data +
+regenerated report bundles + ADRs 0031/0032 on a branch and open a PR for #273
+(awaiting go-ahead). End-of-session audit still owes: judge/file the ADR 0031
+"report only where well-defined, blank otherwise" upstream candidate against the
+`base/core/quality.md` issues, and close #273 on merge.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

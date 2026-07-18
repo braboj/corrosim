@@ -1347,6 +1347,53 @@ def principal_frame(points):
 # transform the object AND every overlay by the same (p - c) @ rot.T
 ```
 
+### Compute and data pipelines
+
+#### Persist the expensive intermediate, not just its derived scalar
+
+A costly computation (a solver, a simulation, an optimisation) produces a rich
+internal state, and callers usually keep one scalar read off it. Discard the
+state and the next question about the same input forces a full re-run. When you
+are already paying for the computation, write the reusable state to a
+checkpoint; a later derived quantity then reloads and evaluates in seconds
+rather than recomputing.
+
+```python
+solver.checkpoint = f"{cache}/{key}.chk"   # set before the run
+solver.run()                               # writes state on convergence
+value_a = derive_a(solver.state)           # this run's scalar
+# ... later, a different question, no re-run:
+state = load_checkpoint(f"{cache}/{key}.chk")
+value_b = derive_b(state)
+```
+
+The checkpoint is regenerable, so it lives with the other regenerable artifacts
+(gitignored), and the hook is an opt-in parameter (default off) so cheap callers
+pay nothing. Validate the round-trip once on a small case, including any wrapper
+layer, before trusting a long batch to it: a decorator or proxy around the
+solver can quietly swallow the checkpoint attribute.
+
+#### Add a column to a serialized dataset by text-append, not a parse-rewrite
+
+To add one field to a large serialized table (CSV, TSV, JSONL), the obvious move
+is deserialize, add the field, reserialize. That reformats every existing value:
+a dataframe round-trip re-renders floats (17 significant digits become 16), so a
+one-column addition churns every cell and buries the real change in the diff.
+Append the field at the text level instead, keeping every existing byte intact,
+so the diff is exactly the new column.
+
+```python
+lines = open(path).read().splitlines()
+header, rows = lines[0], lines[1:]
+out = [f"{header},new_col"] + [f"{r},{value_for(i)}" for i, r in enumerate(rows)]
+open(path, "w", newline="\n").write("\n".join(out) + "\n")
+```
+
+Row order is the join: the appended values must follow the file's own row order,
+so drive them from the same records the file was written from. For a structured
+format, a key-insert preserves formatting the same way, as long as the writer
+that reads-modifies-writes is the one that produced the file.
+
 ## The shortlist
 
 If you take five things:

@@ -24,7 +24,8 @@
     "tnc": -6.4044,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 3.673678755539123
   },
   {
     "name": "trimethoprim",
@@ -51,7 +52,8 @@
     "tnc": -6.7411,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 5.477152126657514
   },
   {
     "name": "trimethoprim+H+",
@@ -78,7 +80,8 @@
     "tnc": -5.2439,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "trimethoprim+H+",
@@ -105,7 +108,8 @@
     "tnc": -5.6856,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "sulfamethoxazole",
@@ -132,7 +136,8 @@
     "tnc": -3.9149,
     "form": "neutral",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 7.204770227470257
   },
   {
     "name": "sulfamethoxazole",
@@ -159,7 +164,8 @@
     "tnc": -4.2799,
     "form": "neutral",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": 9.266674032568496
   },
   {
     "name": "sulfamethoxazole+H+",
@@ -186,7 +192,8 @@
     "tnc": -3.3724,
     "form": "protonated",
     "phase": "gas",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   },
   {
     "name": "sulfamethoxazole+H+",
@@ -213,6 +220,7 @@
     "tnc": -3.6144,
     "form": "protonated",
     "phase": "aqueous",
-    "geometry": "FF (MMFF)"
+    "geometry": "FF (MMFF)",
+    "dipole_debye": null
   }
 ]
