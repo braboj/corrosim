@@ -309,7 +309,7 @@ def _confine_pose(
 
 def run_mc(
     molecule: Molecule,
-    metal: str = "Fe",
+    metal: str,
     size: tuple[int, int, int] = (5, 5, 3),
     vacuum: float = 10.0,
     n_steps: int = 4000,

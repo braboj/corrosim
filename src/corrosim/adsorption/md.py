@@ -373,7 +373,7 @@ class _RdfAccumulator:
         return self.hist_o / norm, self.hist_n / norm
 
 
-def run_md(molecule: Molecule, metal: str = "Fe",
+def run_md(molecule: Molecule, metal: str,
            size: tuple[int, int, int] = (5, 5, 3), vacuum: float = 10.0,
            n_steps: int = 4000, equil: int = 1000, temperature: float = 298.0,
            seed: int = 0, D_t: float = 0.004, D_r: float = 0.004,

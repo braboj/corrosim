@@ -222,7 +222,7 @@ def plot_structures(names: Sequence[str], mols_per_row: int = 3,
 
 
 # --- Frontier molecular-orbital energy diagram -----------------------------
-def plot_mo_energy_diagram(rows: list[dict], metal: str = "Fe(110)",
+def plot_mo_energy_diagram(rows: list[dict], metal: str,
                            out: str | None = None) -> object:
     """HOMO/LUMO levels per molecule with the gap and the metal Fermi level.
 
