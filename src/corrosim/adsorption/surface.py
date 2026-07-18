@@ -75,7 +75,7 @@ EV_TO_KJMOL = 96.485
 MIN_PAIR_DISTANCE_A = 0.3
 
 
-def build_slab(metal: str = "Fe",
+def build_slab(metal: str,
                size: tuple[int, int, int] = (6, 6, 4),
                vacuum: float = 15.0) -> Atoms:
     """Build a periodic metal slab with the conventional inhibitor facet.

@@ -78,7 +78,7 @@ def place_molecule(slab: Atoms, symbols: Sequence[str], coords: npt.ArrayLike,
     return combined
 
 
-def build_adsorption_system(molecule: Molecule, metal: str = "Fe",
+def build_adsorption_system(molecule: Molecule, metal: str,
                             size: tuple[int, int, int] = (6, 6, 4),
                             vacuum: float = 15.0,
                             height: float = 2.5) -> AdsorptionSystem:
@@ -121,7 +121,7 @@ class AdsorptionEstimate(TypedDict):
     best_height_A: float | None
 
 
-def estimate_adsorption_energy(molecule: Molecule, metal: str = "Fe",
+def estimate_adsorption_energy(molecule: Molecule, metal: str,
                                size: tuple[int, int, int] = (5, 5, 3),
                                vacuum: float = 10.0,
                                heights: npt.ArrayLike | None = None,

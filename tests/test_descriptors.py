@@ -1,6 +1,15 @@
 import math
 
+import pytest
+
 from corrosim.qm.descriptors import METAL_WORK_FUNCTION, compute_descriptors
+
+
+def test_metal_is_required():
+    # #259: the silent Fe default is gone, so a caller must name the substrate
+    # rather than compute against iron unawares.
+    with pytest.raises(TypeError):
+        compute_descriptors(-6.0, -2.0)
 
 
 def test_descriptor_values():
@@ -17,7 +26,8 @@ def test_descriptor_values():
 
 
 def test_hardness_is_half_gap():
-    d = compute_descriptors(-5.3, -1.9)
+    # hardness = gap/2 is metal-independent, but metal is now required
+    d = compute_descriptors(-5.3, -1.9, metal="Fe(110)")
     assert math.isclose(d.hardness_ev, d.gap_ev / 2)
 
 

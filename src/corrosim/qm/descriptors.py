@@ -94,7 +94,7 @@ def total_negative_charge(charges: Sequence[float] | None) -> float | None:
 
 
 def compute_descriptors(homo_ev: float, lumo_ev: float,
-                        metal: str = "Fe(110)",
+                        metal: str,
                         phi_metal_ev: float | None = None) -> Descriptors:
     """Compute the global reactivity descriptors from the frontier energies.
 
