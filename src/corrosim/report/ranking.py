@@ -239,6 +239,10 @@ def build_ensemble(
                   for key, label, rows in specs if rows)
 
     # Canonical = the highest-priority basis present; the rest are sensitivity.
+    if not bases:
+        raise ValueError(
+            "build_ensemble: no molecules to rank — the descriptor set is "
+            "empty (every basis was filtered out).")
     canonical = max(bases, key=lambda b: _basis_priority(b.key))
 
     # Robust only when every basis names the same lead; otherwise the ordering

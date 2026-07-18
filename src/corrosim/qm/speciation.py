@@ -51,7 +51,14 @@ def protonation_fraction(ph: float,
     Returns:
         The protonated fraction in [0, 1].
     """
-    return 1.0 / (1.0 + 10.0 ** (ph - pkah))
+    exponent = ph - pkah
+
+    # 10**exponent overflows float64 (~1e308) past ~308; the site is then
+    # overwhelmingly deprotonated, so the protonated fraction is ~0. Guard the
+    # sharp edge rather than raise OverflowError.
+    if exponent > 300.0:
+        return 0.0
+    return 1.0 / (1.0 + 10.0 ** exponent)
 
 
 def pkah_for_fraction(ph: float, f_prot: float) -> float:

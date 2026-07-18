@@ -5,6 +5,7 @@ functions — mode selection and displacement — that need no QM engine; only t
 orchestration loop and the DFT calls around them do.
 """
 import numpy as np
+import pytest
 
 from corrosim.qm.engines import (
     AU_TO_DEBYE,
@@ -16,9 +17,23 @@ from corrosim.qm.engines import (
     min_check_fields,
     parse_gaussian_output,
     parse_orca_output,
+    require_virtual_orbital,
     write_gaussian_input,
     write_orca_input,
 )
+
+
+def test_require_virtual_orbital_passes_when_a_virtual_exists():
+    # a normal molecule has unoccupied orbitals -> no error, returns None
+    assert require_virtual_orbital(np.array([2.0, 2.0, 0.0, 0.0])) is None
+
+
+def test_require_virtual_orbital_raises_when_fully_occupied():
+    # #267: a fully occupied system has no LUMO; every LUMO-index site (run_xtb,
+    # run_pyscf, ORCA parse, FMO Fukui, orbital cubes) guards on this so a raw
+    # IndexError/ValueError never escapes.
+    with pytest.raises(ValueError, match="no virtual"):
+        require_virtual_orbital(np.array([2.0, 2.0]))
 
 
 def test_dipole_magnitude_debye_scales_atomic_units():

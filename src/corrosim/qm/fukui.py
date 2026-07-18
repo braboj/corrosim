@@ -30,7 +30,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .engines import resolve_memory_budget_mb, run_scf
+from .engines import (
+    require_virtual_orbital,
+    resolve_memory_budget_mb,
+    run_scf,
+)
 
 if TYPE_CHECKING:
     from corrosim.molecules import Molecule
@@ -127,7 +131,7 @@ class FukuiResult:
             The reconstructed result; ``basis`` is not carried in the rows and
             defaults to ``""``.
         """
-        n = max(r["idx"] for r in rows) + 1
+        n = (max(r["idx"] for r in rows) + 1) if rows else 0
         symbols = [""] * n
         f_plus = [0.0] * n
         f_minus = [0.0] * n
@@ -275,6 +279,7 @@ def compute_fukui(molecule: Molecule, basis: str = "6-31G(d)",
         mol, mf = _scf(sym, coords, q0, 0, basis, xc)
         S = mf.get_ovlp()
         homo = int(np.where(mf.mo_occ > 0)[0].max())
+        require_virtual_orbital(mf.mo_occ)
         # HOMO population -> donor sites; LUMO population -> acceptor sites
         f_minus = _atom_pop(mol, mf.mo_coeff[:, homo], S).tolist()
         f_plus = _atom_pop(mol, mf.mo_coeff[:, homo + 1], S).tolist()

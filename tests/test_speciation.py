@@ -20,6 +20,11 @@ def test_fraction_limits():
     assert protonation_fraction(ph=5, pkah=0) < 0.01        # pH >> pKaH -> neutral
 
 
+def test_fraction_extreme_exponent_returns_zero_not_overflow():
+    # #267: a huge pH - pKaH would overflow 10**x; guard returns ~0 protonated
+    assert protonation_fraction(ph=400.0, pkah=0.0) == 0.0
+
+
 def test_pkah_for_fraction_is_the_inverse():
     ph = 0.0
     for f in (0.03, 0.2, 0.5, 0.8):

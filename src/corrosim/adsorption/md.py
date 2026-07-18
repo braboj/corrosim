@@ -265,8 +265,12 @@ def _mean_energy(energies: list[float], equil: int) -> float:
 
     Returns:
         The mean energy (eV) over the post-equilibration steps, or over all
-        steps when the run is no longer than ``equil``.
+        steps when the run is no longer than ``equil``; NaN for an empty run.
     """
+    # A zero-step run has nothing to average; return NaN explicitly rather than
+    # let np.mean([]) emit a RuntimeWarning and return nan.
+    if len(energies) == 0:
+        return float("nan")
     if len(energies) > equil:
         return float(np.mean(energies[equil:]))
     return float(np.mean(energies))

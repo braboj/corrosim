@@ -45,6 +45,15 @@ def test_mean_energy_averages_all_when_run_not_longer_than_equil():
     assert _mean_energy([-1.0, -3.0], equil=2) == -2.0
 
 
+def test_mean_energy_empty_run_is_nan_without_warning():
+    # #267: a zero-step run must not emit a np.mean([]) RuntimeWarning
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")            # any RuntimeWarning fails
+        assert np.isnan(_mean_energy([], equil=0))
+
+
 # --- Substrate.build --------------------------------------------------------
 
 def test_substrate_build_caches_metal_positions_and_top():

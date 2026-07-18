@@ -48,6 +48,23 @@ def test_best_protonation_site_fails_loud_when_no_finite_energy(monkeypatch):
         protonation.best_protonation_site("x", select_engine="orca")
 
 
+def test_best_protonation_site_chains_last_exception(monkeypatch):
+    # #267: when every site is rejected, the terminal error chains the last
+    # cause, so a systematic engine import/config failure stays visible in the
+    # traceback rather than vanishing with no log sink.
+    monkeypatch.setattr(protonation, "enumerate_protonation_sites",
+                        lambda name: [0, 1])
+    boom = RuntimeError("engine import failed")
+
+    def _raise(name, idx):
+        raise boom
+
+    monkeypatch.setattr(protonation, "build_protonated", _raise)
+    with pytest.raises(RuntimeError, match="No usable protonation site") as ei:
+        protonation.best_protonation_site("x")
+    assert ei.value.__cause__ is boom
+
+
 def test_enumerate_sites_has_oxygens():
     # kaempferol (C15H10O6) has several protonatable O sites
     sites = enumerate_protonation_sites("kaempferol")

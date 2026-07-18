@@ -7,6 +7,7 @@ agrees on it, else the report calls a tie. These pin both paths.
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from corrosim.report import ranking
 
@@ -75,6 +76,13 @@ def test_single_basis_is_trivially_robust():
     assert ens.verdict.robust and ens.verdict.lead == "A"
     assert ens.verdict.n_bases == 1
     assert ens.canonical.key == "ff_neutral"
+
+
+def test_build_ensemble_empty_input_raises_clear_error():
+    # #267: an empty descriptor set must fail with a clear message rather than a
+    # cryptic "max() arg is an empty sequence" from deep in the ensemble build.
+    with pytest.raises(ValueError, match="no molecules to rank"):
+        ranking.build_ensemble([], None, None, None, None)
 
 
 def test_no_blend_basis_without_a_population_weight():
