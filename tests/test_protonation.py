@@ -1,11 +1,51 @@
+from types import SimpleNamespace
+
 import pytest
 
 from corrosim.molecules import (
+    Molecule,
     build_molecule,
     build_protonated,
     enumerate_protonation_sites,
 )
+from corrosim.qm import protonation
 from corrosim.qm.descriptors import total_negative_charge
+
+
+def _stub_site_screen(monkeypatch, energies_ev):
+    """Stub the protonation screen to yield one site per energy in ``energies_ev``.
+
+    Replaces the RDKit enumeration/build and the QM engine so the selection
+    logic is exercised QM-light: site ``i`` returns ``energies_ev[i]`` as its
+    conjugate-acid total energy (consumed in enumeration order).
+    """
+    monkeypatch.setattr(protonation, "enumerate_protonation_sites",
+                        lambda name: list(range(len(energies_ev))))
+    monkeypatch.setattr(protonation, "build_protonated",
+                        lambda name, idx: Molecule(
+                            name=f"{name}+H+", smiles="O", symbols=["O", "H"],
+                            coords=[(0.0, 0.0, 0.0), (0.0, 0.0, 0.97)],
+                            charge=1))
+    seq = iter(energies_ev)
+    monkeypatch.setattr(protonation, "run_engine",
+                        lambda *a, **k: SimpleNamespace(e_total_ev=next(seq)))
+
+
+def test_best_protonation_site_skips_nonfinite_and_picks_lowest(monkeypatch):
+    # A non-finite energy (an engine that reports no total energy) must be
+    # skipped for ranking, not silently kept — the lowest finite energy wins.
+    _stub_site_screen(monkeypatch, [float("nan"), -12.0, -11.0])
+    idx, cation = protonation.best_protonation_site("x", select_engine="xtb")
+    assert idx == 1                            # the -12.0 eV site, not site 0
+    assert cation.charge == 1
+
+
+def test_best_protonation_site_fails_loud_when_no_finite_energy(monkeypatch):
+    # orca/gaussian return nan e_total by design; ranking on nan used to keep
+    # the first-enumerated site silently. Now it raises rather than lying.
+    _stub_site_screen(monkeypatch, [float("nan"), float("nan")])
+    with pytest.raises(RuntimeError, match="no finite total energy"):
+        protonation.best_protonation_site("x", select_engine="orca")
 
 
 def test_enumerate_sites_has_oxygens():
