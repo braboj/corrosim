@@ -133,7 +133,7 @@ which is the authoritative, always-current list:
 
 | Path | Contents |
 | --- | --- |
-| **src/corrosim/** | Core package: CLI, molecules, medium, presets, and the fetch tool, plus the subsystem packages below. |
+| **src/corrosim/** | Core package: the `app.py` front door (dispatches `corrosim <command>` to screen / run-study / add-inhibitor, ADR 0030), CLI, molecules, medium, presets, and the fetch tool, plus the subsystem packages below. |
 | **src/corrosim/qm/** | Quantum layer: the DFT and xTB engines, reactivity descriptors, Fukui, pKa, speciation, and cube writers. |
 | **src/corrosim/adsorption/** | Metal surface, Monte Carlo pose search, and Brownian MD. |
 | **src/corrosim/report/** | Report builders (HTML and Word), ranking, figures, and the Pages gallery. |
@@ -200,6 +200,7 @@ the `qm` extra (`pip install -e ".[qm]"`).
 - [Pipeline: scientific basis](docs/pipeline.md)
 - [Validation: computational and experimental](docs/validation.md)
 - [Architecture decisions (ADRs)](docs/decisions/)
+- [Contributing guide](CONTRIBUTING.md): how to propose a change
 - [Onboarding guide](docs/ONBOARDING.md): setup for new contributors
 - [Operational playbook](docs/PLAYBOOK.md): day-to-day tasks and workflows
 - [Development journal](docs/dev-journal.md): session history

@@ -93,6 +93,7 @@ duplicate.
 | --- | --- |
 | `README.md` | Project overview, structure, setup, commands |
 | `CLAUDE.md` | AI agent context and project rules (this file) |
+| `CONTRIBUTING.md` | Contributor entry point; links the setup/workflow/style homes |
 | `docs/ONBOARDING.md` | Onboarding guide for new contributors |
 | `docs/user-journeys.md` | Actor-level paths through the tool (evaluate → screen → integrate) |
 | `docs/PLAYBOOK.md` | Operational reference for common tasks |

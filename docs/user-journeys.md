@@ -31,8 +31,9 @@ next step it leads to. For the exact runnable commands see
   (full).
 - **Notes:** The report inlines its figures, CSS, and equations, so it opens
   offline (see ADR 0006/0008, report bundle layout). The rebuild reads only the
-  tracked `cases/arghel/results/`, so it runs no DFT. A hosted showcase is planned
-  (see #68, GitHub Pages).
+  tracked `cases/arghel/results/`, so it runs no DFT. A hosted gallery of the
+  shipped cases is live at [braboj.me/corrosim](https://braboj.me/corrosim),
+  built in CI from the tracked reports.
 
 ## Journey 2 — Rank a shortlist fast
 
@@ -42,8 +43,8 @@ next step it leads to. For the exact runnable commands see
 - **Preconditions:** The xTB engine is available (Linux/macOS `pip install -e
   ".[qm]"`, or the container). Molecules are library names or SMILES.
 - **Steps:**
-  - Run `corrosim --inhibitors "kaempferol,quercetin,isorhamnetin" --engine xtb
-    --out report.html --csv results.csv`.
+  - Run `corrosim screen --inhibitors "kaempferol,quercetin,isorhamnetin"
+    --engine xtb --out report.html --csv results.csv`.
   - Batch a list with `--input molecules.csv`; add `--adsorption` for a UFF
     physisorption estimate; set `--metal` / `--medium` for a different system.
 - **Result:** A best-first ranking (CSV) plus a self-contained HTML report.
@@ -71,10 +72,10 @@ next step it leads to. For the exact runnable commands see
   extra on Linux/macOS). The metal is Fe, Cu, or Al; every atom has a UFF
   parameter (H, C, N, O, S, F, Cl, Br, P).
 - **Steps:**
-  - From flags: `corrosim-run-study --name my-study --molecules
+  - From flags: `corrosim run-study --name my-study --molecules
     "quercetin,benzotriazole,CCO" --metal Fe(110) --medium "1 M HCl"`, or
   - From a file: copy `examples/study.template.json`, edit it, and run
-    `corrosim-run-study --case ./my-study.json`.
+    `corrosim run-study --case ./my-study.json`.
 - **Result:** A full report bundle (DFT descriptors, Fukui, ESP, Monte Carlo
   adsorption, MD RDF) under `cases/<name>/report/`, plus the study definition at
   `cases/<name>/study.json`.
@@ -104,7 +105,7 @@ next step it leads to. For the exact runnable commands see
 - **Goal:** Reproduce a published system and compare corrosim against the paper.
 - **Preconditions:** The QM engines are available (container or `qm` extra).
 - **Steps:**
-  - Run `corrosim-run-study --case arghel` (or `phytic-acid`, `tetrazoles`,
+  - Run `corrosim run-study --case arghel` (or `phytic-acid`, `tetrazoles`,
     `tmp-smx`, `pyrazolylnucleosides`, `pyrazolo-pyrimidine`).
 - **Result:** The same report bundle as a user study, for a system whose reported
   values are on record.
@@ -131,17 +132,18 @@ next step it leads to. For the exact runnable commands see
   for the outputs.
 - **Steps:**
   - Pull-and-run the published image: `docker run --rm -v "$PWD/cases:/work/cases"
-    ghcr.io/braboj/corrosim corrosim-run-study --case arghel`, or
-  - Build locally: `docker compose run --rm qm corrosim-run-study --case arghel`.
+    ghcr.io/braboj/corrosim corrosim run-study --case arghel`, or
+  - Build locally: `docker compose run --rm qm corrosim run-study --case arghel`.
 - **Result:** The full study runs inside the container; outputs land in the host
   `cases/`.
 - **Success signal:** The same `[<stage>] running ...` / `study complete.` log as
   a native run, and the new `cases/<name>/` tree appearing on the host afterward.
-- **If it fails:** Until the first release is cut and the GHCR package is set
-  public, `docker pull` returns `denied` / `unauthorized`; build locally with
-  `docker compose` meanwhile. If the Docker daemon is down the client errors
-  before any run. Mounting a volume over `/work` (instead of `/work/cases`)
-  shadows the baked source and breaks `import corrosim`.
+- **If it fails:** If the Docker daemon is down the client errors before any
+  run. The published `ghcr.io/braboj/corrosim:latest` is public, so a `denied` /
+  `unauthorized` on `docker pull` points at a mistyped tag or an offline host;
+  build locally with `docker compose` meanwhile. Mounting a volume over `/work`
+  (instead of `/work/cases`) shadows the baked source and breaks
+  `import corrosim`.
 - **Next step:** Once a shipped case runs, the same command runs your own study
   (journey 3) with `--name ... --molecules ...` or a mounted `--case study.json`.
 - **Notes:** The DFT/xTB engines have no Windows wheels, so the container is the
@@ -156,7 +158,7 @@ next step it leads to. For the exact runnable commands see
 - **Preconditions:** Network access to PubChem (for a name/CAS lookup), or a
   known SMILES for an offline / air-gapped add.
 - **Steps:**
-  - Run `corrosim-add-inhibitor <name-or-CAS>` to fetch and append the entry, or
+  - Run `corrosim add-inhibitor <name-or-CAS>` to fetch and append the entry, or
   - Add it by hand to `src/corrosim/data/inhibitors.json`.
 - **Result:** The compound resolves by name in `--inhibitors` / `--molecules` and
   in a study.
