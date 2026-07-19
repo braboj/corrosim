@@ -2828,4 +2828,71 @@ pre-release caveats, #299 anchor the `.gitignore` `results.csv` rule, and #302
 plus #303 the two convention fixes). The highest-value single item is #300 (the
 LGPL NOTICE). No release pending.
 
+## 2026-07-19 (session 45): cleared the 360-audit backlog (#296-#307)
+
+Shipped every follow-up from the 2026-07-18 360-degree audit across four PRs and
+closed the tracking epic, so the backlog is empty again.
+
+- **Third-party NOTICE (#300, PR #311).** The published GHCR QM image
+  redistributes the weak-copyleft `ase` (LGPL-2.1+) and `tblite` (LGPL-3.0+) with
+  no attribution file. Added `THIRD_PARTY_NOTICES.md` at the repo root recording
+  the LGPL obligations in full plus permissive attributions, copied into the
+  image at `/licenses/` (outside the `/work` bind-mount, after the pip layer),
+  referenced from the README, and guarded by a test that parses the core + `qm`
+  deps from `pyproject` and fails if any is undocumented.
+- **Config hygiene (PR #312).** #298 pre-commit excludes re-anchored to
+  `cases/.*/(results|report)/.*` (root `results/`/`report/` matched nothing after
+  ADR-0018, so the hooks could rewrite the machine-generated `report.html`); #299
+  `.gitignore` `results.csv` anchored to `/results.csv` (dead `!examples/*.csv`
+  negation dropped); #307 `.dockerignore` now excludes `cubes/` and `cases/`.
+- **Docs currency (PR #313).** #296 refreshed `user-journeys.md` to the shipped
+  reality (live braboj.me/corrosim gallery, public image, unified `corrosim
+  <sub>` form); #305 surfaced the ADR-0030 `app.py` dispatcher in the README
+  structure row; #304 gave the git-workflow ruleset one home in CLAUDE.md 2.1
+  (PLAYBOOK 1 collapsed to a cross-reference); #301 added a public
+  `CONTRIBUTING.md` that links the single homes, indexed in CLAUDE.md 1.4 and the
+  README docs list.
+- **Code contract and CLI (PR #314).** #306 exposed `corrosim.__version__` from
+  `importlib.metadata` and wired `corrosim --version` / `-V` (resolved before the
+  leading-option screen shorthand); #302 added the missing `Raises:` to
+  `build_ensemble` (ValueError) and `build_adsorption_system` (KeyError, the only
+  exception actually reachable, since the facet lookup precedes `build_slab`);
+  #303 sentence-cased 15 block-starting comments.
+
+**Decision:** no new ADR. #304 applied the existing "one home, cross-reference"
+rule (CLAUDE.md 2.1 stays the home because those are rules the agent applies
+every turn and must be inline); `CONTRIBUTING.md` is a conventional public-project
+document; no new directory or new content home was created.
+
+**Gotcha:** `corrosim --version` reported a stale `0.1.0` even after
+`pip install -e .`, because a leftover gitignored `corrosim.egg-info` in the repo
+root shadowed the fresh `site-packages` `dist-info` (the repo root is on
+`sys.path`). Removed the stale egg-info; CI, wheel, and image installs are
+unaffected.
+
+**Gates:** pytest 370 passed / 1 skipped (+3 version, +3 NOTICE tests), ruff
+clean, mypy clean (44 files), complexipy clean (snapshot unchanged). CI on `main`
+green (CI / CodeQL / Pages). Submodule `docs/solid-ai-templates` current at
+`19facb5`.
+
+**Know-how:** distilled two generic patterns into `engineering-know-how.md` —
+"ship third-party attribution inside the redistributed artifact, guarded by a
+manifest-derived test" (Security, Licensing) and "derive the version from
+installed metadata, and purge stale in-tree metadata" (Packaging and
+reproducibility).
+
+**Template feedback:** both reusable and filed upstream — `solid-ai-templates#839`
+(add a redistribution-attribution rule to devsecops License compliance, P2) and
+`solid-ai-templates#840` (extend the python-lib `__version__` tip with the stale
+in-tree egg-info shadow, P3).
+
+**PRs merged:** #311, #312, #313, #314.
+
+**Issues closed:** #300, #296, #298, #299, #301, #302, #303, #304, #305, #306,
+and #307; epic #308 closed.
+
+**Pending:** none. Backlog empty (0 open corrosim issues/PRs). Optional next: the
+pre-existing em-dashes in `user-journeys.md` and `PLAYBOOK.md` prose are not yet
+de-em-dashed (no issue filed, out of the audit's scope). No release pending.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
