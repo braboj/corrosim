@@ -883,6 +883,36 @@ A regenerator also emits churn a VCS normalizes away — a line-ending flip on
 text output is the common one. Stage it and re-read the diff: if it vanishes
 after normalization it is not a real change and does not belong in the commit.
 
+#### Derive the version from installed metadata, and purge stale in-tree metadata
+
+Read the package version from the installed distribution metadata rather than
+duplicating the literal in code, so the packaging manifest stays the single
+source of truth.
+
+```python
+# src/mypkg/__init__.py
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("mypkg")
+except PackageNotFoundError:          # run from an uninstalled source tree
+    __version__ = "0.0.0+unknown"
+```
+
+An editable install reports a stale version after a manifest bump until you
+rerun `pip install -e .` — but that alone is not always enough. A leftover
+`*.egg-info` from an older build, sitting in the project root and gitignored,
+still wins on the import path because the current directory is on `sys.path`, so
+it shadows the freshly written `site-packages/*.dist-info`. The tell is a
+version that stays stale right after a reinstall. Delete the stale in-tree
+metadata dir; built artifacts (wheel, image) install clean and never hit this.
+
+```text
+  sys.path when run from the repo root:
+    .              ──►  ./mypkg.egg-info      (0.1.0, stale, gitignored)  wins
+    site-packages  ──►  mypkg-0.4.0.dist-info (fresh, correct)          shadowed
+```
+
 ## Infrastructure
 
 Build, CI/CD mechanics, and containers.
@@ -1116,6 +1146,35 @@ not just the tip. Run it in CI and as a pre-commit hook.
 
 Pin third-party CI actions to a tag, pin tool minors, and keep auxiliary tooling
 offline so CI never needs the network.
+
+### Licensing
+
+#### Ship third-party attribution inside the redistributed artifact
+
+Vetting a dependency's license before adding it is not the whole obligation. When
+you *redistribute* that dependency inside a built artifact you hand to users — a
+container image, a bundled desktop app, a fat jar — a permissive or weak-copyleft
+(LGPL/MPL) license requires you to carry its attribution with the copy. Ship a
+third-party notice file inside the artifact, at a stable path a runtime bind
+mount cannot shadow, placed after the expensive dependency layer so editing it
+does not bust the cache.
+
+```dockerfile
+RUN pip install -e ".[accel,dev]"        # the expensive layer
+# ship attribution at a fixed path outside any runtime bind-mount target
+COPY THIRD_PARTY_NOTICES.md /licenses/THIRD_PARTY_NOTICES.md
+```
+
+Guard the notice with a test that derives the required entries from the
+dependency manifest, so a newly added redistributed dependency fails the build
+until it is documented — attribution maintained only by hand silently rots.
+
+```python
+# every runtime + heavy-extra dependency must appear in the notice
+declared = names_from(manifest, "dependencies") | names_from(manifest, "accel")
+missing = [d for d in declared if not re.search(rf"\b{d}\b", notice, re.I)]
+assert not missing, f"THIRD_PARTY_NOTICES omits: {missing}"
+```
 
 ## Workflow
 
