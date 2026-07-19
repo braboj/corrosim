@@ -7,7 +7,7 @@ next step it leads to. For the exact runnable commands see
 [`examples/README.md`](../examples/README.md); for maintainer operations see
 [`docs/PLAYBOOK.md`](PLAYBOOK.md).
 
-## Journey 1 — See an example result
+## Journey 1: See an example result
 
 - **Actor:** Evaluator deciding whether the tool fits.
 - **Goal:** Look at a finished screening report without installing a quantum
@@ -35,7 +35,7 @@ next step it leads to. For the exact runnable commands see
   shipped cases is live at [braboj.me/corrosim](https://braboj.me/corrosim),
   built in CI from the tracked reports.
 
-## Journey 2 — Rank a shortlist fast
+## Journey 2: Rank a shortlist fast
 
 - **Actor:** Corrosion researcher triaging candidates.
 - **Goal:** Rank a handful of molecules by reactivity in seconds, before
@@ -63,7 +63,7 @@ next step it leads to. For the exact runnable commands see
   full multiscale pipeline is journey 3. Preview any run with `--plan`, which
   needs no engine (see examples/README.md, quick screen).
 
-## Journey 3 — Screen your own inhibitors end-to-end
+## Journey 3: Screen your own inhibitors end-to-end
 
 - **Actor:** Corrosion researcher.
 - **Goal:** Run the full multiscale study on your own molecules, metal, and
@@ -99,7 +99,7 @@ next step it leads to. For the exact runnable commands see
   names (resolved against the bundled library) or SMILES, so a novel compound
   needs no library edit; for a bromine set declare `basis: def2-SVP`.
 
-## Journey 4 — Reproduce a published validation case
+## Journey 4: Reproduce a published validation case
 
 - **Actor:** Researcher or reviewer assessing whether to trust the method.
 - **Goal:** Reproduce a published system and compare corrosim against the paper.
@@ -124,7 +124,7 @@ next step it leads to. For the exact runnable commands see
   dependency order rather than reimplementing them (see ADR 0022, full-study
   orchestrator).
 
-## Journey 5 — Run the pipeline with only Docker
+## Journey 5: Run the pipeline with only Docker
 
 - **Actor:** Windows user, or anyone avoiding a Python/toolchain setup.
 - **Goal:** Run the whole pipeline with only Docker installed.
@@ -151,7 +151,7 @@ next step it leads to. For the exact runnable commands see
   only `cases/` for outputs. The image is published per release (see
   `.github/workflows/release.yml`).
 
-## Journey 6 — Add an inhibitor to the library
+## Journey 6: Add an inhibitor to the library
 
 - **Actor:** Researcher extending the compound set.
 - **Goal:** Make a compound resolve by name across the CLI and the presets.
@@ -176,7 +176,7 @@ next step it leads to. For the exact runnable commands see
   the library entirely by passing a SMILES directly wherever a molecule is
   accepted.
 
-## Journey 7 — Call corrosim from a script
+## Journey 7: Call corrosim from a script
 
 - **Actor:** Developer integrating corrosim.
 - **Goal:** Run a screen programmatically and get structured results.
