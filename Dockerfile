@@ -38,6 +38,13 @@ ENV PYTHONPATH=/work/src
 # image can never ship silently.
 RUN python -c "import corrosim, pyscf, tblite"
 
+# Third-party license notices for the packages this image redistributes,
+# including the weak-copyleft ase (LGPL-2.1+) and tblite (LGPL-3.0+). Kept at
+# /licenses, outside the /work bind-mount, so the attribution ships in the
+# published image and stays visible regardless of any runtime volume. Placed
+# after the install layer so editing the notice does not rebuild the engines.
+COPY THIRD_PARTY_NOTICES.md /licenses/THIRD_PARTY_NOTICES.md
+
 # Default: confirm the quantum engines import.
 CMD ["python", "-c", "import pyscf, tblite, corrosim; \
 print('corrosim QM env OK | pyscf', pyscf.__version__, '| tblite ok')"]
