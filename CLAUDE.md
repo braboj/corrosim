@@ -13,7 +13,7 @@ references — the resolved `python-lib` chain and the extras used here:
 
 - `templates/base/core/quality.md`, `git.md`, `docs.md`, `readme.md`,
   `testing.md`, `config.md`, `oop.md`, `review.md`
-- `templates/base/workflow/quality-gates.md`, `scope.md`
+- `templates/base/workflow/quality-gates.md`, `scope.md`, `360.md`
 - `templates/stack/python-lib.md`
 
 Project-specific overrides and additions follow below.
@@ -98,6 +98,7 @@ duplicate.
 | `docs/PLAYBOOK.md` | Operational reference for common tasks |
 | `docs/dev-journal.md` | Development history and session log |
 | `docs/decisions/` | Architecture decision records (`NNN-slug.md`, one concern each) |
+| `docs/audits/` | Dated 360-degree audit reports (`YYYY-MM-DD-360.md`, ADR 0035) |
 | `docs/pipeline.md` | Scientific basis for the pipeline (project-specific) |
 | `docs/validation.md` | Computational and experimental validation (project-specific) |
 | `docs/engineering-know-how.md` | Transferable engineering patterns distilled from the codebase (generic) |
@@ -294,5 +295,9 @@ complete these corrosim-specific steps:
    longer stands on its own, it is project documentation, not know-how.
 4. Update `MEMORY.md`.
 5. Commit (conventional, with the trailer) and push only when asked.
+
+Periodically (before a release, after a milestone, or when gauging readiness),
+run a 360-degree audit per `360.md` and append the dated report to `docs/audits/`
+(ADR 0035); it is not an every-session step.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

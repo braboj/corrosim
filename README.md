@@ -142,7 +142,7 @@ which is the authoritative, always-current list:
 | **cases/** | One subtree per case study (shipped: `arghel`), each split into `results/` (data) and `report/` (bundle). |
 | **examples/** | Runnable CLI and Python examples with expected output. |
 | **tests/** | pytest suite (QM-light, fast). |
-| **docs/** | Pipeline, validation, onboarding, playbook, ADRs, and diagram sources. |
+| **docs/** | Pipeline, validation, onboarding, playbook, ADRs, 360-degree audits, and diagram sources. |
 | **Dockerfile, docker-compose.yml** | The `corrosim-qm` quantum environment. |
 
 ## Development setup

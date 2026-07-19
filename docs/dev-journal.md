@@ -2782,4 +2782,50 @@ deliberately out of scope per ADR 0029). Project at rest.
 bump the `solid-ai-templates` submodule pointer if/when a template refresh is
 wanted.
 
+## 2026-07-19 (session 44): first 360-degree audit + convention adopted
+
+Ran corrosim's first whole-project 360-degree audit against v0.4.0, per the
+`base-360` template's headless adaptation, and adopted the workflow as a project
+convention.
+
+- **The audit (PR #309).** Nine role-isolated lenses: three engineering reviewers
+  (docs consistency; CI/git/deps/security; code conventions) plus live gate runs
+  feeding six re-projected Quality dimensions, and dedicated Value, Viability, and
+  (light) Discovery reviewers. Every finding was cross-checked against the actual
+  files. Result: overall **B** (set by Discovery, the inherently thin marketing
+  surface of a niche research CLI; the engineering and product body grades A-/B+),
+  69 findings, **zero High or Critical**. The findings cluster as post-v0.4.0 doc
+  and tooling drift; the single most substantive is a compliance obligation, not a
+  defect. Persisted at `docs/audits/2026-07-18-360.md` (a new `docs/audits/`
+  tree), written to the project's prose rules (no em-dashes, no horizontal-rule
+  dividers) rather than the template's house typography.
+- **Adopted `base-360` (ADR 0035).** Added `workflow/360.md` to the referenced
+  chain, a `docs/audits/` row to CLAUDE.md §1.4, a PLAYBOOK §3.9 how-to, a README
+  structure-row mention, and a §6.3 periodic-audit note. The audit is periodic
+  (pre-release / post-milestone), not an every-session step. corrosim does not
+  wire the submodule's `SYS-07` location smoke check; the convention rests on the
+  ADR and review.
+- **Backlog re-opened.** Filed the 12 follow-ups as **#296-#307** under tracking
+  epic **#308**. The highest-value single item is **#300** (third-party NOTICE for
+  `ase` LGPL-2.1+ and `tblite` LGPL-3.0+, both redistributed inside the published
+  GHCR QM image with no attribution file); the rest are Minor/Nit doc, tooling,
+  and convention items.
+- **Cleared a stale gap.** #294 (submodule bump) and #295 (playbook runbook)
+  merged after the session-43 wrap with no journal entry, and the session-43
+  Pending line proposed the submodule bump that #294 had already done. Both are
+  acknowledged here, closing **#297**.
+- **Gates:** 364 passed / 1 skipped (unchanged, docs-only), ruff clean, mypy clean
+  (44 files), complexipy clean (max 11 / threshold 15). Submodule
+  `docs/solid-ai-templates` is current (local `19facb5` = upstream, bumped in
+  #294). Know-how: ran the distillation; no new standalone generic pattern this
+  session, the work exercised the existing `base-360` template (audit persistence,
+  the issues-created record, and per-finding traceability are all already upstream
+  in that template), so nothing was added or filed.
+
+**Pending:** the audit follow-ups #296-#307 (epic #308) are the open backlog. The
+cheapest resumption is the housekeeping cluster (#296 refresh `user-journeys.md`
+pre-release caveats, #299 anchor the `.gitignore` `results.csv` rule, and #302
+plus #303 the two convention fixes). The highest-value single item is #300 (the
+LGPL NOTICE). No release pending.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
