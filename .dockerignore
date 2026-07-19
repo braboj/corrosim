@@ -5,6 +5,11 @@ venv
 env
 # private notes + ~150 MB of PDFs — never send to the daemon
 docs/local/
+# regenerable volumetric cubes and per-case output trees: the Dockerfile copies
+# only pyproject.toml, README.md, THIRD_PARTY_NOTICES.md and src/, so these only
+# bloat the build context
+cubes/
+cases/
 **/__pycache__/
 *.py[cod]
 *.egg-info/

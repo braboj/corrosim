@@ -30,8 +30,9 @@ env/
 *.cif
 *.cube
 *_slab.xyz
-results.csv
-!examples/*.csv
+# Root-level run scratch, anchored so it never swallows a tracked
+# cases/<case>/results/*.csv (those are committed)
+/results.csv
 
 # zip exports of a case bundle are a redundant artifact (the report/ tree is
 # already tracked); keep the multi-MB archive out of git
