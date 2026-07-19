@@ -73,6 +73,7 @@ def _usage_text() -> str:
         "Run 'corrosim <command> --help' for a command's own options. A "
         "leading",
         "option ('corrosim --inhibitors ...') is shorthand for the screen.",
+        "Run 'corrosim --version' to print the installed version.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -101,6 +102,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     # No command, or an explicit top-level help request: show the command list.
     if not argv or argv[0] in ("-h", "--help"):
         _print_usage()
+        return 0
+
+    # A top-level version request, resolved before the leading-option screen
+    # shorthand below would route it into the screen parser.
+    if argv[0] in ("--version", "-V"):
+        from . import __version__
+
+        sys.stdout.write(f"corrosim {__version__}\n")
         return 0
 
     first = argv[0]

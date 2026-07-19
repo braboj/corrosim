@@ -235,6 +235,10 @@ def build_ensemble(
     Returns:
         The :class:`RankingEnsemble` (canonical basis + sensitivity bases +
         robustness verdict).
+
+    Raises:
+        ValueError: If the descriptor set is empty, i.e. every basis was
+            filtered out so there is nothing to rank.
     """
     # Build every basis the supplied rows support, in baseline-to-perturbation
     # display order (force-field before relaxed, neutral before blended).

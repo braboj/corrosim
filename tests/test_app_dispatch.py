@@ -5,8 +5,11 @@ engine needed); two --plan cases exercise the real subcommand parsers end to
 end."""
 from __future__ import annotations
 
+from importlib.metadata import version
+
 import pytest
 
+import corrosim
 from corrosim import app
 
 
@@ -81,3 +84,16 @@ def test_screen_plan_end_to_end(capsys):
     rc = app.main(["screen", "--inhibitors", "quercetin", "--plan"])
     assert rc == 0
     assert "quick screen" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flag", ["--version", "-V"])
+def test_version_flag_prints_the_version(flag, capsys):
+    # resolved at the top level before the leading-option screen shorthand
+    rc = app.main([flag])
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == f"corrosim {corrosim.__version__}"
+
+
+def test_dunder_version_matches_installed_metadata():
+    # __version__ reads the package metadata rather than a duplicated literal
+    assert corrosim.__version__ == version("corrosim")

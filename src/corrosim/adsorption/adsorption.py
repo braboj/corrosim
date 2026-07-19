@@ -93,6 +93,10 @@ def build_adsorption_system(molecule: Molecule, metal: str,
 
     Returns:
         The prepared :class:`AdsorptionSystem`.
+
+    Raises:
+        KeyError: If ``metal`` is not one of the known bare slab elements
+            (Fe/Cu/Al) in :data:`SURFACE_FACET`.
     """
     surface = SURFACE_FACET[metal]
     slab = build_slab(metal, size=size, vacuum=vacuum)

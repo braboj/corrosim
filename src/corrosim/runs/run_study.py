@@ -590,12 +590,12 @@ def _study_from_flags(args: argparse.Namespace) -> CaseStudy:
         raise SystemExit(
             "use --case OR the --molecules/--metal/... build flags, not both.")
 
-    # required identity + molecule set
+    # Required identity + molecule set
     data: dict[str, object] = {
         "name": args.name,
         "molecules": parse_molecules(args.molecules),
     }
-    # forward only the optional flags the user actually set
+    # Forward only the optional flags the user actually set
     for key in ("metal", "medium", "pkah", "basis", "xc"):
         value = getattr(args, key)
         if value is not None:
@@ -616,7 +616,7 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter)
     add_case_arg(p)
 
-    # define a new study from flags instead of --case; giving --molecules
+    # Define a new study from flags instead of --case; giving --molecules
     # switches on build mode and writes cases/<name>/study.json
     build = p.add_argument_group(
         "define a new study (build one from flags instead of --case)")
@@ -683,7 +683,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.molecules is not None:
             case = _study_from_flags(args)
             validate_study(case, check_elements=not args.plan)
-            # point the driver subcalls at the written study; skip the write on
+            # Point the driver subcalls at the written study; skip the write on
             # a dry run, which returns before any driver reads it
             args.case = f"{case.case_dir}/study.json"
             if not args.plan:
@@ -691,7 +691,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 stderr_log(f"wrote study definition -> {args.case}")
         else:
             case = case_study(args.case)
-            # validate a user study file; the shipped presets are trusted
+            # Validate a user study file; the shipped presets are trusted
             if is_study_file(args.case):
                 validate_study(case, check_elements=not args.plan)
     except (ValueError, KeyError, OSError) as exc:
