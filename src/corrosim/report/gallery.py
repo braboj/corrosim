@@ -103,14 +103,14 @@ def _card_html(case: CaseStudy, index: int) -> str:
     n = len(case.molecules)
     plural = "molecule" if n == 1 else "molecules"
 
-    # optional validation badge
+    # Optional validation badge
     badge = ""
     if case.name in _STATUS:
         label, tier = _STATUS[case.name]
         badge = (f'<span class="badge badge--{tier}">'
                  f'<span class="dot"></span>{html.escape(label)}</span>')
 
-    # the published study this case is validated against, named in full so the
+    # The published study this case is validated against, named in full so the
     # validation relationship is explicit (all shipped cases carry one)
     ref = ""
     if case.source:
@@ -188,7 +188,7 @@ def assemble_site(
     studies = list(cases) if cases is not None else unique_cases()
     os.makedirs(out_dir, exist_ok=True)
 
-    # copy only the cases whose self-contained report exists
+    # Copy only the cases whose self-contained report exists
     shipped = []
     for case in studies:
         src = _report_path(case)

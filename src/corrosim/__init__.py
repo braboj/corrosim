@@ -12,6 +12,8 @@ Quick use:
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING, Any
 
 from .adsorption import (
@@ -41,8 +43,17 @@ from .report import build_html_report, rank_inhibitors, results_dataframe
 if TYPE_CHECKING:
     import pandas as pd
 
-__all__ = ["screen", "analyse_one", "analyse_molecule", "build_molecule",
-           "build_protonated", "enumerate_protonation_sites", "Molecule",
+# Single source of truth for the version: read the installed package metadata
+# (populated from pyproject) rather than duplicating the string here. Falls back
+# when corrosim is imported from a source tree that was never installed.
+try:
+    __version__ = _pkg_version("corrosim")
+except PackageNotFoundError:  # pragma: no cover
+    __version__ = "0.0.0+unknown"
+
+__all__ = ["__version__", "screen", "analyse_one", "analyse_molecule",
+           "build_molecule", "build_protonated",
+           "enumerate_protonation_sites", "Molecule",
            "LIBRARY", "run_engine", "EngineResult", "compute_descriptors",
            "total_negative_charge", "compute_fukui", "FukuiResult",
            "build_adsorption_system",

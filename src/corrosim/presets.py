@@ -175,7 +175,7 @@ class CaseStudy:
             ValueError: If a required key is missing, an unknown key is
                 present, or ``molecules`` is not a non-empty list of strings.
         """
-        # reject unknown keys so a typo ('metals', 'smiles') fails loud
+        # Reject unknown keys so a typo ('metals', 'smiles') fails loud
         allowed = {f.name for f in fields(cls)}
         unknown = set(data) - allowed
         if unknown:
@@ -183,13 +183,13 @@ class CaseStudy:
                 f"unknown study field(s): {', '.join(sorted(unknown))}; "
                 f"allowed: {', '.join(sorted(allowed))}.")
 
-        # required identity
+        # Required identity
         name = data.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ValueError(
                 "study 'name' is required and must be a non-empty string.")
 
-        # required molecule set (library names or SMILES)
+        # Required molecule set (library names or SMILES)
         mols = data.get("molecules")
         if (not isinstance(mols, (list, tuple)) or not mols
                 or not all(isinstance(m, str) and m.strip() for m in mols)):
@@ -197,7 +197,7 @@ class CaseStudy:
                 "study 'molecules' is required and must be a non-empty list "
                 "of name/SMILES strings.")
 
-        # everything else falls through to the dataclass defaults
+        # Everything else falls through to the dataclass defaults
         rest = {k: v for k, v in data.items()
                 if k not in ("name", "molecules")}
         return cls(name=name, molecules=tuple(mols), **rest)
@@ -543,13 +543,13 @@ def validate_study(case: CaseStudy, *, check_elements: bool = False) -> None:
             supported substrate, or (when ``check_elements``) a molecule carries
             an element with no UFF parameters.
     """
-    # filesystem-safe name (it becomes the cases/<name>/ output directory)
+    # Filesystem-safe name (it becomes the cases/<name>/ output directory)
     if not _SAFE_NAME.match(case.name):
         raise ValueError(
             f"study name {case.name!r} must be alphanumeric with '-'/'_' only "
             f"(it becomes the cases/<name>/ output directory).")
 
-    # supported substrate: only a metal with a slab lattice runs the full
+    # Supported substrate: only a metal with a slab lattice runs the full
     # pipeline (the MC/MD stages need the slab, the DFT stage its work function)
     from corrosim.adsorption.surface import METAL_LATTICE, UFF
 
@@ -560,7 +560,7 @@ def validate_study(case: CaseStudy, *, check_elements: bool = False) -> None:
     if not check_elements:
         return
 
-    # supported chemistry: every atom needs a UFF parameter for the vdW field
+    # Supported chemistry: every atom needs a UFF parameter for the vdW field
     from corrosim.molecules import build_molecule
 
     known = set(UFF)
