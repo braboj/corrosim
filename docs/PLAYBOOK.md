@@ -300,6 +300,25 @@ File findings as tickets instead of fixing on the spot (scope guard).
 Baseline 2026-07-04: two duplicate blocks (both covered by the per-module
 refactor epic), zero dead-code findings at ≥80% confidence.
 
+### 3.9 360-degree audit (whole-project health)
+
+A strategic, multi-perspective review run periodically (before a release, after a
+milestone, or when gauging readiness), distinct from the diff-level code review
+and the duplication sweep above. Follow `360.md` and ADR 0035:
+
+- Run role-isolated reviewers, one per perspective, each with a clean context.
+  For this headless library and CLI, keep Value, Viability, and Discovery as light
+  lenses and re-project Quality into engineering dimensions (Architecture, Code
+  Quality, Testing, CI/CD, Security and Dependencies, Documentation).
+- Run the quality gates green first (`pytest -q`, `ruff check .`, `mypy`,
+  `PYTHONIOENCODING=utf-8 complexipy`) so the audit builds on a clean mechanical
+  layer.
+- Grade each dimension A-F; the overall grade is the lowest dimension.
+- Persist the report at `docs/audits/YYYY-MM-DD-360.md` (the only audit location),
+  with a scores table, an issues-created record, and a current-bottleneck section.
+- File one tracked issue per finding under a tracking epic, then fold the issue
+  numbers back into the report so it doubles as a durable backlog record.
+
 ## 4. Maintenance
 
 - Update dependencies by editing the ranges in `pyproject.toml` (ranges, not
