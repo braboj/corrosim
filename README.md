@@ -208,3 +208,8 @@ the `qm` extra (`pip install -e ".[qm]"`).
 ## License
 
 MIT. See [LICENSE](LICENSE). © 2026 Branimir Georgiev.
+
+The published QM container image redistributes third-party packages under their
+own licenses, including the weak-copyleft `ase` (LGPL-2.1+) and `tblite`
+(LGPL-3.0+). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the
+attribution.
