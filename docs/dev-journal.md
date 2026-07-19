@@ -2891,8 +2891,12 @@ in-tree egg-info shadow, P3).
 **Issues closed:** #300, #296, #298, #299, #301, #302, #303, #304, #305, #306,
 and #307; epic #308 closed.
 
-**Pending:** none. Backlog empty (0 open corrosim issues/PRs). Optional next: the
-pre-existing em-dashes in `user-journeys.md` and `PLAYBOOK.md` prose are not yet
-de-em-dashed (no issue filed, out of the audit's scope). No release pending.
+**Addendum (PR #316):** the optional de-em-dash sweep named below was done in the
+same session. `user-journeys.md` and `PLAYBOOK.md` are now em-dash-free (34
+removed, plus one `3.10–3.12` en-dash range normalised to a hyphen), replacing
+each dash with context-appropriate punctuation (parentheses for parenthetical
+pairs, colon/semicolon/comma/"so" for singles), so the whole doc set is clean.
+
+**Pending:** none. Backlog empty (0 open corrosim issues/PRs). No release pending.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
