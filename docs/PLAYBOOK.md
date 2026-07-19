@@ -5,19 +5,11 @@ Operational reference for common corrosim tasks. New contributors should read
 
 ## 1. Git workflow
 
-- Branch off `main` for any nontrivial work; never commit directly to `main`.
-  Commit and push only when asked.
-- Use conventional commits: `<type>(<scope>): <summary>`, with types
-  feat/fix/chore/docs/refactor/style/test and an imperative subject under 80
-  characters.
-- End every commit message with the trailer
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
-- Open a pull request titled like the commit with the number appended, for
-  example `feat(pka): ... (#NN)`. Do not write "closes #N" in a PR body unless
-  the PR actually resolves the issue — GitHub auto-closes it on merge.
-- Private working notes match `*.local.md` and are gitignored — never commit
-  them. The per-case `cases/<case>/report/` bundle and `cases/<case>/results/*.{csv,json}`
-  are tracked; `cubes/` and `*.log` are not.
+The commit, branch, and pull-request conventions (conventional commits plus the
+`Co-Authored-By` trailer, branch off `main`, the "closes #N" auto-close caveat,
+and the `*.local.md` / tracked-artifact rules) have a single home:
+[CLAUDE.md](../CLAUDE.md) §2.1. Follow them there; they are not restated here so
+the two files cannot drift apart.
 
 ## 2. Domain operations
 
