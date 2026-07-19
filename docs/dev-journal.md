@@ -2897,6 +2897,13 @@ removed, plus one `3.10–3.12` en-dash range normalised to a hyphen), replacing
 each dash with context-appropriate punctuation (parentheses for parenthetical
 pairs, colon/semicolon/comma/"so" for singles), so the whole doc set is clean.
 
-**Pending:** none. Backlog empty (0 open corrosim issues/PRs). No release pending.
+**Release (PR #318, tag `v0.5.0`):** cut **v0.5.0**, a minor bump justified by the
+new `corrosim --version` feature. The annotated tag on the release commit fired
+`release.yml`, which built the all-in-one image, standalone-smoke-passed it
+(`run-study --plan` and `screen --plan`), pushed
+`ghcr.io/braboj/corrosim:0.5.0` + `:latest`, and cut the GitHub Release. GHCR
+visibility inherits from the already-public package, so no manual toggle.
+
+**Pending:** none. Backlog empty (0 open corrosim issues/PRs); v0.5.0 shipped.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
