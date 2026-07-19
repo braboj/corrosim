@@ -20,7 +20,7 @@ the screen (`corrosim --inhibitors ...`), and the standalone `corrosim-run-study
 / `corrosim-add-inhibitor` scripts stay as aliases, so the commands below can be
 written either way.
 
-The case study — molecule set, substrate, and medium — is defined once in
+The case study (molecule set, substrate, and medium) is defined once in
 `src/corrosim/presets.py` as `ARGHEL`. Change it there; the stage drivers import
 `ARGHEL.molecule_list()` and `ARGHEL.metal` rather than re-declaring the list.
 
@@ -48,7 +48,7 @@ this: pass the SMILES directly wherever a molecule name goes.
 ### The full study in one command
 
 `corrosim-run-study` (also `python -m corrosim.runs.run_study`) orchestrates the
-whole pipeline — `dft -> fukui -> mc -> md -> figures -> report` — for a `--case`,
+whole pipeline (`dft -> fukui -> mc -> md -> figures -> report`) for a `--case`,
 in dependency order, reusing each driver's per-case output routing so no paths
 are passed (ADR 0022). The `corrosim-qm` image carries both the QM and the
 classical dependencies, so the whole study runs in one container invocation:
@@ -74,7 +74,7 @@ The individual drivers below remain for partial runs, debugging, and the
 QM-vs-venv split when you are not using the container.
 
 Run the classical stages (Monte Carlo, molecular dynamics, figures, report) in
-the venv — they need no QM engines.
+the venv, since they need no QM engines.
 
 ```bash
 python -m corrosim.runs.run_mc          # Stage 2 adsorption pose
@@ -87,13 +87,13 @@ Every driver's unset `--out*` flags auto-route to the `--case` study's own
 `cases/<case>/results` / `cases/<case>/report` subtree (default case: `arghel`); pass
 `--case <name>` to screen another study without overwriting arghel's outputs.
 The DFT drivers (`run_dft` / `run_pka`) likewise adopt the case's own level of
-theory when `--basis` / `--xc` are unset — so `--case phytic-acid` runs at its
+theory when `--basis` / `--xc` are unset, so `--case phytic-acid` runs at its
 declared `6-31G(d)` (the production diffuse basis diverges on its compact
 geometry), not the default `6-311++G(d,p)`.
 
 Run the quantum stages (DFT descriptors, Fukui, pKa, cubes) in the
-`corrosim-qm` container. Long jobs — geometry optimisation, frequencies, MEP
-cubes — must run detached so a shell or session exit does not kill them.
+`corrosim-qm` container. Long jobs (geometry optimisation, frequencies, MEP
+cubes) must run detached so a shell or session exit does not kill them.
 
 ```bash
 docker compose run --rm qm \
@@ -109,11 +109,11 @@ docker logs -f corrosim_job             # poll; then: docker rm corrosim_job
 
 The `--case` names above screen the shipped validation studies. To screen a new
 set, declare a study as data (name + molecules + metal + medium, with an optional
-DFT level) and point the same runner at it — no `presets.py` edit. Two
+DFT level) and point the same runner at it, with no `presets.py` edit. Two
 interchangeable front doors, one engine:
 
 ```bash
-# a study file (durable, shareable, reproducible) — copy examples/study.template.json
+# a study file (durable, shareable, reproducible); copy examples/study.template.json
 docker compose run --rm qm corrosim-run-study --case ./my-study.json
 
 # ad-hoc flags: builds the study inline, writing cases/<name>/study.json
@@ -135,7 +135,7 @@ Pople sets lack bromine). `--plan` validates and previews without computing.
 Each case study renders the same bundle as arghel (ADR 0019). The one command
 does the whole thing in the container; redirect it to a logfile under `logs/` and
 poll that, since the background-shell harness does not capture container stdout
-on Windows (`logs/` is a gitignored scratch folder — create it if missing):
+on Windows (`logs/` is a gitignored scratch folder, create it if missing):
 
 ```bash
 mkdir -p logs
@@ -145,10 +145,10 @@ tail -f logs/<name>.log          # poll progress; rm the log once the job is don
 ```
 
 The figure stage populates `fig0_pipeline.png` (the shared pipeline diagram) into
-the bundle automatically — it copies the packaged asset, so no manual copy is
+the bundle automatically: it copies the packaged asset, so no manual copy is
 needed.
 
-For a partial run or to debug one stage, drive the drivers directly — the QM
+For a partial run or to debug one stage, drive the drivers directly: the QM
 stages (detached, since the ESP cubes are slow) then the classical stages and the
 render in the venv:
 
@@ -181,8 +181,8 @@ explicit `--basis def2-SVP` for such a case, or they fail on the bromine.
 A large, compact, oxygen-dense molecule can make the diffuse production basis
 diverge (near-linear-dependence). The SCF now escalates on non-convergence
 (level-shift + damping, then a second-order restart) before giving up, and a
-run that still cannot converge **fails loud** — `SCFConvergenceError` naming the
-molecule and level — rather than feeding garbage frontier orbitals into the
+run that still cannot converge **fails loud** (`SCFConvergenceError` naming the
+molecule and level) rather than feeding garbage frontier orbitals into the
 descriptors; the batch stops at that molecule. Respond by relaxing the geometry
 first (`--optimize`) or dropping the preset to a less diffuse `basis`. To speed
 (not fix) an intractable exact-integral SCF, opt into density fitting
@@ -206,11 +206,11 @@ change (see 4, Maintenance) and spot-check the diff, not just the file size.
 ## 3. Quality
 
 Run the automated checks before every pull request; they also run in CI on
-Python 3.10–3.12. Manual checks come last.
+Python 3.10-3.12. Manual checks come last.
 
 ### 3.1 Tests (pytest)
 
-The suite is deliberately QM-light — no DFT, xTB, or Docker — so it stays fast.
+The suite is deliberately QM-light (no DFT, xTB, or Docker), so it stays fast.
 Run `pytest -q` in the venv. Every new feature or module ships a test named
 `test_<unit>_<state>_<expected>`.
 
@@ -225,24 +225,24 @@ and eyeball the diff before committing:
 Run `ruff check .`. The line length is 80, and `C901` gates cyclomatic
 complexity at 15 (ADR 0012). Keep new and edited code clean; do not
 bulk-reformat untouched files. Ruff also enforces Google-convention docstrings
-(`D` rules incl. `D417`; `D205` relaxed — ADR 0007). The full public API
-contract — every public symbol documented, all public params/returns typed,
-plus the no-trailing / no-ticket-number comment rules — is pinned by
+(`D` rules incl. `D417`; `D205` relaxed per ADR 0007). The full public API
+contract (every public symbol documented, all public params/returns typed,
+plus the no-trailing / no-ticket-number comment rules) is pinned by
 `tests/test_docstrings.py` (not ruff `ANN`; ADR 0012).
 
 ### 3.3 Type checking (mypy)
 
-Run `mypy`. It is non-strict but is a CI gate — run it before pushing, since
+Run `mypy`. It is non-strict but is a CI gate; run it before pushing, since
 `ruff` alone does not catch type errors.
 
 ### 3.4 Cognitive complexity (complexipy)
 
 Run `complexipy` from the repo root (config in `[tool.complexipy]`; threshold
 15, same as `C901`, but counting nesting and control-flow interruptions rather
-than branches — ADR 0013). It ratchets against the committed
+than branches, per ADR 0013). It ratchets against the committed
 `complexipy-snapshot.json` watermark: an over-threshold function fails only
 when it is new or has increased relative to the snapshot, so pre-existing
-offenders are frozen, not exempted. A successful run rewrites the snapshot —
+offenders are frozen, not exempted. A successful run rewrites the snapshot, so
 when a refactor shrinks an offender, commit the tightened snapshot in the same
 change. `complexipy --snapshot-ignore` lists the current offenders;
 `--ignore-complexity --top 20` shows the package-wide picture.
@@ -250,7 +250,7 @@ change. `complexipy --snapshot-ignore` lists the current offenders;
 ### 3.5 QM tests (Docker)
 
 Anything exercising the real engines runs in the container:
-`docker compose run --rm qm pytest -q`. This is manual — CI does not run QM.
+`docker compose run --rm qm pytest -q`. This is manual; CI does not run QM.
 
 ### 3.6 Coverage (pytest-cov)
 
@@ -258,7 +258,7 @@ Run `pytest --cov=corrosim --cov-report=term-missing`. Gated at 80% over a
 *scoped* surface: the QM-engine modules and Docker-only drivers are `omit`-ted in
 `[tool.coverage.run]` (they can't run in the venv), so the threshold measures the
 QM-light-testable code (ADR 0007). A new pure-Python module is in scope by
-default — add a test. The scoped surface currently sits at ~85%.
+default, so add a test. The scoped surface currently sits at ~85%.
 
 ### 3.7 Security & secrets (Bandit, gitleaks, CodeQL)
 
@@ -273,17 +273,17 @@ Three CI gates guard the supply/security surface:
 - **CodeQL** (platform SAST): `.github/workflows/codeql.yml`; findings surface in
   the repo Security tab.
 
-### 3.8 Periodic audits — duplication & dead code
+### 3.8 Periodic audits: duplication & dead code
 
 Duplication and dead code are review-time rules (`quality.md`: DRY, no dead
 code), deliberately NOT CI gates: the tree measures clean, and both tools
 false-positive on legitimate patterns (look-alike scientific/argparse
 boilerplate; intentionally unused parameters in API signatures). What review
-alone cannot catch is a pasted block whose twin lives outside the diff — so
+alone cannot catch is a pasted block whose twin lives outside the diff, so
 sweep the whole tree at epic boundaries and release points:
 
 ```bash
-pip install pylint vulture    # ad hoc — deliberately not dev deps
+pip install pylint vulture    # ad hoc, deliberately not dev deps
 pylint --disable=all --enable=duplicate-code src/corrosim
 vulture src/corrosim --min-confidence 80
 ```
@@ -324,7 +324,7 @@ and the duplication sweep above. Follow `360.md` and ADR 0035:
   change: descriptors or `md_rdf.json` feed `make_figures` and `make_report`,
   which produce the `cases/<case>/report/` bundle.
 - After editing `docs/diagrams/pipeline.drawio`, re-export the pipeline diagram
-  to **both** destinations (they must stay identical — the doc copy shown by
+  to **both** destinations (they must stay identical: the doc copy shown by
   `docs/pipeline.md` and the packaged `fig0` asset the figure stage copies into
   each bundle); commit the `.drawio` source and both PNGs together, then
   re-render the reports so each bundle picks up the new `fig0`:
@@ -364,7 +364,7 @@ Use an **annotated** tag (`-a`), not a lightweight one: it carries a tagger,
 date, and message, and it is what every shipped release has used.
 
 The GHCR package inherits the public repo's visibility, so it publishes
-**Public** automatically — no manual visibility toggle is needed.
+**Public** automatically; no manual visibility toggle is needed.
 
 ### The validation gallery (GitHub Pages)
 
