@@ -13,8 +13,8 @@ authors:
 repository-code: "https://github.com/braboj/corrosim"
 url: "https://github.com/braboj/corrosim"
 license: MIT
-version: 0.5.0
-date-released: 2026-07-19
+version: 0.6.0
+date-released: 2026-07-20
 keywords:
   - corrosion inhibitor
   - green chemistry
