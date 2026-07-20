@@ -23,10 +23,8 @@ keywords:
   - molecular dynamics
   - computational screening
 
-# After enabling the GitHub-Zenodo integration and cutting a release, record the
-# minted concept DOI here so the citation resolves to the archived software:
-#   doi: 10.5281/zenodo.XXXXXXXX
-#   identifiers:
-#     - type: doi
-#       value: 10.5281/zenodo.XXXXXXXX
-#       description: Concept DOI resolving to the latest archived version.
+doi: 10.5281/zenodo.21454227
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21454227
+    description: Concept DOI resolving to the latest archived version.
