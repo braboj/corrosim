@@ -39,6 +39,37 @@ def test_index_accents_each_card_by_its_substrate_metal():
     assert "--accent:var(--al)" in html
 
 
+def test_index_masthead_links_to_the_github_project():
+    html = build_index_html(unique_cases())
+    # the repo link sits in the masthead at the top, not only the colophon
+    masthead = html.split("</header>", 1)[0]
+    assert "masthead__repo" in masthead
+    assert "https://github.com/braboj/corrosim" in masthead
+
+
+def test_index_renders_source_dois_as_resolvable_links():
+    html = build_index_html(unique_cases())
+    # the phytic-acid source ends with a DOI, now a doi.org link, not dead text
+    assert 'href="https://doi.org/10.1021/ie404382v"' in html
+    assert "case__doi" in html
+
+
+def test_index_cards_are_not_one_wrapping_anchor():
+    html = build_index_html(unique_cases())
+    # the card is a <div> whose title and CTA are the links, so card text is
+    # selectable and an in-card DOI link is valid HTML
+    assert '<div class="case"' in html
+    assert '<a class="case"' not in html
+    assert 'class="case__link"' in html
+    assert 'class="case__cta" href=' in html
+
+
+def test_index_drops_the_metal_accent_bar():
+    html = build_index_html(unique_cases())
+    # the colored top strip was removed; the metal accent stays on hover/chip
+    assert "case__bar" not in html
+
+
 def test_assemble_site_copies_reports_and_writes_the_index(tmp_path,
                                                            monkeypatch):
     monkeypatch.chdir(tmp_path)

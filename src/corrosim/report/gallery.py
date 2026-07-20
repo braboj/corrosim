@@ -20,13 +20,20 @@ from __future__ import annotations
 
 import html
 import os
+import re
 import shutil
 from collections.abc import Iterable, Sequence
 
 from corrosim.presets import CASE_STUDIES, CaseStudy
 
-# Where the source lives, for the colophon links.
+# Where the source lives, for the masthead and colophon links.
 _REPO = "https://github.com/braboj/corrosim"
+
+# A case's ``source`` ends with the study DOI as plain text (e.g.
+# "... (DOI 10.1021/ie404382v).") wherever one exists, so the identifier is
+# already present; this lifts it out to render as a resolvable doi.org link
+# instead of dead text. A thesis source without a DOI simply does not match.
+_SOURCE_DOI_RE = re.compile(r"\s*\(?\s*DOI\s+(10\.\d{4,}/\S+)$", re.IGNORECASE)
 
 # Validation verdict per case, mirroring the scorecard in docs/validation.md
 # (the source of truth). ``tier`` drives the badge colour; a case absent here
@@ -87,6 +94,31 @@ def _report_path(case: CaseStudy) -> str:
     return f"{case.report_dir}/report.html"
 
 
+def _split_source_doi(source: str) -> tuple[str, str]:
+    """Separate a case's citation text from its trailing DOI.
+
+    The DOI is stored inline at the end of ``CaseStudy.source``; splitting it out
+    lets the gallery render it as a link while the citation stays plain,
+    selectable text.
+
+    Args:
+        source: The ``CaseStudy.source`` citation, which may end with the study
+            DOI as plain text.
+
+    Returns:
+        A ``(citation, doi)`` pair; ``doi`` is empty when the source carries none
+        (e.g. a thesis).
+    """
+    match = _SOURCE_DOI_RE.search(source)
+    if not match:
+        return source, ""
+
+    # Strip the trailing ")" and/or "." the citation wrapped around the DOI.
+    doi = match.group(1).rstrip(").")
+    citation = source[: match.start()].rstrip()
+    return citation, doi
+
+
 def _card_html(case: CaseStudy, index: int) -> str:
     """Render one case card, accented by its substrate metal.
 
@@ -95,7 +127,9 @@ def _card_html(case: CaseStudy, index: int) -> str:
         index: Position in the grid, used to stagger the entrance animation.
 
     Returns:
-        The card's HTML (an anchor to ``<name>.html``).
+        The card's HTML: a ``<div>`` whose title and CTA link to
+        ``<name>.html``. The card itself is not one big anchor, so its text
+        stays selectable and an in-card DOI link is valid.
     """
     fallback_title = case.name.replace("-", " ").title()
     title = html.escape(_TITLE.get(case.name, fallback_title))
@@ -114,26 +148,37 @@ def _card_html(case: CaseStudy, index: int) -> str:
     # validation relationship is explicit (all shipped cases carry one)
     ref = ""
     if case.source:
+        citation, doi = _split_source_doi(case.source)
+        doi_link = ""
+        if doi:
+            doi_link = (
+                f'<a class="case__doi" '
+                f'href="https://doi.org/{html.escape(doi)}" rel="noopener">'
+                f'doi.org/{html.escape(doi)}</a>'
+            )
         ref = ('<div class="case__ref">'
                '<span class="case__ref-label">Validated against</span>'
-               f'<span class="case__ref-src">{html.escape(case.source)}</span>'
+               f'<span class="case__ref-src">{html.escape(citation)}</span>'
+               f'{doi_link}'
                '</div>')
 
+    report = f"{html.escape(case.name)}.html"
     return (
-        f'<a class="case" href="{html.escape(case.name)}.html" '
+        f'<div class="case" '
         f'style="--accent:{accent};animation-delay:{index * 70}ms">'
-        f'<span class="case__bar"></span>'
         f'<div class="case__head">'
         f'<span class="chip">{html.escape(case.metal)}</span>{badge}'
         f'</div>'
-        f'<h2 class="case__title">{title}</h2>'
+        f'<h2 class="case__title">'
+        f'<a class="case__link" href="{report}">{title}</a>'
+        f'</h2>'
         f'<p class="case__meta">{html.escape(case.medium)} '
         f'<span class="dotsep">·</span> {n} {plural}</p>'
         f'<p class="case__desc">{html.escape(case.description)}</p>'
         f'{ref}'
-        f'<span class="case__cta">View report <span class="arrow">&rarr;</span>'
-        f'</span>'
-        f'</a>'
+        f'<a class="case__cta" href="{report}">View report '
+        f'<span class="arrow">&rarr;</span></a>'
+        f'</div>'
     )
 
 
@@ -152,6 +197,8 @@ def build_index_html(cases: Sequence[CaseStudy]) -> str:
         _HEAD
         + '<div class="wrap">'
         + '<header class="masthead">'
+        + f'<a class="masthead__repo" href="{_REPO}" rel="noopener">'
+          'View the project on GitHub &rarr;</a>'
         + '<h1 class="wordmark">corrosim</h1>'
         + '<p class="lede">Each report is a full corrosim screening (DFT '
           'reactivity, adsorption, and molecular dynamics), validated against a '
@@ -260,6 +307,12 @@ _HEAD = """<!doctype html>
   }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.5rem); }
   .masthead { padding: clamp(2.4rem, 6vw, 4.2rem) 0 clamp(1.6rem, 4vw, 2.6rem); }
+  .masthead__repo {
+    display: inline-block; margin-bottom: 1.1rem;
+    font-family: var(--mono); font-size: .8rem; color: var(--muted);
+    text-decoration: none; border-bottom: 1px solid var(--line);
+  }
+  .masthead__repo:hover { color: var(--ink); border-color: var(--muted); }
   .wordmark {
     font-family: var(--display); font-weight: 600;
     font-size: clamp(3.4rem, 12vw, 6.5rem); line-height: .92;
@@ -290,10 +343,6 @@ _HEAD = """<!doctype html>
                 box-shadow .28s, border-color .28s;
     opacity: 0; transform: translateY(14px);
     animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards;
-  }
-  .case__bar {
-    position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent);
-    opacity: .9;
   }
   .case:hover {
     transform: translateY(-5px);
@@ -327,6 +376,8 @@ _HEAD = """<!doctype html>
     font-size: 1.42rem; line-height: 1.12; letter-spacing: -.01em;
     margin: 0 0 .5rem;
   }
+  .case__link { color: inherit; text-decoration: none; }
+  .case__link:hover { text-decoration: underline; text-underline-offset: 3px; }
   .case__meta {
     font-family: var(--mono); font-size: .78rem; color: var(--muted);
     margin: 0 0 .85rem;
@@ -349,11 +400,20 @@ _HEAD = """<!doctype html>
     font-family: var(--mono); font-size: .69rem; line-height: 1.5;
     color: var(--muted);
   }
+  .case__doi {
+    display: inline-block; margin-top: .55rem;
+    font-family: var(--mono); font-size: .66rem;
+    color: var(--muted); text-decoration: none;
+    border-bottom: 1px solid var(--line); word-break: break-all;
+  }
+  .case__doi:hover { color: var(--accent); border-color: var(--accent); }
   .case__cta {
-    margin-top: auto; font-family: var(--mono); font-size: .8rem;
-    font-weight: 500; color: var(--ink);
+    margin-top: auto; align-self: flex-start;
+    font-family: var(--mono); font-size: .8rem;
+    font-weight: 500; color: var(--ink); text-decoration: none;
     display: inline-flex; align-items: center; gap: .45em;
   }
+  .case__cta:hover { color: var(--accent); }
   .arrow { transition: transform .25s; }
   .case:hover .arrow { transform: translateX(4px); }
   .colophon {
