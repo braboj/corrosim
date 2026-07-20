@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use corrosim in your research, please cite it as below."
+title: corrosim
+abstract: >-
+  Automated screening of green corrosion inhibitors: from a molecule (name or
+  SMILES) and a metal, it computes DFT/QM reactivity descriptors, a Monte Carlo
+  adsorption estimate, and a Brownian-dynamics metal-oxygen RDF, then ranks the
+  candidates and emits a self-contained HTML report.
+type: software
+authors:
+  - family-names: Georgiev
+    given-names: Branimir
+repository-code: "https://github.com/braboj/corrosim"
+url: "https://github.com/braboj/corrosim"
+license: MIT
+version: 0.5.0
+date-released: 2026-07-19
+keywords:
+  - corrosion inhibitor
+  - green chemistry
+  - DFT
+  - Monte Carlo
+  - molecular dynamics
+  - computational screening
+
+# After enabling the GitHub-Zenodo integration and cutting a release, record the
+# minted concept DOI here so the citation resolves to the archived software:
+#   doi: 10.5281/zenodo.XXXXXXXX
+#   identifiers:
+#     - type: doi
+#       value: 10.5281/zenodo.XXXXXXXX
+#       description: Concept DOI resolving to the latest archived version.
