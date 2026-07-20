@@ -47,6 +47,11 @@ jobs:
       - name: Build the gallery site
         run: python -m corrosim.runs.make_pages --out _site
 
+      # GitHub Pages reads a CNAME file from the artifact to keep the custom
+      # domain set; without it an Actions deploy can reset the domain.
+      - name: Pin the custom domain
+        run: echo 'corrosim.org' > _site/CNAME
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

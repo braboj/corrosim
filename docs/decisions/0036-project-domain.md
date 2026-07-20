@@ -1,6 +1,6 @@
 # ADR 0036 — Register corrosim.org as the project's canonical URL
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-20
 - Relates to: #321 (domain spike); #320 (Zenodo DOI + CITATION.cff); ADR 0028
   (Pages validation gallery)
@@ -48,10 +48,11 @@ Cost: about 10 to 15 USD/yr, renewable, held by the maintainer.
 - One recurring cost and a small DNS and renewal responsibility.
 - `braboj.me/corrosim` keeps resolving through a redirect, so no existing link
   breaks.
-- Acceptance of this ADR means the maintainer registers the domain and completes
-  the Pages setup, at which point the status moves to Accepted. Keeping the
-  subpath is a valid alternative given the DOI already provides permanence; in
-  that case this ADR is superseded by that decision.
+- Accepted 2026-07-20: corrosim.org was registered (Namecheap), its DNS points at
+  the GitHub Pages IPs (four A records on the apex, `www` CNAME to
+  `braboj.github.io`), and it is set as the repo's Pages custom domain with a
+  CNAME file pinned in the build. `braboj.me/corrosim` redirects to it. HTTPS is
+  enforced once GitHub finishes provisioning the certificate.
 
 ## Upstream
 
