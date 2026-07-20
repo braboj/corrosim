@@ -60,7 +60,7 @@ g16_*/
 
 # Local-only notes (kept with the project, never pushed)
 *.local.md
-docs/local/
+/docs/raw
 
 # loose run-output figures in repo root (cases/<case>/report/figures/ holds the
 # curated set)

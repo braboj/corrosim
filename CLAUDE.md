@@ -42,8 +42,8 @@ path→contents map lives there; read it rather than duplicating it here.
 Agent-relevant facts that tree does not carry:
 
 - `cubes/` — regenerable volumetric `.cube` files; `logs/` gitignored
-  detached-job monitoring logs; `docs/local/` — private notes/literature
-  (tracked-vs-gitignored: see § 2.1).
+  detached-job monitoring logs; `docs/raw/` — private notes/literature
+  (gitignored wholesale: see § 2.1).
 - `docs/diagrams/` — editable `.drawio` diagram sources.
 - `docs/solid-ai-templates/` — the quality-convention submodule (see this file's
   header).
@@ -132,8 +132,8 @@ duplicate.
   resolves it — GitHub matches the bare substring, so even a *negated* "does not
   close #N" auto-closes the issue on merge. To link without closing, write "part
   of #N" or `#N` alone.
-- `*.local.md` (kept in `docs/local/`) are private working notes: gitignored,
-  never committed.
+- `*.local.md` and everything under `docs/raw/` (private notes, literature,
+  working drafts) are gitignored, never committed.
 - The per-case `cases/<case>/report/` bundle (report.html + report.docx + figures/ +
   tables/) and `cases/<case>/results/*.{csv,json}` ARE tracked; `cubes/` and `*.log`
   are not.
