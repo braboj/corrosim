@@ -196,8 +196,8 @@ the `qm` extra (`pip install -e ".[qm]"`).
 
 ## Links
 
-- [Validation gallery](https://braboj.github.io/corrosim/): browse the case
-  reports in the browser, no install
+- [Validation gallery](https://corrosim.org): browse the case reports in the
+  browser, no install
 - [Pipeline: scientific basis](docs/pipeline.md)
 - [Validation: computational and experimental](docs/validation.md)
 - [Architecture decisions (ADRs)](docs/decisions/)

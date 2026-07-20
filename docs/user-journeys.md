@@ -32,8 +32,8 @@ next step it leads to. For the exact runnable commands see
 - **Notes:** The report inlines its figures, CSS, and equations, so it opens
   offline (see ADR 0006/0008, report bundle layout). The rebuild reads only the
   tracked `cases/arghel/results/`, so it runs no DFT. A hosted gallery of the
-  shipped cases is live at [braboj.me/corrosim](https://braboj.me/corrosim),
-  built in CI from the tracked reports.
+  shipped cases is live at [corrosim.org](https://corrosim.org), built in CI
+  from the tracked reports.
 
 ## Journey 2: Rank a shortlist fast
 

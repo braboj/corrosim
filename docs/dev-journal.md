@@ -2906,4 +2906,85 @@ visibility inherits from the already-public package, so no manual toggle.
 
 **Pending:** none. Backlog empty (0 open corrosim issues/PRs); v0.5.0 shipped.
 
+## 2026-07-20 (session 46): adversarial whitepaper review; gallery refresh; corrosim.org + Zenodo DOI; v0.6.0
+
+Refereed the Arghel manuscript as an adversarial reviewer, cleared a gallery-UX
+epic, and made corrosim properly citable: v0.6.0 is archived on Zenodo with a DOI
+and the gallery now serves from its own domain.
+
+- **Adversarial peer review (no repo change).** Reviewed
+  `final white paper19.07-a.docx` (the newest of three versions in the private
+  tree) against a stated rubric that included a text-reuse check. Eight review
+  dimensions, every finding refuted by an independent skeptic: 82 of 88 confirmed
+  (13 major, 41 moderate, 28 minor), graded **C**, major revision. The headline
+  defect is Table 3: the dG column is inverted relative to K (the largest K
+  carries the smallest |dG|, impossible under one monotonic relation), and only
+  Langmuir reproduces from the paper's own `-RT ln(55.5 K)`; Flory-Huggins and
+  Kinetic are off by 7 to 10 kJ/mol and trace verbatim to the 2014 thesis. Report
+  kept in `docs/raw/` (private, untracked).
+- **Two findings retracted mid-review.** A `python-docx` paragraph dump reported
+  an "empty reference list"; the bibliography (39 entries, 36 with DOIs) was in
+  fact present in a structure that parser does not traverse. The grade swung
+  D to C to B on that correction and settled back at C only after the numeric
+  audit. The lesson was distilled and filed upstream.
+- **Private notes tree renamed (PR #326).** `docs/local` became `docs/raw`,
+  gitignored wholesale via `/docs/raw`, with the two live CLAUDE.md references
+  updated. Nothing under it was ever tracked, so this was an ignore-rule plus
+  doc-reference change; the dated dev-journal and audit mentions were left as
+  historical record.
+- **Gallery refresh, epic #325 (PR #327).** #324: every card was a single
+  wrapping `<a>`, which blocked text selection and copy and made an in-card link
+  invalid HTML; the card is now a `<div>` whose title and CTA carry the links.
+  #323: a "View the project on GitHub" link in the masthead, and each case's
+  study DOI (already inline at the end of `source`) rendered as a resolvable
+  `doi.org` link, extracted at render time so the presets stay untouched. #322:
+  dropped the metal accent bar above each card. Four new gallery tests.
+- **Citable: DOI and domain (PRs #328, #329, #330, #332).** `CITATION.cff` added,
+  the Zenodo GitHub integration enabled, and v0.6.0 archived: the concept DOI
+  `10.5281/zenodo.21454227` resolves to the newest version and is recorded in
+  `CITATION.cff` plus a README badge. ADR 0036 records `corrosim.org` as the
+  canonical URL; it is registered (Namecheap), its DNS points at the Pages IPs,
+  HTTPS is enforced, and `pages.yml` pins a `CNAME` in the artifact so an Actions
+  deploy cannot reset the domain.
+- **v0.6.0 released (PR #331, annotated tag `v0.6.0`).** Minor bump covering the
+  gallery UX, `CITATION.cff`, and the domain; `release.yml` published
+  `ghcr.io/braboj/corrosim:0.6.0` and `:latest` plus the GitHub Release, and that
+  published Release is what fired the Zenodo webhook.
+
+**Decision:** ADR 0036 (corrosim.org as the canonical URL, with the DOI kept as
+the citation anchor), moved to Accepted the same session once the domain was
+live. The `docs/local` to `docs/raw` rename was evaluated for an ADR and
+deliberately did not get one: it renames an untracked private scratch tree,
+creates no tracked content home, and the rule already fits on one line in
+CLAUDE.md 1.2 and 2.1.
+
+**Docs currency:** the domain change made three live references stale, all now
+pointing at `corrosim.org`: the README Links entry, `user-journeys.md`, and
+`PLAYBOOK.md` (whose release recipe also now names the `CITATION.cff` bump and
+the Zenodo webhook).
+
+**Gates:** pytest 374 passed / 1 skipped (+4 gallery tests over session 45), ruff
+clean, mypy clean (44 files), complexipy snapshot watermark passed.
+
+**Know-how:** distilled two generic patterns into `engineering-know-how.md` —
+"cite a released artifact by persistent identifier, not by URL" (Documentation
+and decisions) and "never report an absence from a lossy extraction" (Review and
+verification).
+
+**Template feedback:** both reusable and filed upstream —
+`solid-ai-templates#845` (cite software by persistent identifier rather than a
+domain or repo URL, for `base/core/docs.md`, P2) and `solid-ai-templates#846`
+(never report an absence from a lossy extraction without checking the raw
+artifact, for `base/core/review.md`, P2).
+
+**PRs merged:** #326, #327, #328, #329, #330, #331, #332.
+
+**Issues closed:** #320, #321, #322, #323, #324, and epic #325.
+
+**Pending:** backlog empty again (0 open corrosim issues/PRs). Upstream
+`solid-ai-templates#845` and `#846` are filed but not yet landed. The Arghel
+manuscript revision itself (grade C; remediation list in
+`docs/raw/arghel-whitepaper-peer-review-2026-07-20.md`) is the author's follow-up
+outside this repo.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
