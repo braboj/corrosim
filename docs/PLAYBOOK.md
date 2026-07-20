@@ -355,7 +355,8 @@ the `docker run` instructions. The image tag is derived from the git tag
 it on a green `main`, then tag that commit:
 
 ```bash
-# 1. bump `version` in pyproject.toml to X.Y.Z, land it on main (PR)
+# 1. bump `version` in pyproject.toml (plus `version` + `date-released` in
+#    CITATION.cff) to X.Y.Z, land it on main (PR)
 # 2. tag the merge commit (annotated) and push the tag
 git tag -a vX.Y.Z -m "corrosim vX.Y.Z" && git push origin vX.Y.Z
 ```
@@ -365,6 +366,12 @@ date, and message, and it is what every shipped release has used.
 
 The GHCR package inherits the public repo's visibility, so it publishes
 **Public** automatically; no manual visibility toggle is needed.
+
+Publishing the GitHub Release also fires the Zenodo webhook, which archives the
+tag and mints a per-version DOI. The concept DOI (recorded in `CITATION.cff` and
+the README badge) always resolves to the newest version, so neither file needs a
+per-release edit. Only releases published *after* the integration was enabled are
+archived; earlier ones are not captured retroactively.
 
 ### The validation gallery (GitHub Pages)
 
@@ -377,8 +384,9 @@ them and generates the index (ADR 0028). Build it locally to preview:
 python -m corrosim.runs.make_pages --out _site   # then open _site/index.html
 ```
 
-Live at `https://braboj.me/corrosim/` (the `braboj.github.io/corrosim/` URL
-redirects there). One-time: enable Pages with Settings -> Pages -> Source =
-GitHub Actions.
+Live at `https://corrosim.org/` (ADR 0036; the `braboj.me/corrosim/` and
+`braboj.github.io/corrosim/` URLs redirect there). The workflow writes a `CNAME`
+file into the artifact so an Actions deploy cannot reset the custom domain.
+One-time: enable Pages with Settings -> Pages -> Source = GitHub Actions.
 
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->

@@ -97,6 +97,21 @@ point to a committed sample. A sample input that looks incomplete (an optional
 column left blank on purpose) gets its intent explained next to the command, not
 left for the reader to reverse-engineer.
 
+#### Cite a released artifact by persistent identifier, not by URL
+
+An artifact others will cite needs an identifier that outlives its hosting. A
+repository URL or a project domain can move, lapse, or be rebranded, and every
+citation pointing at it rots with it. Mint a persistent identifier (a DOI)
+for each release through an archival service, and cite the *concept* identifier,
+the one that resolves to the newest version, rather than a per-version one.
+Record it in a machine-readable citation file at the repository root so the forge
+renders a "cite this" affordance, and treat any vanity domain as a disposable
+convenience that is never the citation of record. Two ordering traps are worth
+stating: the archive captures only releases published *after* the integration is
+switched on, so the first identifier needs a fresh release rather than an
+existing one, and a concept identifier needs no per-release edit while a
+per-version identifier does.
+
 ### Quality and design
 
 #### Curated facade: re-export the public surface, list it in `__all__`
@@ -567,6 +582,17 @@ invisible: the score silently multi-weights the shared axis while the code and
 the UI both claim N independent contributions, and any downstream margin/tie
 logic inherits the distortion. Either drop the redundant components or state the
 real weighting honestly.
+
+**Never report an absence from a lossy extraction.** When a finding comes out of
+a parser or an extraction step, confirm the extraction covers the whole artifact
+before calling anything missing. Extractors are silently partial: they walk the
+node types they know and drop the rest, so "X is absent" often means only "my
+reader does not traverse the structure X lives in". Cross-check the authoritative
+raw form before asserting an absence, compare extracted size against the original
+as a coverage smell test, and scope the claim to what was actually inspected
+("not verifiable from the extract" rather than "missing"). Absence claims are the
+class most likely to be tooling artifacts, so verify those hardest: one confident
+false finding costs more trust than the ten true ones beside it buy.
 
 ## Language
 

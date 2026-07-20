@@ -59,6 +59,5 @@ Cost: about 10 to 15 USD/yr, renewable, held by the maintainer.
 Generic pattern: for a citable software artifact, mint a persistent identifier (a
 DOI) as the canonical citation anchor and treat any vanity domain as a disposable
 convenience, never the citation of record. This is reusable engineering guidance
-independent of the specific domain. Upstream: candidate for `base/core/docs.md`
-(software-citation guidance); issue: none yet, to be filed in the end-of-session
-upstream harvest.
+independent of the specific domain. Upstream: `base/core/docs.md`
+(software-citation guidance); issue: `braboj/solid-ai-templates#845`.
