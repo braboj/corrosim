@@ -2987,4 +2987,45 @@ manuscript revision itself (grade C; remediation list in
 `docs/raw/arghel-whitepaper-peer-review-2026-07-20.md`) is the author's follow-up
 outside this repo.
 
+## 2026-08-02 (session 47): DOI badge rendered as a broken image (#334)
+
+An ad-hoc report that the Zenodo DOI badge showed as a broken-image icon on
+github.com while the link itself worked.
+
+- **The badge was never broken; its caching was.** Every server-side check
+  passed: the Zenodo badge SVG returned `200` and parsed as well-formed XML
+  with the expected `DOI` / `10.5281/zenodo.21454227` text, GitHub's camo
+  proxy returned the same `200` with `image/svg+xml`, and
+  `doi.org/10.5281/zenodo.21454227` redirected twice to
+  `zenodo.org/records/21454228` with the page title `corrosim | Zenodo`. The
+  record number differing from the DOI suffix is normal — the concept DOI
+  resolves to the newest version's record, which is what `CITATION.cff`
+  already documents.
+- **The difference was one header.** Zenodo serves its badge with
+  `Cache-Control: no-cache, max-age=0` and camo passes it through, so the
+  browser re-fetched that badge on every page load. The License and Python
+  badges come from `img.shields.io` with `max-age=432000` and are served from
+  cache. Any hiccup or rate-limit at Zenodo therefore surfaced as a
+  broken-image icon on that badge alone, intermittently, with the link
+  unaffected — which is exactly the reported symptom.
+- **Fixed by removing the render-time dependency.** The DOI badge is now a
+  static `img.shields.io` badge carrying the same text and pointing at the
+  same `doi.org` URL. The DOI itself is unchanged and `CITATION.cff` remains
+  its source of truth. A static badge will not auto-update if the DOI
+  changes; a concept DOI is stable for the life of the record, so that
+  trade-off costs nothing.
+- **Process note.** The defect was reported as a broken link. Reproducing it
+  first showed the link and the badge both resolving, so nothing was filed
+  until the actual symptom — broken image, working link — was known. The
+  cause was in a response header, not in either URL, and guessing would have
+  produced a wrong fix to a correct DOI.
+
+**PRs merged:** #335.
+
+**Issues closed:** #334.
+
+**Pending:** nothing open. The CI, License and Python badges are plain images
+rather than links, unlike the DOI badge — cosmetic, unfiled, mentioned only
+so the inconsistency is not rediscovered as a defect.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
