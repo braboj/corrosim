@@ -7,7 +7,10 @@ from corrosim.report.gallery import (
     assemble_site,
     build_index_html,
     unique_cases,
+    with_analytics,
 )
+
+_TRACKER = "https://stats.imbra.io/script.js"
 
 
 def test_unique_cases_collapses_aliases():
@@ -81,10 +84,37 @@ def test_assemble_site_copies_reports_and_writes_the_index(tmp_path,
     out = tmp_path / "_site"
     shipped = assemble_site(str(out), [case])
     assert shipped == ["galtest"]
-    assert (out / "galtest.html").read_text(
-        encoding="utf-8") == "<html>the report</html>"
+    assert "the report" in (out / "galtest.html").read_text(encoding="utf-8")
     assert 'href="galtest.html"' in (out / "index.html").read_text(
         encoding="utf-8")
+
+
+def test_assemble_site_adds_analytics_to_published_pages_only(tmp_path,
+                                                             monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    case = CaseStudy(name="galtest", molecules=("CCO",), metal="Cu(111)")
+    report = tmp_path / "cases" / "galtest" / "report" / "report.html"
+    report.parent.mkdir(parents=True)
+    source = "<html><head><title>r</title></head><body>x</body></html>"
+    report.write_text(source, encoding="utf-8")
+
+    out = tmp_path / "_site"
+    assemble_site(str(out), [case])
+    copied = (out / "galtest.html").read_text(encoding="utf-8")
+    index = (out / "index.html").read_text(encoding="utf-8")
+    # the published copy and the index carry the tag inside <head>
+    assert copied.index(_TRACKER) < copied.index("</head>")
+    assert index.index(_TRACKER) < index.index("</head>")
+    # the tracked source report is never modified
+    assert report.read_text(encoding="utf-8") == source
+
+
+def test_with_analytics_is_idempotent_and_skips_headless_pages():
+    page = "<html><head></head><body></body></html>"
+    once = with_analytics(page)
+    assert with_analytics(once) == once
+    assert once.count(_TRACKER) == 1
+    assert with_analytics("<p>fragment</p>") == "<p>fragment</p>"
 
 
 def test_assemble_site_skips_a_case_with_no_rendered_report(tmp_path,

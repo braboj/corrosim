@@ -21,7 +21,6 @@ from __future__ import annotations
 import html
 import os
 import re
-import shutil
 from collections.abc import Iterable, Sequence
 
 from corrosim.presets import CASE_STUDIES, CaseStudy
@@ -65,6 +64,37 @@ _METAL_VAR: dict[str, str] = {
     "Cu": "var(--cu)",
     "Al": "var(--al)",
 }
+
+
+# Cookieless page-view counter for the published site only (self-hosted Umami).
+# It is added at Pages-build time, so the tracked and locally generated reports
+# never carry it; ``data-domains`` keeps local previews from sending events.
+_ANALYTICS_TAG = (
+    '<script defer src="https://stats.imbra.io/script.js" '
+    'data-website-id="4d3a7c37-c6b1-409c-92f9-973099f8bc83" '
+    'data-domains="corrosim.org"></script>'
+)
+
+
+def with_analytics(page: str) -> str:
+    """Insert the analytics tag before the first ``</head>`` of a page.
+
+    Args:
+        page: A complete HTML document.
+
+    Returns:
+        The document with the tag added, or unchanged if it has no ``</head>``
+        or already carries the tag.
+    """
+    if _ANALYTICS_TAG in page:
+        return page
+    return re.sub(
+        r"</head>",
+        lambda m: _ANALYTICS_TAG + "\n" + m.group(0),
+        page,
+        count=1,
+        flags=re.IGNORECASE,
+    )
 
 
 def unique_cases() -> list[CaseStudy]:
@@ -235,16 +265,21 @@ def assemble_site(
     studies = list(cases) if cases is not None else unique_cases()
     os.makedirs(out_dir, exist_ok=True)
 
-    # Copy only the cases whose self-contained report exists
+    # Copy only the cases whose self-contained report exists, adding the
+    # analytics tag to the published copy (the source report stays untouched)
     shipped = []
     for case in studies:
         src = _report_path(case)
         if not os.path.exists(src):
             continue
-        shutil.copyfile(src, os.path.join(out_dir, f"{case.name}.html"))
+        with open(src, encoding="utf-8") as fh:
+            page = fh.read()
+        dst = os.path.join(out_dir, f"{case.name}.html")
+        with open(dst, "w", encoding="utf-8") as fh:
+            fh.write(with_analytics(page))
         shipped.append(case)
 
-    index = build_index_html(shipped)
+    index = with_analytics(build_index_html(shipped))
     with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(index)
     return [c.name for c in shipped]
