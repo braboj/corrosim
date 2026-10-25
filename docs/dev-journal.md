@@ -3028,4 +3028,19 @@ github.com while the link itself worked.
 rather than links, unlike the DOI badge — cosmetic, unfiled, mentioned only
 so the inconsistency is not rediscovered as a defect.
 
+## 2026-10-25 (session 48): Umami page-view analytics on corrosim.org
+
+- **Tool:** Claude Code (Opus).
+- **Key changes:** The Pages build now adds the self-hosted Umami tracker
+  (`stats.imbra.io`, website ID `4d3a7c37-...`) to `index.html` and to each
+  copied case report via `report.gallery.with_analytics`. Tracked and locally
+  generated reports stay tracker-free; `data-domains="corrosim.org"` filters
+  local previews. Two tests cover injection, idempotence and the untouched
+  source report.
+- **Decisions:** ADR 0037 (analytics at deploy time, not in the report
+  template).
+
+**Pending:** after the Pages deploy, confirm `/api/send` returns 200 on
+corrosim.org and views appear in the Umami dashboard.
+
 <!-- Generated with solid-ai-templates (github.com/braboj/solid-ai-templates) -->
